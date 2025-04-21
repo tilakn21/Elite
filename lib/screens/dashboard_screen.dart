@@ -1,0 +1,124 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/job_provider.dart';
+import '../providers/chat_provider.dart';
+import '../utils/app_theme.dart';
+import '../widgets/job_list_card.dart';
+import '../widgets/job_details_card.dart';
+import '../widgets/active_chats_card.dart';
+import '../widgets/calendar_card.dart';
+
+class DashboardScreen extends StatefulWidget {
+  const DashboardScreen({Key? key}) : super(key: key);
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+  
+  @override
+  Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    
+    final jobProvider = Provider.of<JobProvider>(context);
+    final chatProvider = Provider.of<ChatProvider>(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth >= 1100;
+    final isTablet = screenWidth >= 600 && screenWidth < 1100;
+    final isMobile = screenWidth < 600;
+    
+    return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Overview',
+                  style: Theme.of(context).textTheme.displayMedium,
+                ),
+                const SizedBox(height: 24),
+                
+                // First row - Job List and Job Details
+                if (isMobile) ...[  
+                  // Mobile layout - Stack widgets vertically
+                  SizedBox(
+                    width: constraints.maxWidth,
+                    child: JobListCard(jobs: jobProvider.jobs),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: constraints.maxWidth,
+                    child: JobDetailsCard(
+                      job: jobProvider.jobs.isNotEmpty ? jobProvider.jobs.first : null,
+                    ),
+                  ),
+                ] else ...[  
+                  // Tablet/Desktop layout - Side by side
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Left column - Job List
+                      Expanded(
+                        flex: isDesktop ? 1 : 1,
+                        child: JobListCard(jobs: jobProvider.jobs),
+                      ),
+                      const SizedBox(width: 16),
+                      // Right column - Job Details
+                      Expanded(
+                        flex: isDesktop ? 1 : 1,
+                        child: JobDetailsCard(
+                          job: jobProvider.jobs.isNotEmpty ? jobProvider.jobs.first : null,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                
+                const SizedBox(height: 24),
+                
+                // Second row - Active Chats and Calendar
+                if (isMobile) ...[  
+                  // Mobile layout - Stack widgets vertically
+                  SizedBox(
+                    width: constraints.maxWidth,
+                    child: ActiveChatsCard(chats: chatProvider.activeChats),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: constraints.maxWidth,
+                    child: const CalendarCard(),
+                  ),
+                ] else ...[  
+                  // Tablet/Desktop layout - Side by side
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Left column - Active Chats
+                      Expanded(
+                        flex: isDesktop ? 1 : 1,
+                        child: ActiveChatsCard(chats: chatProvider.activeChats),
+                      ),
+                      const SizedBox(width: 16),
+                      // Right column - Calendar
+                      Expanded(
+                        flex: isDesktop ? 1 : 1,
+                        child: const CalendarCard(),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
