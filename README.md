@@ -1,114 +1,16 @@
-# Elite Signs Management System
+# elite_signboard_app
 
-A comprehensive internal management system for Elite Signs, built with Flutter and Supabase.
-
-## Features
-
-- Role-based access control (RBAC)
-- Cross-platform support (Web, Android, iOS, macOS, Linux, Windows)
-- Real-time updates and notifications
-- Secure authentication and data handling
-- Role-specific dashboards and functionality
-
-## User Roles
-
-- Admin
-- Project Director
-- Sales Director
-- Marketing Director
-- Receptionist
-- Salesperson
-- Designer
-- Production Manager
-- Printing Manager
-- Accountant
-- Labor/Drivers
-
-## Tech Stack
-
-- **Frontend**: Flutter
-- **Backend**: Supabase (PostgreSQL)
-- **Authentication**: Supabase Auth
-- **Real-time**: Supabase Realtime
-- **Storage**: Supabase Storage
+A new Flutter project.
 
 ## Getting Started
 
-### Prerequisites
+This project is a starting point for a Flutter application.
 
-- Flutter SDK (latest stable version)
-- Dart SDK (latest stable version)
-- Supabase account and project
+A few resources to get you started if this is your first Flutter project:
 
-### Environment Setup
+- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
 
-1. Clone the repository
-2. Create a `.env` file in the root directory with the following variables:
-   ```
-   SUPABASE_URL=your_supabase_url
-   SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
-
-### Installation
-
-1. Install dependencies:
-   ```bash
-   flutter pub get
-   ```
-
-2. Generate code:
-   ```bash
-   flutter pub run build_runner build --delete-conflicting-outputs
-   ```
-
-3. Run the application:
-   ```bash
-   flutter run
-   ```
-
-## Project Structure
-
-```
-lib/
-├── core/
-│   ├── constants/
-│   ├── services/
-│   ├── theme/
-│   └── utils/
-├── features/
-│   ├── auth/
-│   ├── dashboard/
-│   ├── jobs/
-│   ├── appointments/
-│   ├── employees/
-│   ├── orders/
-│   ├── reports/
-│   └── settings/
-├── models/
-├── providers/
-├── routes/
-└── widgets/
-```
-
-## Database Schema
-
-The application uses the following main tables in Supabase:
-
-- `profiles`: User profiles and role information
-- `jobs`: Job tracking and management
-- `appointments`: Customer appointments
-- `orders`: Order processing
-- `employees`: Employee information
-- `documents`: File storage and management
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+For help getting started with Flutter development, view the
+[online documentation](https://docs.flutter.dev/), which offers tutorials,
+samples, guidance on mobile development, and a full API reference.
