@@ -2,25 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 // Providers
-import 'providers/job_provider.dart';
-import 'providers/chat_provider.dart';
-import 'providers/user_provider.dart';
+import 'dashboards/design/providers/job_provider.dart';
+import 'dashboards/design/providers/chat_provider.dart';
+import 'dashboards/design/providers/user_provider.dart';
 
 // Screens
-import 'screens/dashboard_screen.dart';
-import 'screens/job_list_screen.dart';
-import 'screens/job_details_screen.dart';
-import 'screens/active_chats_screen.dart';
-import 'screens/chat_screen.dart';
+import 'dashboards/design/screens/dashboard_screen.dart';
+import 'dashboards/design/screens/job_list_screen.dart';
+import 'dashboards/design/screens/job_details_screen.dart';
+import 'dashboards/design/screens/active_chats_screen.dart';
+import 'dashboards/design/screens/chat_screen.dart';
+
+// Receptionist Dashboard
+import 'Dashboards/Receptionist/screens/dashboard_screen.dart';
 
 // Utils
-import 'utils/app_theme.dart';
+import 'dashboards/design/utils/app_theme.dart';
 
 // Widgets
-import 'widgets/upload_draft_widget.dart';
-import 'widgets/job_details_card.dart';
-import 'widgets/active_chats_card.dart';
-import 'widgets/calendar_card.dart';
+import 'dashboards/design/widgets/upload_draft_widget.dart';
+import 'dashboards/design/widgets/job_details_card.dart';
+import 'dashboards/design/widgets/active_chats_card.dart';
+import 'dashboards/design/widgets/calendar_card.dart';
 
 void main() {
   runApp(const MyApp());
@@ -40,8 +43,17 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Elite Signboard Management',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        home: const MainLayout(),
+        theme: ThemeData(
+          primaryColor: const Color(0xFF1A237E),
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF1A237E),
+            primary: const Color(0xFF1A237E),
+            secondary: const Color(0xFF536DFE),
+          ),
+          fontFamily: 'Poppins',
+        ),
+        // For testing, we'll show the receptionist dashboard
+        home: const DashboardPage(),
       ),
     );
   }
