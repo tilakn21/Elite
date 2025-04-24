@@ -25,24 +25,37 @@ class Sidebar extends StatelessWidget {
           SidebarButton(
             icon: Icons.dashboard,
             label: 'Dashboard',
-            selected: true,
+            selected: false,
+            onTap: () {
+              Navigator.of(context).pushReplacementNamed('/receptionist/dashboard');
+            },
           ),
           SidebarButton(
             icon: Icons.add_circle_outline,
             label: 'New Request',
+            selected: false,
+            onTap: () {
+              Navigator.of(context).pushReplacementNamed('/receptionist/new-job-request');
+            },
           ),
           SidebarButton(
             icon: Icons.person_add_alt,
             label: 'Assign salesperson',
+            selected: false,
+            onTap: () {
+              Navigator.of(context).pushReplacementNamed('/receptionist/assign-salesperson');
+            },
           ),
-          SidebarButton(
-            icon: Icons.bar_chart_outlined,
-            label: 'Job progress',
-          ),
-          SidebarButton(
-            icon: Icons.calendar_month_outlined,
-            label: 'Calendar',
-          ),
+          // SidebarButton(
+          //   icon: Icons.bar_chart_outlined,
+          //   label: 'Job progress',
+          //   selected: false,
+          // ),
+          // SidebarButton(
+          //   icon: Icons.calendar_month_outlined,
+          //   label: 'Calendar',
+          //   selected: false,
+          // ),
           const Spacer(),
         ],
       ),
@@ -54,12 +67,14 @@ class SidebarButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool selected;
+  final VoidCallback? onTap;
 
   const SidebarButton({
     super.key,
     required this.icon,
     required this.label,
     this.selected = false,
+    this.onTap,
   });
 
   @override
@@ -83,7 +98,7 @@ class SidebarButton extends StatelessWidget {
         selected: selected,
         selectedTileColor: const Color(0xFF24344D),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        onTap: () {},
+        onTap: onTap,
       ),
     );
   }

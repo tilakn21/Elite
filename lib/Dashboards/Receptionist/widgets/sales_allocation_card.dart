@@ -35,7 +35,7 @@ class SalesAllocationCard extends StatelessWidget {
                 children: const [
                   Expanded(flex: 2, child: _Header('Name')),
                   Expanded(child: _Header('Status')),
-                  SizedBox(width: 80, child: _Header('Assign')),
+                  // SizedBox(width: 80, child: _Header('Assign')),
                 ],
               ),
               const Divider(height: 18, thickness: 1, color: Color(0xFFF2F2F2)),
@@ -111,23 +111,23 @@ class _SalesRow extends StatelessWidget {
               Expanded(
                 child: _StatusPill(person['status']),
               ),
-              SizedBox(
-                width: 80,
-                child: TextButton(
-                  onPressed: () {},
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    minimumSize: const Size(0, 32),
-                  ),
-                  child: const Text(
-                    'Assign',
-                    style: TextStyle(
-                      color: Color(0xFF1A237E),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ),
+              // SizedBox(
+              //   width: 80,
+              //   child: TextButton(
+              //     onPressed: () {},
+              //     style: TextButton.styleFrom(
+              //       padding: const EdgeInsets.symmetric(horizontal: 16),
+              //       minimumSize: const Size(0, 32),
+              //     ),
+              //     // child: const Text(
+              //     //   'Assign',
+              //     //   style: TextStyle(
+              //     //     color: Color(0xFF1A237E),
+              //     //     fontWeight: FontWeight.w500,
+              //     //   ),
+              //     // ),
+              //   ),
+              // ),
             ],
           ),
         ),
