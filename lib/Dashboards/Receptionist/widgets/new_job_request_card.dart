@@ -5,31 +5,36 @@ class NewJobRequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-      color: Colors.white,
-      child: Container(
-        // constraints: const BoxConstraints.expand(),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(32, 28, 32, 28),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('New Job Request', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: Color(0xFF1B2330))),
-                const SizedBox(height: 18),
-                Row(
-                  children: const [
-                    Expanded(child: _Header('Name')),
-                    Expanded(child: _Header('Phone')),
-                    Expanded(child: _Header('Email')),
-                    Expanded(child: _Header('Status')),
-                  ],
-                ),
-                const Divider(height: 18, thickness: 1, color: Color(0xFFF2F2F2)),
-                ..._jobRequests.map((job) => _JobRow(job)).toList(),
-              ],
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).pushNamed('/receptionist/view-all-jobs');
+      },
+      child: Card(
+        elevation: 8,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        color: Colors.white,
+        child: Container(
+          // constraints: const BoxConstraints.expand(),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(32, 28, 32, 28),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('New Job Request', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: Color(0xFF1B2330))),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: const [
+                      Expanded(child: _Header('Name')),
+                      Expanded(child: _Header('Phone')),
+                      Expanded(child: _Header('Email')),
+                      Expanded(child: _Header('Status')),
+                    ],
+                  ),
+                  const Divider(height: 18, thickness: 1, color: Color(0xFFF2F2F2)),
+                  ..._jobRequests.map((job) => _JobRow(job)).toList(),
+                ],
+              ),
             ),
           ),
         ),

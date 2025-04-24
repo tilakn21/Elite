@@ -2,31 +2,56 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 // Providers
-import 'dashboards/design/providers/job_provider.dart';
-import 'dashboards/design/providers/chat_provider.dart';
-import 'dashboards/design/providers/user_provider.dart';
+import 'Dashboards/Design/providers/job_provider.dart';
+import 'Dashboards/Design/providers/chat_provider.dart';
+import 'Dashboards/Design/providers/user_provider.dart';
 
 // Screens
-import 'dashboards/design/screens/dashboard_screen.dart';
-import 'dashboards/design/screens/job_list_screen.dart';
-import 'dashboards/design/screens/job_details_screen.dart';
-import 'dashboards/design/screens/active_chats_screen.dart';
-import 'dashboards/design/screens/chat_screen.dart';
+import 'Dashboards/Design/screens/dashboard_screen.dart';
+import 'Dashboards/Design/screens/job_list_screen.dart';
+import 'Dashboards/Design/screens/job_details_screen.dart';
+import 'Dashboards/Design/screens/active_chats_screen.dart';
+import 'Dashboards/Design/screens/chat_screen.dart';
 
 // Receptionist Dashboard
 import 'Dashboards/Receptionist/screens/dashboard_screen.dart';
+import 'Dashboards/Receptionist/screens/new_job_request_screen.dart';
+import 'Dashboards/Receptionist/screens/assign_salesperson_screen.dart';
+import 'Dashboards/Receptionist/screens/view_all_jobs_screen.dart';
+
+// Design Dashboard
+import 'Dashboards/Design/screens/dashboard_screen.dart' as design;
 
 // Utils
-import 'dashboards/design/utils/app_theme.dart';
+import 'Dashboards/Design/utils/app_theme.dart';
 
 // Widgets
-import 'dashboards/design/widgets/upload_draft_widget.dart';
-import 'dashboards/design/widgets/job_details_card.dart';
-import 'dashboards/design/widgets/active_chats_card.dart';
-import 'dashboards/design/widgets/calendar_card.dart';
+import 'Dashboards/Design/widgets/upload_draft_widget.dart';
+import 'Dashboards/Design/widgets/job_details_card.dart';
+import 'Dashboards/Design/widgets/active_chats_card.dart';
+import 'Dashboards/Design/widgets/calendar_card.dart';
+
+// Login Screen
+import 'screens/login_screen.dart';
 
 void main() {
-  runApp(const MyApp());
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.dumpErrorToConsole(details);
+    // ignore: avoid_print
+    print('CAUGHT FLUTTER ERROR:');
+    print(details.exceptionAsString());
+    print(details.stack);
+  };
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => JobProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
+      ],
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -34,27 +59,31 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => UserProvider()),
-        ChangeNotifierProvider(create: (_) => JobProvider()),
-        ChangeNotifierProvider(create: (_) => ChatProvider()),
-      ],
-      child: MaterialApp(
-        title: 'Elite Signboard Management',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          primaryColor: const Color(0xFF1A237E),
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF1A237E),
-            primary: const Color(0xFF1A237E),
-            secondary: const Color(0xFF536DFE),
-          ),
-          fontFamily: 'Poppins',
+    return MaterialApp(
+      title: 'Elite Signboard Management',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primaryColor: const Color(0xFF1A237E),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF1A237E),
+          primary: const Color(0xFF1A237E),
+          secondary: const Color(0xFF536DFE),
         ),
-        // For testing, we'll show the receptionist dashboard
-        home: const DashboardPage(),
+        fontFamily: 'Poppins',
       ),
+      home: const LoginScreen(),
+      routes: {
+        '/receptionist/dashboard': (context) => const DashboardPage(),
+        '/receptionist/new-job-request': (context) => const NewJobRequestScreen(),
+        '/receptionist/assign-salesperson': (context) => const AssignSalespersonScreen(),
+        '/receptionist/view-all-jobs': (context) => const ViewAllJobsScreen(),
+        '/salesperson/dashboard': (context) => Scaffold(body: Center(child: Text('Salesperson Dashboard', style: TextStyle(fontSize: 28)))),
+        '/design/dashboard': (context) => const design.DashboardScreen(),
+        '/accounts/dashboard': (context) => Scaffold(body: Center(child: Text('Accounts Dashboard', style: TextStyle(fontSize: 28)))),
+        '/production/dashboard': (context) => Scaffold(body: Center(child: Text('Production Team Dashboard', style: TextStyle(fontSize: 28)))),
+        '/printing/dashboard': (context) => Scaffold(body: Center(child: Text('Printing Dashboard', style: TextStyle(fontSize: 28)))),
+        '/admin/dashboard': (context) => Scaffold(body: Center(child: Text('Admin Dashboard', style: TextStyle(fontSize: 28)))),
+      },
     );
   }
 }

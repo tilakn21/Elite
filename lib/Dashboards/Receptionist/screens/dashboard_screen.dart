@@ -4,9 +4,13 @@ import '../widgets/new_job_request_card.dart';
 import '../widgets/sales_allocation_card.dart';
 import '../widgets/job_requests_overview_card.dart';
 import '../widgets/calendar_card.dart';
+import '../widgets/topbar.dart'; 
+import 'new_job_request_screen.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({Key? key}) : super(key: key);
+
+  static Route<dynamic> route() => MaterialPageRoute(builder: (_) => const DashboardPage());
 
   @override
   Widget build(BuildContext context) {
@@ -28,84 +32,9 @@ class DashboardPage extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 32),
-                // Top bar with search and user controls
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Overview',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 24,
-                          color: Color(0xFF1B2330),
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          Container(
-                            width: 320,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black12,
-                                  blurRadius: 8,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                const Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 12),
-                                  child: Icon(Icons.search, color: Color(0xFF8A8D9F)),
-                                ),
-                                Expanded(
-                                  child: TextField(
-                                    decoration: InputDecoration(
-                                      border: InputBorder.none,
-                                      hintText: 'Search data for this page',
-                                      hintStyle: TextStyle(color: Color(0xFF8A8D9F)),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 24),
-                          IconButton(
-                            icon: const Icon(Icons.bar_chart_rounded, color: Color(0xFF8A8D9F), size: 26),
-                            onPressed: () {},
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.notifications_none, color: Color(0xFF8A8D9F), size: 26),
-                            onPressed: () {},
-                          ),
-                          const SizedBox(width: 24),
-                          CircleAvatar(
-                            backgroundColor: Color(0xFFEDF0F9),
-                            radius: 20,
-                            child: Text('J', style: TextStyle(color: Color(0xFF1B2330), fontWeight: FontWeight.bold)),
-                          ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text('John Doe', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1B2330))),
-                              Text('Admin', style: TextStyle(fontSize: 12, color: Color(0xFF8A8D9F))),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 36),
+                // Top bar
+                const TopBar(isDashboard: true),
+                const SizedBox(height: 8),
                 // Responsive, scrollable dashboard content
                 Expanded(
                   child: LayoutBuilder(
@@ -116,12 +45,19 @@ class DashboardPage extends StatelessWidget {
                           ? Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // Both columns take up equal width
                                 Expanded(
                                   child: Column(
                                     children: [
-                                      NewJobRequestCard(),
+                                      SizedBox(
+                                        height: 320,
+                                        child: NewJobRequestCard(),
+                                      ),
                                       const SizedBox(height: 32),
-                                      JobRequestsOverviewCard(),
+                                      SizedBox(
+                                        height: 320,
+                                        child: JobRequestsOverviewCard(),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -129,9 +65,15 @@ class DashboardPage extends StatelessWidget {
                                 Expanded(
                                   child: Column(
                                     children: [
-                                      SalesAllocationCard(),
+                                      SizedBox(
+                                        height: 320,
+                                        child: SalesAllocationCard(),
+                                      ),
                                       const SizedBox(height: 32),
-                                      CalendarCard(),
+                                      SizedBox(
+                                        height: 320,
+                                        child: CalendarCard(),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -139,13 +81,25 @@ class DashboardPage extends StatelessWidget {
                             )
                           : Column(
                               children: [
-                                NewJobRequestCard(),
+                                SizedBox(
+                                  height: 320,
+                                  child: NewJobRequestCard(),
+                                ),
                                 const SizedBox(height: 32),
-                                SalesAllocationCard(),
+                                SizedBox(
+                                  height: 320,
+                                  child: SalesAllocationCard(),
+                                ),
                                 const SizedBox(height: 32),
-                                JobRequestsOverviewCard(),
+                                SizedBox(
+                                  height: 320,
+                                  child: JobRequestsOverviewCard(),
+                                ),
                                 const SizedBox(height: 32),
-                                CalendarCard(),
+                                SizedBox(
+                                  height: 320,
+                                  child: CalendarCard(),
+                                ),
                               ],
                             ),
                       );
@@ -160,3 +114,9 @@ class DashboardPage extends StatelessWidget {
     );
   }
 }
+
+// This should be in your main.dart or router setup, but for reference:
+// routes: {
+//   '/receptionist/dashboard': (context) => const DashboardPage(),
+//   '/receptionist/new-job-request': (context) => const NewJobRequestScreen(),
+// }
