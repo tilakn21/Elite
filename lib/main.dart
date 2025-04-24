@@ -22,6 +22,10 @@ import 'Dashboards/Receptionist/screens/view_all_jobs_screen.dart';
 // Design Dashboard
 import 'Dashboards/Design/screens/dashboard_screen.dart' as design;
 
+// Salesperson Dashboard
+import 'Dashboards/Salesperson/screens/home_screen.dart';
+import 'Dashboards/Salesperson/screens/profile_screen.dart';
+
 // Utils
 import 'Dashboards/Design/utils/app_theme.dart';
 
@@ -72,12 +76,14 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Poppins',
       ),
       home: const LoginScreen(),
+      //home: const SalespersonHomeScreen(),
       routes: {
         '/receptionist/dashboard': (context) => const DashboardPage(),
         '/receptionist/new-job-request': (context) => const NewJobRequestScreen(),
         '/receptionist/assign-salesperson': (context) => const AssignSalespersonScreen(),
         '/receptionist/view-all-jobs': (context) => const ViewAllJobsScreen(),
-        '/salesperson/dashboard': (context) => Scaffold(body: Center(child: Text('Salesperson Dashboard', style: TextStyle(fontSize: 28)))),
+        '/salesperson/dashboard': (context) => const SalespersonHomeScreen(),
+        '/salesperson/profile': (context) => const SalespersonProfileScreen(),
         '/design/dashboard': (context) => const design.DashboardScreen(),
         '/accounts/dashboard': (context) => Scaffold(body: Center(child: Text('Accounts Dashboard', style: TextStyle(fontSize: 28)))),
         '/production/dashboard': (context) => Scaffold(body: Center(child: Text('Production Team Dashboard', style: TextStyle(fontSize: 28)))),

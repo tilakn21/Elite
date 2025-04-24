@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/platform_utils.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -22,10 +23,35 @@ class _LoginScreenState extends State<LoginScreen> {
     {'label': 'Admin', 'route': '/admin/dashboard'},
   ];
 
+  void navigateBasedOnRoleAndPlatform(String role) {
+    if (role == 'Salesperson' && isMobile()) {
+      Navigator.of(context).pushReplacementNamed('/salesperson/dashboard');
+    } else if (role == 'Admin' && isDesktop()) {
+      Navigator.of(context).pushReplacementNamed('/admin/dashboard');
+    } else if (role == 'Receptionist' && isDesktop()) {
+      Navigator.of(context).pushReplacementNamed('/receptionist/dashboard');
+    } else if (role == 'Design Team' && isDesktop()) {
+      Navigator.of(context).pushReplacementNamed('/design/dashboard');
+    } else if (role == 'Accounts' && isDesktop()) {
+      Navigator.of(context).pushReplacementNamed('/accounts/dashboard');
+    } else if (role == 'Production Team' && isDesktop()) {
+      Navigator.of(context).pushReplacementNamed('/production/dashboard');
+    } else if (role == 'Printing' && isDesktop()) {
+      Navigator.of(context).pushReplacementNamed('/printing/dashboard');
+    } else {
+      showDialog(
+        context: context,
+        builder: (_) => const AlertDialog(
+          title: Text('Unsupported'),
+          content: Text('This dashboard is not available on this device.'),
+        ),
+      );
+    }
+  }
+
   void _login() {
     if (_selectedRole != null) {
-      final route = _roles.firstWhere((role) => role['label'] == _selectedRole)['route'];
-      Navigator.of(context).pushReplacementNamed(route!);
+      navigateBasedOnRoleAndPlatform(_selectedRole!);
     }
   }
 
