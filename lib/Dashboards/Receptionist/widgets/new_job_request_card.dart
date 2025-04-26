@@ -21,7 +21,11 @@ class NewJobRequestCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('New Job Request', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: Color(0xFF1B2330))),
+                  const Text('New Job Request',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          color: Color(0xFF1B2330))),
                   const SizedBox(height: 18),
                   Row(
                     children: const [
@@ -31,7 +35,8 @@ class NewJobRequestCard extends StatelessWidget {
                       Expanded(child: _Header('Status')),
                     ],
                   ),
-                  const Divider(height: 18, thickness: 1, color: Color(0xFFF2F2F2)),
+                  const Divider(
+                      height: 18, thickness: 1, color: Color(0xFFF2F2F2)),
                   ..._jobRequests.map((job) => _JobRow(job)).toList(),
                 ],
               ),
@@ -48,7 +53,11 @@ class _Header extends StatelessWidget {
   const _Header(this.title);
   @override
   Widget build(BuildContext context) {
-    return Text(title, style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF8A8D9F), fontSize: 15));
+    return Text(title,
+        style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF8A8D9F),
+            fontSize: 15));
   }
 }
 
@@ -63,14 +72,29 @@ class _JobRow extends StatelessWidget {
         children: [
           Expanded(
             child: Row(children: [
-              CircleAvatar(backgroundColor: Colors.grey.shade200, child: Icon(Icons.person, color: Colors.grey.shade500)),
+              CircleAvatar(
+                  backgroundColor: Colors.grey.shade200,
+                  child: Icon(Icons.person, color: Colors.grey.shade500)),
               const SizedBox(width: 10),
-              Flexible(child: Text(job['name'], style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15))),
+              Flexible(
+                  child: Text(job['name'],
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w500, fontSize: 15))),
             ]),
           ),
-          Expanded(child: Text(job['phone'], style: const TextStyle(fontSize: 14, color: Color(0xFF1B2330)))),
-          Expanded(child: Text(job['email'], style: const TextStyle(fontSize: 14, color: Color(0xFF1B2330)), overflow: TextOverflow.ellipsis)),
-          Expanded(child: Align(alignment: Alignment.centerLeft, child: _StatusChip(job['status']))),
+          Expanded(
+              child: Text(job['phone'],
+                  style:
+                      const TextStyle(fontSize: 14, color: Color(0xFF1B2330)))),
+          Expanded(
+              child: Text(job['email'],
+                  style:
+                      const TextStyle(fontSize: 14, color: Color(0xFF1B2330)),
+                  overflow: TextOverflow.ellipsis)),
+          Expanded(
+              child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: _StatusChip(job['status']))),
         ],
       ),
     );
@@ -96,10 +120,12 @@ class _StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.11),
+        color: color.withAlpha(28),
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Text(status, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13)),
+      child: Text(status,
+          style: TextStyle(
+              color: color, fontWeight: FontWeight.bold, fontSize: 13)),
     );
   }
 }

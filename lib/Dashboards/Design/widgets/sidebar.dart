@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 class DesignSidebar extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onItemTapped;
-  const DesignSidebar({Key? key, this.selectedIndex = 0, required this.onItemTapped}) : super(key: key);
+  const DesignSidebar(
+      {Key? key, this.selectedIndex = 0, required this.onItemTapped})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -61,19 +63,19 @@ class DesignSidebar extends StatelessWidget {
           ),
           _SidebarButton(
             icon: Icons.list_alt,
-            label: 'Job details',
+            label: 'Job List',
             selected: selectedIndex == 1,
             onTap: () => onItemTapped(1),
           ),
           _SidebarButton(
-            icon: Icons.upload_file,
-            label: 'Upload\nDesign Draft',
+            icon: Icons.work,
+            label: 'Assigned\nJobs',
             selected: selectedIndex == 2,
             onTap: () => onItemTapped(2),
           ),
           _SidebarButton(
             icon: Icons.chat,
-            label: 'Chat',
+            label: 'Customer\nChats',
             selected: selectedIndex == 3,
             onTap: () => onItemTapped(3),
           ),
@@ -112,7 +114,8 @@ class _SidebarButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           child: Row(
             children: [
-              Icon(icon, color: selected ? Color(0xFF101C2C) : Colors.white, size: 22),
+              Icon(icon,
+                  color: selected ? Color(0xFF101C2C) : Colors.white, size: 22),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(

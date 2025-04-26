@@ -13,7 +13,8 @@ class JobListScreen extends StatefulWidget {
   State<JobListScreen> createState() => _JobListScreenState();
 }
 
-class _JobListScreenState extends State<JobListScreen> with SingleTickerProviderStateMixin {
+class _JobListScreenState extends State<JobListScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -31,7 +32,7 @@ class _JobListScreenState extends State<JobListScreen> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     final jobProvider = Provider.of<JobProvider>(context);
-    
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       body: Column(
@@ -59,7 +60,8 @@ class _JobListScreenState extends State<JobListScreen> with SingleTickerProvider
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: jobProvider.approvedJobs.length,
-                    separatorBuilder: (context, index) => const SizedBox(width: 16),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(width: 16),
                     itemBuilder: (context, index) {
                       final job = jobProvider.approvedJobs[index];
                       return _buildApprovedJobCard(context, job);
@@ -77,43 +79,43 @@ class _JobListScreenState extends State<JobListScreen> with SingleTickerProvider
                 Text(
                   'Job no.',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppTheme.textSecondaryColor,
-                  ),
+                        color: AppTheme.textSecondaryColor,
+                      ),
                 ),
                 const Spacer(flex: 1),
                 Text(
                   'Client Name',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppTheme.textSecondaryColor,
-                  ),
+                        color: AppTheme.textSecondaryColor,
+                      ),
                 ),
                 const Spacer(flex: 2),
                 Text(
                   'Email',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppTheme.textSecondaryColor,
-                  ),
+                        color: AppTheme.textSecondaryColor,
+                      ),
                 ),
                 const Spacer(flex: 2),
                 Text(
                   'Phone number',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppTheme.textSecondaryColor,
-                  ),
+                        color: AppTheme.textSecondaryColor,
+                      ),
                 ),
                 const Spacer(flex: 1),
                 Text(
                   'Date added',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppTheme.textSecondaryColor,
-                  ),
+                        color: AppTheme.textSecondaryColor,
+                      ),
                 ),
                 const Spacer(flex: 1),
                 Text(
                   'STATUS',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppTheme.textSecondaryColor,
-                  ),
+                        color: AppTheme.textSecondaryColor,
+                      ),
                 ),
                 const SizedBox(width: 48), // Space for the arrow icon
               ],
@@ -161,7 +163,9 @@ class _JobListScreenState extends State<JobListScreen> with SingleTickerProvider
                     radius: 12, // Smaller radius
                     backgroundColor: Colors.grey[200],
                     child: Text(
-                      job.clientName.isNotEmpty ? job.clientName.substring(0, 1) : '?',
+                      job.clientName.isNotEmpty
+                          ? job.clientName.substring(0, 1)
+                          : '?',
                       style: const TextStyle(
                         color: AppTheme.primaryColor,
                         fontWeight: FontWeight.bold,
@@ -178,16 +182,18 @@ class _JobListScreenState extends State<JobListScreen> with SingleTickerProvider
                       children: [
                         Text(
                           job.clientName,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           job.address.split(',').first,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontSize: 10,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    fontSize: 10,
+                                  ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
@@ -195,9 +201,9 @@ class _JobListScreenState extends State<JobListScreen> with SingleTickerProvider
                   ),
                 ],
               ),
-              
+
               const Spacer(flex: 1),
-              
+
               // Date row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -205,33 +211,33 @@ class _JobListScreenState extends State<JobListScreen> with SingleTickerProvider
                   Text(
                     'Date',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontSize: 10,
-                    ),
+                          fontSize: 10,
+                        ),
                   ),
                   Text(
                     DateFormat('dd/MM/yyyy').format(job.dateAdded),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontSize: 10,
-                    ),
+                          fontSize: 10,
+                        ),
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 4),
-              
+
               // Status indicator
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppTheme.approvedColor.withOpacity(0.1),
+                  color: AppTheme.approvedColor.withAlpha(26),
                   borderRadius: BorderRadius.circular(2),
                 ),
                 child: Text(
                   'Approved',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.approvedColor,
-                    fontSize: 10,
-                  ),
+                        color: AppTheme.approvedColor,
+                        fontSize: 10,
+                      ),
                 ),
               ),
             ],
@@ -243,10 +249,10 @@ class _JobListScreenState extends State<JobListScreen> with SingleTickerProvider
 
   Widget _buildJobListItem(BuildContext context, Job job) {
     final dateFormat = DateFormat('dd/MM/yyyy\nhh:mm a');
-    
+
     Color statusColor;
     String statusText;
-    
+
     switch (job.status) {
       case JobStatus.approved:
         statusColor = AppTheme.approvedColor;
@@ -261,7 +267,7 @@ class _JobListScreenState extends State<JobListScreen> with SingleTickerProvider
         statusText = 'In progress';
         break;
     }
-    
+
     return InkWell(
       onTap: () {
         Navigator.push(
@@ -303,14 +309,14 @@ class _JobListScreenState extends State<JobListScreen> with SingleTickerProvider
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
+                color: statusColor.withAlpha(26),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
                 statusText,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: statusColor,
-                ),
+                      color: statusColor,
+                    ),
               ),
             ),
             const SizedBox(width: 16),
