@@ -37,6 +37,11 @@ import 'Dashboards/Printing/screens/printing_dashboard_screen.dart';
 import 'Dashboards/Printing/screens/assign_labour_screen.dart';
 import 'Dashboards/Printing/screens/quality_check_screen.dart';
 
+// Accounts Dashboard
+import 'Dashboards/Accounts/screens/accounts_dashboard_screen.dart';
+import 'Dashboards/Accounts/screens/accounts_invoice_screen.dart';
+import 'Dashboards/Accounts/screens/accounts_employee_screen.dart';
+
 // Utils
 import 'Dashboards/Design/utils/app_theme.dart';
 
@@ -98,10 +103,9 @@ class MyApp extends StatelessWidget {
         '/salesperson/dashboard': (context) => const SalespersonHomeScreen(),
         '/salesperson/profile': (context) => const SalespersonProfileScreen(),
         '/design/dashboard': (context) => const design.DashboardScreen(),
-        '/accounts/dashboard': (context) => Scaffold(
-            body: Center(
-                child: Text('Accounts Dashboard',
-                    style: TextStyle(fontSize: 28)))),
+        '/accounts/dashboard': (context) => const AccountsDashboardScreen(),
+        '/accounts/invoice': (context) => const AccountsInvoiceScreen(),
+        '/accounts/employee': (context) => const AccountsEmployeeScreen(),
         '/production/dashboard': (context) => const ProductionDashboard(),
         '/production/joblist': (context) => const ProductionJobListScreen(),
         '/production/assignlabour': (context) => const AssignLabourScreen(),
