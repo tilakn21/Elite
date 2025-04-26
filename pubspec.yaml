@@ -21,6 +21,7 @@ dependencies:
   table_calendar: ^3.0.9
   uuid: ^4.3.3
   fl_chart: ^0.66.2
+  get: ^4.7.2
 
 dev_dependencies:
   flutter_test:

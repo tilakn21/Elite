@@ -59,8 +59,10 @@ class _UploadDraftWidgetState extends State<UploadDraftWidget> {
                 Text(
                   'Upload Draft Design',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: _isDragging ? AppTheme.accentColor : AppTheme.textPrimaryColor,
-                  ),
+                        color: _isDragging
+                            ? AppTheme.accentColor
+                            : AppTheme.textPrimaryColor,
+                      ),
                 ),
                 const SizedBox(height: 8),
                 Text(

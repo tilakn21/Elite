@@ -22,13 +22,14 @@ class NewJobRequestScreen extends StatelessWidget {
                   child: Center(
                     child: Container(
                       width: formWidth,
-                      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 40),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 48, horizontal: 40),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
+                            color: Colors.black.withAlpha(10),
                             blurRadius: 24,
                             offset: const Offset(0, 8),
                           ),
@@ -52,7 +53,7 @@ class NewJobRequestScreen extends StatelessWidget {
                               Expanded(
                                 child: Container(
                                   height: 2,
-                                  color: Color(0xFF1B2330).withOpacity(0.08),
+                                  color: Color(0xFF1B2330).withAlpha(20),
                                 ),
                               ),
                             ],
@@ -75,7 +76,8 @@ class NewJobRequestScreen extends StatelessWidget {
                                     _Label('Date'),
                                     _InputField(
                                       hint: 'Select date',
-                                      suffixIcon: Icon(Icons.calendar_today, size: 18, color: Color(0xFFBDBDBD)),
+                                      suffixIcon: Icon(Icons.calendar_today,
+                                          size: 18, color: Color(0xFFBDBDBD)),
                                     ),
                                   ],
                                 ),
@@ -161,7 +163,8 @@ class _Label extends StatelessWidget {
 class _InputField extends StatelessWidget {
   final String hint;
   final Widget? suffixIcon;
-  const _InputField({required this.hint, this.suffixIcon, Key? key}) : super(key: key);
+  const _InputField({required this.hint, this.suffixIcon, Key? key})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {

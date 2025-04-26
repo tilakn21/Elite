@@ -20,7 +20,8 @@ class AssignSalespersonScreen extends StatelessWidget {
                 const TopBar(isDashboard: false),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 32.0, horizontal: 0),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 32.0, horizontal: 0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -49,7 +50,7 @@ class AssignSalespersonScreen extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.04),
+                                    color: Colors.black.withAlpha(10),
                                     blurRadius: 24,
                                     offset: const Offset(0, 8),
                                   ),
@@ -58,7 +59,11 @@ class AssignSalespersonScreen extends StatelessWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Job list', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14, color: Color(0xFF7B7B7B))),
+                                  Text('Job list',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 14,
+                                          color: Color(0xFF7B7B7B))),
                                   const SizedBox(height: 16),
                                   _JobListItem(
                                     avatar: 'assets/images/avatar1.png',
@@ -94,7 +99,7 @@ class AssignSalespersonScreen extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.04),
+                                    color: Colors.black.withAlpha(10),
                                     blurRadius: 24,
                                     offset: const Offset(0, 8),
                                   ),
@@ -103,7 +108,11 @@ class AssignSalespersonScreen extends StatelessWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Salesperson availability', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14, color: Color(0xFF7B7B7B))),
+                                  Text('Salesperson availability',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 14,
+                                          color: Color(0xFF7B7B7B))),
                                   const SizedBox(height: 16),
                                   _SalespersonDropdown(),
                                   const SizedBox(height: 8),
@@ -119,13 +128,14 @@ class AssignSalespersonScreen extends StatelessWidget {
                           padding: const EdgeInsets.only(left: 56),
                           child: Container(
                             width: 900,
-                            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 24, horizontal: 24),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.04),
+                                  color: Colors.black.withAlpha(10),
                                   blurRadius: 24,
                                   offset: const Offset(0, 8),
                                 ),
@@ -137,11 +147,22 @@ class AssignSalespersonScreen extends StatelessWidget {
                                   child: RichText(
                                     text: TextSpan(
                                       text: 'Assign Job ',
-                                      style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1B2330), fontSize: 16),
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF1B2330),
+                                          fontSize: 16),
                                       children: [
-                                        TextSpan(text: '#87364523', style: TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF36A1C5))),
+                                        TextSpan(
+                                            text: '#87364523',
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w500,
+                                                color: Color(0xFF36A1C5))),
                                         TextSpan(text: ' to '),
-                                        TextSpan(text: 'Richard Davis', style: TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF36A1C5))),
+                                        TextSpan(
+                                            text: 'Richard Davis',
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w500,
+                                                color: Color(0xFF36A1C5))),
                                       ],
                                     ),
                                   ),
@@ -191,7 +212,14 @@ class _JobListItem extends StatelessWidget {
   final String subtitle;
   final String jobId;
   final String location;
-  const _JobListItem({required this.avatar, required this.name, required this.subtitle, required this.jobId, required this.location, Key? key}) : super(key: key);
+  const _JobListItem(
+      {required this.avatar,
+      required this.name,
+      required this.subtitle,
+      required this.jobId,
+      required this.location,
+      Key? key})
+      : super(key: key);
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -203,14 +231,18 @@ class _JobListItem extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(name, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-              Text(subtitle, style: TextStyle(fontSize: 11, color: Color(0xFFBDBDBD))),
+              Text(name,
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+              Text(subtitle,
+                  style: TextStyle(fontSize: 11, color: Color(0xFFBDBDBD))),
             ],
           ),
           Spacer(),
-          Text(jobId, style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+          Text(jobId,
+              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
           SizedBox(width: 32),
-          Text(location, style: TextStyle(fontSize: 13, color: Color(0xFF7B7B7B))),
+          Text(location,
+              style: TextStyle(fontSize: 13, color: Color(0xFF7B7B7B))),
         ],
       ),
     );
@@ -254,7 +286,8 @@ class _SalespersonItem extends StatelessWidget {
           color: Color(0xFFF8F8F8),
           borderRadius: BorderRadius.circular(4),
         ),
-        child: Text(name, style: TextStyle(fontSize: 13, color: Color(0xFF1B2330))),
+        child: Text(name,
+            style: TextStyle(fontSize: 13, color: Color(0xFF1B2330))),
       ),
     );
   }
