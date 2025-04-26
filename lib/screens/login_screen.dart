@@ -38,6 +38,8 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.of(context).pushReplacementNamed('/production/dashboard');
     } else if (role == 'Printing' && isDesktop()) {
       Navigator.of(context).pushReplacementNamed('/printing/dashboard');
+    } else if (role == 'Printing' && isMobile()) {
+      Navigator.of(context).pushReplacementNamed('/printing/dashboard');
     } else {
       showDialog(
         context: context,
