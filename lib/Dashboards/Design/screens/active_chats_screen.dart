@@ -7,13 +7,14 @@ import '../utils/app_theme.dart';
 import 'chat_screen.dart';
 
 class ActiveChatsScreen extends StatefulWidget {
-  const ActiveChatsScreen({Key? key}) : super(key: key);
+  const ActiveChatsScreen({super.key});
 
   @override
   State<ActiveChatsScreen> createState() => _ActiveChatsScreenState();
 }
 
-class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKeepAliveClientMixin {
+class _ActiveChatsScreenState extends State<ActiveChatsScreen>
+    with AutomaticKeepAliveClientMixin {
   Chat? _selectedChat;
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -29,7 +30,7 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
     setState(() {
       _selectedChat = chat;
     });
-    
+
     // Scroll to bottom of messages when chat is selected
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
@@ -48,25 +49,25 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
 
   void _sendMessage() {
     if (_messageController.text.trim().isEmpty || _selectedChat == null) return;
-    
+
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-    
+
     final newMessage = ChatMessage(
       senderId: 'admin',
       senderName: 'Admin',
       message: _messageController.text.trim(),
       timestamp: DateTime.now(),
     );
-    
+
     chatProvider.addMessage(_selectedChat!.id, newMessage);
-    
+
     _messageController.clear();
-    
+
     // Reload chat
     setState(() {
       _selectedChat = chatProvider.getChatById(_selectedChat!.id);
     });
-    
+
     // Scroll to bottom after sending message
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
@@ -75,7 +76,7 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
 
   @override
   bool get wantKeepAlive => true;
-  
+
   String _getShortStatusText(ChatStatus status) {
     switch (status) {
       case ChatStatus.approved:
@@ -90,12 +91,12 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
-    
+
     final chatProvider = Provider.of<ChatProvider>(context);
     final activeChats = chatProvider.activeChats;
     final isDesktop = MediaQuery.of(context).size.width >= 1100;
     final isMobile = MediaQuery.of(context).size.width < 600;
-    
+
     if (isMobile) {
       return _buildMobileLayout(activeChats);
     } else {
@@ -122,26 +123,28 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
                         Icon(
                           Icons.chat_bubble_outline,
                           size: 64,
-                          color: AppTheme.textSecondaryColor.withOpacity(0.5),
+                          color: AppTheme.textSecondaryColor.withAlpha(128),
                         ),
                         const SizedBox(height: 16),
                         Text(
                           'No active chats',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: AppTheme.textSecondaryColor,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    color: AppTheme.textSecondaryColor,
+                                  ),
                         ),
                       ],
                     ),
                   )
                 : ListView.separated(
                     itemCount: activeChats.length,
-                    separatorBuilder: (context, index) => const Divider(height: 1),
+                    separatorBuilder: (context, index) =>
+                        const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final chat = activeChats[index];
                       return _buildChatListItem(
-                        context, 
-                        chat, 
+                        context,
+                        chat,
                         onTap: () {
                           Navigator.push(
                             context,
@@ -161,7 +164,7 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
       ),
     );
   }
-  
+
   Widget _buildDesktopLayout(List<Chat> activeChats, bool isDesktop) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
@@ -192,21 +195,24 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
                       ? Center(
                           child: Text(
                             'No active chats',
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: AppTheme.textSecondaryColor,
-                            ),
+                            style:
+                                Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                      color: AppTheme.textSecondaryColor,
+                                    ),
                           ),
                         )
                       : ListView.separated(
                           itemCount: activeChats.length,
-                          separatorBuilder: (context, index) => const Divider(height: 1),
+                          separatorBuilder: (context, index) =>
+                              const Divider(height: 1),
                           itemBuilder: (context, index) {
                             final chat = activeChats[index];
-                            return _buildChatListItem(context, chat, onTap: () => _selectChat(chat));
+                            return _buildChatListItem(context, chat,
+                                onTap: () => _selectChat(chat));
                           },
                         ),
                 ),
-                
+
                 // Right side - Chat content
                 Expanded(
                   child: _selectedChat == null
@@ -217,14 +223,18 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
                               Icon(
                                 Icons.chat_bubble_outline,
                                 size: 64,
-                                color: AppTheme.textSecondaryColor.withOpacity(0.5),
+                                color:
+                                    AppTheme.textSecondaryColor.withAlpha(128),
                               ),
                               const SizedBox(height: 16),
                               Text(
                                 'Select a chat to view the conversation',
-                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  color: AppTheme.textSecondaryColor,
-                                ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(
+                                      color: AppTheme.textSecondaryColor,
+                                    ),
                               ),
                             ],
                           ),
@@ -238,7 +248,7 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
                                 color: Colors.white,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
+                                    color: Colors.black.withAlpha(13),
                                     blurRadius: 4,
                                     offset: const Offset(0, 2),
                                   ),
@@ -248,9 +258,11 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
                                 children: [
                                   CircleAvatar(
                                     radius: 20,
-                                    backgroundColor: Colors.grey[200],
+                                    backgroundColor:
+                                        Colors.grey[200]?.withAlpha(255),
                                     child: Text(
-                                      _selectedChat!.customerName.substring(0, 1),
+                                      _selectedChat!.customerName
+                                          .substring(0, 1),
                                       style: const TextStyle(
                                         color: AppTheme.primaryColor,
                                         fontWeight: FontWeight.bold,
@@ -260,7 +272,8 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           _selectedChat!.customerName,
@@ -280,15 +293,19 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
                                     ),
                                   ),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: _getChatStatusColor(_selectedChat!.status).withOpacity(0.1),
+                                      color: _getChatStatusColor(
+                                              _selectedChat!.status)
+                                          .withAlpha(26),
                                       borderRadius: BorderRadius.circular(16),
                                     ),
                                     child: Text(
                                       _getChatStatusText(_selectedChat!.status),
                                       style: TextStyle(
-                                        color: _getChatStatusColor(_selectedChat!.status),
+                                        color: _getChatStatusColor(
+                                            _selectedChat!.status),
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -296,16 +313,20 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
                                 ],
                               ),
                             ),
-                            
+
                             // Chat messages
                             Expanded(
                               child: _selectedChat!.messages.isEmpty
                                   ? Center(
                                       child: Text(
                                         'No messages yet. Start the conversation!',
-                                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                          color: AppTheme.textSecondaryColor,
-                                        ),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyLarge
+                                            ?.copyWith(
+                                              color:
+                                                  AppTheme.textSecondaryColor,
+                                            ),
                                       ),
                                     )
                                   : ListView.builder(
@@ -313,80 +334,93 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
                                       padding: const EdgeInsets.all(16),
                                       itemCount: _selectedChat!.messages.length,
                                       itemBuilder: (context, index) {
-                                        final message = _selectedChat!.messages[index];
-                                        final isAdmin = message.senderId == 'admin';
-                                        
+                                        final message =
+                                            _selectedChat!.messages[index];
+                                        final isAdmin =
+                                            message.senderId == 'admin';
+
                                         return Padding(
-                                          padding: const EdgeInsets.only(bottom: 12.0),
+                                          padding: const EdgeInsets.only(
+                                              bottom: 12.0),
                                           child: Row(
-                                            mainAxisAlignment: isAdmin 
-                                                ? MainAxisAlignment.end 
+                                            mainAxisAlignment: isAdmin
+                                                ? MainAxisAlignment.end
                                                 : MainAxisAlignment.start,
                                             children: [
-                                              if (!isAdmin) ...[  
+                                              if (!isAdmin) ...[
                                                 CircleAvatar(
                                                   radius: 16,
-                                                  backgroundColor: Colors.grey[200],
+                                                  backgroundColor:
+                                                      Colors.grey[200],
                                                   child: Text(
-                                                    _selectedChat!.customerName.substring(0, 1),
+                                                    _selectedChat!.customerName
+                                                        .substring(0, 1),
                                                     style: const TextStyle(
-                                                      color: AppTheme.primaryColor,
-                                                      fontWeight: FontWeight.bold,
+                                                      color:
+                                                          AppTheme.primaryColor,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                     ),
                                                   ),
                                                 ),
                                                 const SizedBox(width: 8),
                                               ],
-                                              
                                               Container(
                                                 constraints: BoxConstraints(
                                                   maxWidth: 400,
                                                 ),
-                                                padding: const EdgeInsets.symmetric(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
                                                   horizontal: 16,
                                                   vertical: 10,
                                                 ),
                                                 decoration: BoxDecoration(
-                                                  color: isAdmin 
-                                                      ? AppTheme.accentColor 
+                                                  color: isAdmin
+                                                      ? AppTheme.accentColor
                                                       : Colors.grey[100],
-                                                  borderRadius: BorderRadius.circular(16),
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
                                                 ),
                                                 child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
                                                   children: [
                                                     Text(
                                                       message.message,
                                                       style: TextStyle(
-                                                        color: isAdmin 
-                                                            ? Colors.white 
+                                                        color: isAdmin
+                                                            ? Colors.white
                                                             : Colors.black,
                                                       ),
                                                     ),
                                                     const SizedBox(height: 4),
                                                     Text(
-                                                      DateFormat('h:mm a').format(message.timestamp),
+                                                      DateFormat('h:mm a')
+                                                          .format(message
+                                                              .timestamp),
                                                       style: TextStyle(
                                                         fontSize: 10,
-                                                        color: isAdmin 
-                                                            ? Colors.white.withOpacity(0.7) 
+                                                        color: isAdmin
+                                                            ? Colors.white
+                                                                .withAlpha(179)
                                                             : Colors.grey,
                                                       ),
                                                     ),
                                                   ],
                                                 ),
                                               ),
-                                              
-                                              if (isAdmin) ...[  
+                                              if (isAdmin) ...[
                                                 const SizedBox(width: 8),
                                                 CircleAvatar(
                                                   radius: 16,
-                                                  backgroundColor: AppTheme.accentColor,
+                                                  backgroundColor:
+                                                      AppTheme.accentColor,
                                                   child: const Text(
                                                     'A',
                                                     style: TextStyle(
                                                       color: Colors.white,
-                                                      fontWeight: FontWeight.bold,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                     ),
                                                   ),
                                                 ),
@@ -397,7 +431,7 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
                                       },
                                     ),
                             ),
-                            
+
                             // Message input
                             Container(
                               padding: const EdgeInsets.all(16),
@@ -415,12 +449,14 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
                                       decoration: InputDecoration(
                                         hintText: 'Type a message...',
                                         border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(24),
+                                          borderRadius:
+                                              BorderRadius.circular(24),
                                           borderSide: BorderSide.none,
                                         ),
                                         filled: true,
                                         fillColor: Colors.grey[100],
-                                        contentPadding: const EdgeInsets.symmetric(
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
                                           horizontal: 16,
                                           vertical: 10,
                                         ),
@@ -463,11 +499,9 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
         return 'Pending';
       case ChatStatus.inProgress:
         return 'In Progress';
-      default:
-        return 'Active';
     }
   }
-  
+
   Color _getChatStatusColor(ChatStatus status) {
     switch (status) {
       case ChatStatus.approved:
@@ -476,14 +510,13 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
         return AppTheme.pendingColor;
       case ChatStatus.inProgress:
         return AppTheme.inProgressColor;
-      default:
-        return AppTheme.accentColor;
     }
   }
 
-  Widget _buildChatListItem(BuildContext context, Chat chat, {VoidCallback? onTap}) {
+  Widget _buildChatListItem(BuildContext context, Chat chat,
+      {VoidCallback? onTap}) {
     Color statusColor;
-    
+
     switch (chat.status) {
       case ChatStatus.approved:
         statusColor = AppTheme.approvedColor;
@@ -496,28 +529,29 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
         break;
     }
 
-    final lastMessage = chat.messages.isNotEmpty 
-        ? chat.messages.last.message 
+    final lastMessage = chat.messages.isNotEmpty
+        ? chat.messages.last.message
         : 'No messages yet';
-    
-    final lastMessageTime = chat.messages.isNotEmpty 
+
+    final lastMessageTime = chat.messages.isNotEmpty
         ? DateFormat('h:mm a').format(chat.messages.last.timestamp)
         : '';
 
     final isMobile = MediaQuery.of(context).size.width < 600;
-    
+
     return InkWell(
-      onTap: onTap ?? () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ChatScreen(
-              customerId: chat.customerId,
-              customerName: chat.customerName,
-            ),
-          ),
-        );
-      },
+      onTap: onTap ??
+          () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChatScreen(
+                  customerId: chat.customerId,
+                  customerName: chat.customerName,
+                ),
+              ),
+            );
+          },
       child: Padding(
         padding: EdgeInsets.all(isMobile ? 8.0 : 16.0),
         child: Row(
@@ -525,9 +559,11 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
           children: [
             CircleAvatar(
               radius: isMobile ? 16 : 20,
-              backgroundColor: Colors.grey[200],
+              backgroundColor: Colors.grey[200]?.withAlpha(255),
               child: Text(
-                chat.customerName.isNotEmpty ? chat.customerName.substring(0, 1) : '?',
+                chat.customerName.isNotEmpty
+                    ? chat.customerName.substring(0, 1)
+                    : '?',
                 style: TextStyle(
                   color: AppTheme.primaryColor,
                   fontWeight: FontWeight.bold,
@@ -548,9 +584,10 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
                       Expanded(
                         child: Text(
                           chat.customerName,
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontSize: isMobile ? 11 : 13,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontSize: isMobile ? 11 : 13,
+                                  ),
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                         ),
@@ -558,17 +595,19 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
                       const SizedBox(width: 4),
                       // Status badge - not in Expanded to keep it at its natural size
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 3, vertical: 1),
                         decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.1),
+                          color: statusColor.withAlpha(26),
                           borderRadius: BorderRadius.circular(2),
                         ),
                         child: Text(
                           _getShortStatusText(chat.status),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: statusColor,
-                            fontSize: 8,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: statusColor,
+                                    fontSize: 8,
+                                  ),
                         ),
                       ),
                     ],
@@ -577,8 +616,8 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
                   Text(
                     chat.customerSpecialty,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontSize: isMobile ? 10 : 12,
-                    ),
+                          fontSize: isMobile ? 10 : 12,
+                        ),
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
@@ -587,22 +626,24 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen> with AutomaticKee
                       Expanded(
                         child: Text(
                           lastMessage,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.textSecondaryColor,
-                            fontSize: isMobile ? 10 : 12,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.textSecondaryColor,
+                                    fontSize: isMobile ? 10 : 12,
+                                  ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (lastMessageTime.isNotEmpty) ...[  
+                      if (lastMessageTime.isNotEmpty) ...[
                         const SizedBox(width: 4),
                         Text(
                           lastMessageTime,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.textSecondaryColor,
-                            fontSize: 9,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.textSecondaryColor,
+                                    fontSize: 9,
+                                  ),
                         ),
                       ],
                     ],

@@ -11,9 +11,9 @@ import 'chat_screen.dart';
 
 class JobDetailsScreen extends StatefulWidget {
   final String jobId;
-  
+
   const JobDetailsScreen({
-    Key? key, 
+    Key? key,
     required this.jobId,
   }) : super(key: key);
 
@@ -27,13 +27,13 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
   final _measurementsController = TextEditingController();
   final _addressController = TextEditingController();
   final _phoneController = TextEditingController();
-  
+
   Job? _job;
   Chat? _activeChat;
   bool _isEditingDetails = false;
   bool _showChatPanel = false;
   List<String> _uploadedImages = [];
-  
+
   // Status tracking
   double _progressValue = 0.0;
   String _progressStatus = 'Not Started';
@@ -61,7 +61,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
   void _loadJobDetails() {
     final jobProvider = Provider.of<JobProvider>(context, listen: false);
     final job = jobProvider.getJobById(widget.jobId);
-    
+
     if (job != null) {
       setState(() {
         _job = job;
@@ -77,41 +77,38 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         if (job.measurements != null) {
           _measurementsController.text = job.measurements!;
         }
-        
+
         // Set progress based on status
         switch (job.status) {
           case JobStatus.inProgress:
             _progressValue = 0.3;
             _progressStatus = 'In Progress';
-            _estimatedCompletion = DateFormat('dd/MM/yyyy').format(
-              DateTime.now().add(const Duration(days: 14))
-            );
+            _estimatedCompletion = DateFormat('dd/MM/yyyy')
+                .format(DateTime.now().add(const Duration(days: 14)));
             break;
           case JobStatus.pending:
             _progressValue = 0.7;
             _progressStatus = 'Pending Approval';
-            _estimatedCompletion = DateFormat('dd/MM/yyyy').format(
-              DateTime.now().add(const Duration(days: 7))
-            );
+            _estimatedCompletion = DateFormat('dd/MM/yyyy')
+                .format(DateTime.now().add(const Duration(days: 7)));
             break;
           case JobStatus.approved:
             _progressValue = 1.0;
             _progressStatus = 'Completed';
-            _estimatedCompletion = DateFormat('dd/MM/yyyy').format(
-              DateTime.now().subtract(const Duration(days: 2))
-            );
+            _estimatedCompletion = DateFormat('dd/MM/yyyy')
+                .format(DateTime.now().subtract(const Duration(days: 2)));
             break;
         }
       });
     }
   }
-  
+
   void _loadActiveChat() {
     if (_job == null) return;
-    
+
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
     final chat = chatProvider.getChatByCustomerId(_job!.id);
-    
+
     if (chat != null) {
       setState(() {
         _activeChat = chat;
@@ -125,39 +122,38 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       final updatedJob = _job!.copyWith(
         status: status,
         notes: _notesController.text.isEmpty ? null : _notesController.text,
-        measurements: _measurementsController.text.isEmpty ? null : _measurementsController.text,
+        measurements: _measurementsController.text.isEmpty
+            ? null
+            : _measurementsController.text,
       );
-      
+
       jobProvider.updateJob(updatedJob);
       setState(() {
         _job = updatedJob;
-        
+
         // Update progress based on new status
         switch (status) {
           case JobStatus.inProgress:
             _progressValue = 0.3;
             _progressStatus = 'In Progress';
-            _estimatedCompletion = DateFormat('dd/MM/yyyy').format(
-              DateTime.now().add(const Duration(days: 14))
-            );
+            _estimatedCompletion = DateFormat('dd/MM/yyyy')
+                .format(DateTime.now().add(const Duration(days: 14)));
             break;
           case JobStatus.pending:
             _progressValue = 0.7;
             _progressStatus = 'Pending Approval';
-            _estimatedCompletion = DateFormat('dd/MM/yyyy').format(
-              DateTime.now().add(const Duration(days: 7))
-            );
+            _estimatedCompletion = DateFormat('dd/MM/yyyy')
+                .format(DateTime.now().add(const Duration(days: 7)));
             break;
           case JobStatus.approved:
             _progressValue = 1.0;
             _progressStatus = 'Completed';
-            _estimatedCompletion = DateFormat('dd/MM/yyyy').format(
-              DateTime.now()
-            );
+            _estimatedCompletion =
+                DateFormat('dd/MM/yyyy').format(DateTime.now());
             break;
         }
       });
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Job status updated successfully'),
@@ -170,11 +166,11 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
   void _submitForApproval() {
     _updateJobStatus(JobStatus.pending);
   }
-  
+
   void _approveJob() {
     _updateJobStatus(JobStatus.approved);
   }
-  
+
   void _setInProgress() {
     _updateJobStatus(JobStatus.inProgress);
   }
@@ -184,7 +180,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       _showChatPanel = !_showChatPanel;
     });
   }
-  
+
   void _toggleEditMode() {
     setState(() {
       _isEditingDetails = !_isEditingDetails;
@@ -193,7 +189,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
 
   void _openChatWithCustomer() {
     final isDesktop = MediaQuery.of(context).size.width >= 1100;
-    
+
     if (_job != null) {
       if (isDesktop) {
         // On desktop, toggle the side panel
@@ -224,7 +220,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     }
 
     final isDesktop = MediaQuery.of(context).size.width >= 1100;
-    final isTablet = MediaQuery.of(context).size.width >= 600 && MediaQuery.of(context).size.width < 1100;
+    final isTablet = MediaQuery.of(context).size.width >= 600 &&
+        MediaQuery.of(context).size.width < 1100;
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
@@ -285,7 +282,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
               : _buildMobileLayout(),
     );
   }
-  
+
   Widget _buildDesktopLayout() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -336,7 +333,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                                   icon: const Icon(Icons.upload_file),
                                   label: const Text('Submit for Approval'),
                                   style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
                                   ),
                                 ),
                               ),
@@ -351,7 +349,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
             ),
           ),
         ),
-        
+
         // Chat panel (only shown when _showChatPanel is true)
         if (_showChatPanel)
           Container(
@@ -371,7 +369,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                     color: Colors.white,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withAlpha(13),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -419,7 +417,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                     ],
                   ),
                 ),
-                
+
                 // Chat messages
                 Expanded(
                   child: _activeChat != null && _activeChat!.messages.isNotEmpty
@@ -429,15 +427,15 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                           itemBuilder: (context, index) {
                             final message = _activeChat!.messages[index];
                             final isAdmin = message.senderId == 'admin';
-                            
+
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 12.0),
                               child: Row(
-                                mainAxisAlignment: isAdmin 
-                                    ? MainAxisAlignment.end 
+                                mainAxisAlignment: isAdmin
+                                    ? MainAxisAlignment.end
                                     : MainAxisAlignment.start,
                                 children: [
-                                  if (!isAdmin) ...[  
+                                  if (!isAdmin) ...[
                                     CircleAvatar(
                                       radius: 16,
                                       backgroundColor: Colors.grey[200],
@@ -451,7 +449,6 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                                     ),
                                     const SizedBox(width: 8),
                                   ],
-                                  
                                   Container(
                                     constraints: BoxConstraints(
                                       maxWidth: 250,
@@ -461,37 +458,38 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                                       vertical: 10,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: isAdmin 
-                                          ? AppTheme.accentColor 
+                                      color: isAdmin
+                                          ? AppTheme.accentColor
                                           : Colors.grey[100],
                                       borderRadius: BorderRadius.circular(16),
                                     ),
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           message.message,
                                           style: TextStyle(
-                                            color: isAdmin 
-                                                ? Colors.white 
+                                            color: isAdmin
+                                                ? Colors.white
                                                 : Colors.black,
                                           ),
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          DateFormat('h:mm a').format(message.timestamp),
+                                          DateFormat('h:mm a')
+                                              .format(message.timestamp),
                                           style: TextStyle(
                                             fontSize: 10,
-                                            color: isAdmin 
-                                                ? Colors.white.withOpacity(0.7) 
+                                            color: isAdmin
+                                                ? Colors.white.withAlpha(179)
                                                 : Colors.grey,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  
-                                  if (isAdmin) ...[  
+                                  if (isAdmin) ...[
                                     const SizedBox(width: 8),
                                     CircleAvatar(
                                       radius: 16,
@@ -517,7 +515,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                           ),
                         ),
                 ),
-                
+
                 // Message input
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -565,7 +563,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       ],
     );
   }
-  
+
   Widget _buildTabletLayout() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -625,7 +623,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       ),
     );
   }
-  
+
   Widget _buildMobileLayout() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -664,7 +662,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       ),
     );
   }
-  
+
   Widget _buildJobHeader() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -680,7 +678,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: _getStatusColor(_job!.status).withOpacity(0.1),
+                color: _getStatusColor(_job!.status).withAlpha(26),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
@@ -697,13 +695,13 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         Text(
           'Created on ${DateFormat('dd MMM yyyy').format(_job!.dateAdded)}',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: AppTheme.textSecondaryColor,
-          ),
+                color: AppTheme.textSecondaryColor,
+              ),
         ),
       ],
     );
   }
-  
+
   Widget _buildJobProgress() {
     return Card(
       margin: EdgeInsets.zero,
@@ -729,7 +727,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _buildProgressItem('Status', _progressStatus),
-                _buildProgressItem('Estimated Completion', _estimatedCompletion),
+                _buildProgressItem(
+                    'Estimated Completion', _estimatedCompletion),
                 _buildProgressItem('Job Number', _job!.jobNo),
               ],
             ),
@@ -738,7 +737,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       ),
     );
   }
-  
+
   Widget _buildProgressItem(String label, String value) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -746,8 +745,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: AppTheme.textSecondaryColor,
-          ),
+                color: AppTheme.textSecondaryColor,
+              ),
         ),
         const SizedBox(height: 4),
         Text(
@@ -852,7 +851,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
               'Status',
               _getStatusText(_job!.status),
               valueColor: _getStatusColor(_job!.status),
-              valueBackground: _getStatusColor(_job!.status).withOpacity(0.1),
+              valueBackground: _getStatusColor(_job!.status).withAlpha(26),
             ),
           ],
         ),
@@ -907,7 +906,9 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value, {
+  Widget _buildInfoRow(
+    String label,
+    String value, {
     Color? valueColor,
     Color? valueBackground,
   }) {
@@ -921,8 +922,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
             child: Text(
               value,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: valueColor,
-              ),
+                    color: valueColor,
+                  ),
             ),
           )
         : Text(

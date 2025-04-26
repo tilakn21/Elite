@@ -63,7 +63,7 @@ class _CalendarCardState extends State<CalendarCard> {
               },
               calendarStyle: CalendarStyle(
                 todayDecoration: BoxDecoration(
-                  color: AppTheme.accentColor.withOpacity(0.5),
+                  color: AppTheme.accentColor.withAlpha(128),
                   shape: BoxShape.circle,
                 ),
                 selectedDecoration: const BoxDecoration(

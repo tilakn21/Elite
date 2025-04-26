@@ -15,13 +15,16 @@ class AssignLabourScreen extends StatelessWidget {
             selectedIndex: 1,
             onItemTapped: (index) {
               if (index == 0) {
-                Navigator.of(context).pushReplacementNamed('/production/dashboard');
+                Navigator.of(context)
+                    .pushReplacementNamed('/production/dashboard');
               } else if (index == 1) {
                 // Already on Assign Labour
               } else if (index == 2) {
-                Navigator.of(context).pushReplacementNamed('/production/joblist');
+                Navigator.of(context)
+                    .pushReplacementNamed('/production/joblist');
               } else if (index == 3) {
-                Navigator.of(context).pushReplacementNamed('/production/updatejobstatus');
+                Navigator.of(context)
+                    .pushReplacementNamed('/production/updatejobstatus');
               }
             },
           ),
@@ -31,7 +34,8 @@ class AssignLabourScreen extends StatelessWidget {
                 ProductionTopBar(),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 32),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 48, vertical: 32),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -45,7 +49,7 @@ class AssignLabourScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.03),
+                                  color: Colors.black.withAlpha(8),
                                   blurRadius: 8,
                                   offset: const Offset(0, 4),
                                 ),
@@ -54,7 +58,10 @@ class AssignLabourScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Job details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+                                const Text('Job details',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 20)),
                                 const SizedBox(height: 24),
                                 _jobDetail('Client Name', 'Jim Gorge'),
                                 const SizedBox(height: 8),
@@ -62,23 +69,32 @@ class AssignLabourScreen extends StatelessWidget {
                                 const SizedBox(height: 8),
                                 _jobDetail('Address', 'House no. 12 ,chicago'),
                                 const SizedBox(height: 8),
-                                _jobDetail('job discription', 'Custom the cabinetry'),
+                                _jobDetail(
+                                    'job discription', 'Custom the cabinetry'),
                                 const SizedBox(height: 8),
                                 _jobDetail('Assigned date', '24,april,2024'),
                                 const SizedBox(height: 8),
-                                const Text('Status', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14, color: Color(0xFF232B3E))),
+                                const Text('Status',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 14,
+                                        color: Color(0xFF232B3E))),
                                 const SizedBox(height: 8),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.grey.shade300),
+                                    border:
+                                        Border.all(color: Colors.grey.shade300),
                                     borderRadius: BorderRadius.circular(6),
                                     color: Colors.white,
                                   ),
                                   child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: const [
-                                      Text('In progress', style: TextStyle(fontSize: 15)),
+                                      Text('In progress',
+                                          style: TextStyle(fontSize: 15)),
                                       Icon(Icons.arrow_drop_down, size: 22),
                                     ],
                                   ),
@@ -98,7 +114,7 @@ class AssignLabourScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.03),
+                                  color: Colors.black.withAlpha(8),
                                   blurRadius: 8,
                                   offset: const Offset(0, 4),
                                 ),
@@ -107,10 +123,14 @@ class AssignLabourScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Assign worker', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+                                const Text('Assign worker',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 20)),
                                 const SizedBox(height: 24),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFF7F4FF),
                                     borderRadius: BorderRadius.circular(8),
@@ -119,9 +139,15 @@ class AssignLabourScreen extends StatelessWidget {
                                     child: DropdownButton<String>(
                                       value: 'Cutting',
                                       items: const [
-                                        DropdownMenuItem(value: 'Cutting', child: Text('Cutting')),
-                                        DropdownMenuItem(value: 'Assembly', child: Text('Assembly')),
-                                        DropdownMenuItem(value: 'Finishing', child: Text('Finishing')),
+                                        DropdownMenuItem(
+                                            value: 'Cutting',
+                                            child: Text('Cutting')),
+                                        DropdownMenuItem(
+                                            value: 'Assembly',
+                                            child: Text('Assembly')),
+                                        DropdownMenuItem(
+                                            value: 'Finishing',
+                                            child: Text('Finishing')),
                                       ],
                                       onChanged: (value) {},
                                     ),
@@ -131,12 +157,17 @@ class AssignLabourScreen extends StatelessWidget {
                                 Expanded(
                                   child: ListView(
                                     children: [
-                                      _workerTile('Cody Fisher', 'Available', false),
+                                      _workerTile(
+                                          'Cody Fisher', 'Available', false),
                                       _workerTile('Jacob Jones', 'Busy', false),
-                                      _workerTile('Brooklyn Simmons', 'Available', false),
-                                      _workerTile('Brooklyn Simmons', 'Available', false),
-                                      _workerTile('Brooklyn Simmons', 'Busy', false),
-                                      _workerTile('Kristin Watson', 'Busy', false),
+                                      _workerTile('Brooklyn Simmons',
+                                          'Available', false),
+                                      _workerTile('Brooklyn Simmons',
+                                          'Available', false),
+                                      _workerTile(
+                                          'Brooklyn Simmons', 'Busy', false),
+                                      _workerTile(
+                                          'Kristin Watson', 'Busy', false),
                                     ],
                                   ),
                                 ),
@@ -148,11 +179,17 @@ class AssignLabourScreen extends StatelessWidget {
                                     height: 48,
                                     child: ElevatedButton(
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF57B9C6),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        backgroundColor:
+                                            const Color(0xFF57B9C6),
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(8)),
                                       ),
                                       onPressed: () {},
-                                      child: const Text('Assign', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                                      child: const Text('Assign',
+                                          style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w600)),
                                     ),
                                   ),
                                 ),
@@ -176,15 +213,21 @@ class AssignLabourScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14, color: Color(0xFF232B3E))),
+        Text(label,
+            style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+                color: Color(0xFF232B3E))),
         const SizedBox(height: 2),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+        Text(value,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
       ],
     );
   }
 
   Widget _workerTile(String name, String status, bool selected) {
-    Color statusColor = status == 'Available' ? const Color(0xFF57B9C6) : Colors.grey;
+    Color statusColor =
+        status == 'Available' ? const Color(0xFF57B9C6) : Colors.grey;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -199,7 +242,9 @@ class AssignLabourScreen extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+              Text(name,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 15)),
               Text(status, style: TextStyle(fontSize: 12, color: statusColor)),
             ],
           ),

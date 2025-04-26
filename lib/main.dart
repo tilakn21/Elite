@@ -90,21 +90,32 @@ class MyApp extends StatelessWidget {
       //home: const SalespersonHomeScreen(),
       routes: {
         '/receptionist/dashboard': (context) => const DashboardPage(),
-        '/receptionist/new-job-request': (context) => const NewJobRequestScreen(),
-        '/receptionist/assign-salesperson': (context) => const AssignSalespersonScreen(),
+        '/receptionist/new-job-request': (context) =>
+            const NewJobRequestScreen(),
+        '/receptionist/assign-salesperson': (context) =>
+            const AssignSalespersonScreen(),
         '/receptionist/view-all-jobs': (context) => const ViewAllJobsScreen(),
         '/salesperson/dashboard': (context) => const SalespersonHomeScreen(),
         '/salesperson/profile': (context) => const SalespersonProfileScreen(),
         '/design/dashboard': (context) => const design.DashboardScreen(),
-        '/accounts/dashboard': (context) => Scaffold(body: Center(child: Text('Accounts Dashboard', style: TextStyle(fontSize: 28)))),
+        '/accounts/dashboard': (context) => Scaffold(
+            body: Center(
+                child: Text('Accounts Dashboard',
+                    style: TextStyle(fontSize: 28)))),
         '/production/dashboard': (context) => const ProductionDashboard(),
         '/production/joblist': (context) => const ProductionJobListScreen(),
         '/production/assignlabour': (context) => const AssignLabourScreen(),
-        '/production/updatejobstatus': (context) => const UpdateJobStatusScreen(),
+        '/production/updatejobstatus': (context) =>
+            const UpdateJobStatusScreen(),
         '/printing/dashboard': (context) => const PrintingDashboardScreen(),
-        '/printing/assignlabour': (context) => const PrintingAssignLabourScreen(),
-        '/printing/qualitycheck': (context) => const PrintingQualityCheckScreen(),
-        '/admin/dashboard': (context) => Scaffold(body: Center(child: Text('Admin Dashboard', style: TextStyle(fontSize: 28)))),
+        '/printing/assignlabour': (context) =>
+            const PrintingAssignLabourScreen(),
+        '/printing/qualitycheck': (context) =>
+            const PrintingQualityCheckScreen(),
+        '/admin/dashboard': (context) => Scaffold(
+            body: Center(
+                child:
+                    Text('Admin Dashboard', style: TextStyle(fontSize: 28)))),
       },
     );
   }
@@ -252,7 +263,7 @@ class _MainLayoutState extends State<MainLayout> {
                       color: Colors.white,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withAlpha(13),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -264,14 +275,16 @@ class _MainLayoutState extends State<MainLayout> {
                           child: TextField(
                             decoration: InputDecoration(
                               hintText: 'Search data for this page',
-                              prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                              prefixIcon:
+                                  const Icon(Icons.search, color: Colors.grey),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(30),
                                 borderSide: BorderSide.none,
                               ),
                               filled: true,
                               fillColor: Colors.grey[100],
-                              contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                              contentPadding:
+                                  const EdgeInsets.symmetric(vertical: 0),
                             ),
                           ),
                         ),
@@ -360,7 +373,8 @@ class _MainLayoutState extends State<MainLayout> {
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(48),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: TextField(
                 decoration: InputDecoration(
                   hintText: 'Search data for this page',
@@ -414,13 +428,13 @@ class _MainLayoutState extends State<MainLayout> {
     required int index,
   }) {
     final isSelected = _selectedIndex == index;
-    
+
     return InkWell(
       onTap: () => _onItemTapped(index),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white.withOpacity(0.1) : Colors.transparent,
+          color: isSelected ? Colors.white.withAlpha(26) : Colors.transparent,
           border: isSelected
               ? const Border(
                   left: BorderSide(color: AppTheme.accentColor, width: 4),
