@@ -8,7 +8,7 @@ import '../utils/app_theme.dart';
 class ChatScreen extends StatefulWidget {
   final String customerId;
   final String customerName;
-  
+
   const ChatScreen({
     Key? key,
     required this.customerId,
@@ -41,10 +41,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _loadOrCreateChat() {
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-    
+
     // Try to find existing chat
     _chat = chatProvider.getChatByCustomerId(widget.customerId);
-    
+
     // If no chat exists, create a new one
     if (_chat == null) {
       final newChat = Chat(
@@ -55,13 +55,13 @@ class _ChatScreenState extends State<ChatScreen> {
         status: ChatStatus.inProgress,
         lastUpdated: DateTime.now(),
       );
-      
+
       chatProvider.addChat(newChat);
       _chat = newChat;
     }
-    
+
     setState(() {});
-    
+
     // Scroll to bottom after chat loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
@@ -70,25 +70,25 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _sendMessage() {
     if (_messageController.text.trim().isEmpty || _chat == null) return;
-    
+
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-    
+
     final newMessage = ChatMessage(
       senderId: 'admin',
       senderName: 'Admin',
       message: _messageController.text.trim(),
       timestamp: DateTime.now(),
     );
-    
+
     chatProvider.addMessage(_chat!.id, newMessage);
-    
+
     _messageController.clear();
-    
+
     // Reload chat
     setState(() {
       _chat = chatProvider.getChatById(_chat!.id);
     });
-    
+
     // Scroll to bottom after sending message
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
@@ -162,9 +162,10 @@ class _ChatScreenState extends State<ChatScreen> {
                       ? Center(
                           child: Text(
                             'No messages yet. Start the conversation!',
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: AppTheme.textSecondaryColor,
-                            ),
+                            style:
+                                Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                      color: AppTheme.textSecondaryColor,
+                                    ),
                           ),
                         )
                       : ListView.builder(
@@ -174,7 +175,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           itemBuilder: (context, index) {
                             final message = _chat!.messages[index];
                             final isAdmin = message.senderId == 'admin';
-                            
+
                             return _buildMessageBubble(
                               message: message.message,
                               time: message.timestamp,
@@ -183,7 +184,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           },
                         ),
                 ),
-                
+
                 // Message input
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -201,7 +202,8 @@ class _ChatScreenState extends State<ChatScreen> {
                           decoration: const InputDecoration(
                             hintText: 'Write a message...',
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(24)),
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(24)),
                             ),
                             contentPadding: EdgeInsets.symmetric(
                               horizontal: 16,
@@ -238,7 +240,8 @@ class _ChatScreenState extends State<ChatScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
-        mainAxisAlignment: isAdmin ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isAdmin ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isAdmin) ...[
@@ -255,16 +258,14 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             const SizedBox(width: 8),
           ],
-          
           Flexible(
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: isAdmin ? AppTheme.accentColor : Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: isAdmin 
-                    ? null 
-                    : Border.all(color: AppTheme.dividerColor),
+                border:
+                    isAdmin ? null : Border.all(color: AppTheme.dividerColor),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -280,8 +281,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     DateFormat('h:mm a').format(time),
                     style: TextStyle(
                       fontSize: 10,
-                      color: isAdmin 
-                          ? Colors.white.withOpacity(0.7) 
+                      color: isAdmin
+                          ? Colors.white.withAlpha(179) // 0.7 * 255 ≈ 179
                           : AppTheme.textSecondaryColor,
                     ),
                   ),
@@ -289,7 +290,6 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
           ),
-          
           if (isAdmin) ...[
             const SizedBox(width: 8),
             CircleAvatar(

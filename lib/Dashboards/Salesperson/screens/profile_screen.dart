@@ -5,7 +5,8 @@ class SalespersonProfileScreen extends StatefulWidget {
   const SalespersonProfileScreen({Key? key}) : super(key: key);
 
   @override
-  State<SalespersonProfileScreen> createState() => _SalespersonProfileScreenState();
+  State<SalespersonProfileScreen> createState() =>
+      _SalespersonProfileScreenState();
 }
 
 class _SalespersonProfileScreenState extends State<SalespersonProfileScreen> {
@@ -22,7 +23,8 @@ class _SalespersonProfileScreenState extends State<SalespersonProfileScreen> {
           selectedRoute: 'profile',
           onItemSelected: (route) {
             if (route == 'home') {
-              Navigator.of(context).pushReplacementNamed('/salesperson/dashboard');
+              Navigator.of(context)
+                  .pushReplacementNamed('/salesperson/dashboard');
             } else if (route == 'profile') {
               Navigator.of(context).pop();
             }
@@ -36,7 +38,8 @@ class _SalespersonProfileScreenState extends State<SalespersonProfileScreen> {
           icon: const Icon(Icons.menu, color: Colors.black87),
           onPressed: () => _scaffoldKey.currentState?.openDrawer(),
         ),
-        title: const Text('Profile', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
+        title: const Text('Profile',
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
         centerTitle: true,
         actions: [
           Padding(
@@ -66,12 +69,18 @@ class _SalespersonProfileScreenState extends State<SalespersonProfileScreen> {
               const SizedBox(height: 18),
               const Text(
                 'Brooklyn Simmons',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20, color: Colors.black),
+                style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 20,
+                    color: Colors.black),
               ),
               const SizedBox(height: 2),
               const Text(
                 'Sales person',
-                style: TextStyle(color: Color(0xFFBDBDBD), fontSize: 15, fontWeight: FontWeight.w500),
+                style: TextStyle(
+                    color: Color(0xFFBDBDBD),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 24),
               _ProfileCard(
@@ -124,7 +133,8 @@ class _ProfileCard extends StatelessWidget {
   final String label;
   final String value;
   final bool isBold;
-  const _ProfileCard({required this.label, required this.value, this.isBold = false});
+  const _ProfileCard(
+      {required this.label, required this.value, this.isBold = false});
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +146,7 @@ class _ProfileCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withAlpha(15),
             blurRadius: 12,
             offset: const Offset(0, 3),
           ),
@@ -147,7 +157,10 @@ class _ProfileCard extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(color: Color(0xFFBDBDBD), fontSize: 14, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+                color: Color(0xFFBDBDBD),
+                fontSize: 14,
+                fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 2),
           Text(
