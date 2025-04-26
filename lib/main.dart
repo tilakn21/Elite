@@ -26,6 +26,17 @@ import 'Dashboards/Design/screens/dashboard_screen.dart' as design;
 import 'Dashboards/Salesperson/screens/home_screen.dart';
 import 'Dashboards/Salesperson/screens/profile_screen.dart';
 
+// Production Dashboard
+import 'Dashboards/Production/screens/production_dashboard.dart';
+import 'Dashboards/Production/screens/production_job_list_screen.dart';
+import 'Dashboards/Production/screens/assign_labour_screen.dart';
+import 'Dashboards/Production/screens/update_job_status_screen.dart';
+
+// Printing Dashboard
+import 'Dashboards/Printing/screens/printing_dashboard_screen.dart';
+import 'Dashboards/Printing/screens/assign_labour_screen.dart';
+import 'Dashboards/Printing/screens/quality_check_screen.dart';
+
 // Utils
 import 'Dashboards/Design/utils/app_theme.dart';
 
@@ -86,8 +97,13 @@ class MyApp extends StatelessWidget {
         '/salesperson/profile': (context) => const SalespersonProfileScreen(),
         '/design/dashboard': (context) => const design.DashboardScreen(),
         '/accounts/dashboard': (context) => Scaffold(body: Center(child: Text('Accounts Dashboard', style: TextStyle(fontSize: 28)))),
-        '/production/dashboard': (context) => Scaffold(body: Center(child: Text('Production Team Dashboard', style: TextStyle(fontSize: 28)))),
-        '/printing/dashboard': (context) => Scaffold(body: Center(child: Text('Printing Dashboard', style: TextStyle(fontSize: 28)))),
+        '/production/dashboard': (context) => const ProductionDashboard(),
+        '/production/joblist': (context) => const ProductionJobListScreen(),
+        '/production/assignlabour': (context) => const AssignLabourScreen(),
+        '/production/updatejobstatus': (context) => const UpdateJobStatusScreen(),
+        '/printing/dashboard': (context) => const PrintingDashboardScreen(),
+        '/printing/assignlabour': (context) => const PrintingAssignLabourScreen(),
+        '/printing/qualitycheck': (context) => const PrintingQualityCheckScreen(),
         '/admin/dashboard': (context) => Scaffold(body: Center(child: Text('Admin Dashboard', style: TextStyle(fontSize: 28)))),
       },
     );
