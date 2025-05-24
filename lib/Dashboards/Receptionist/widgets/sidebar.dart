@@ -1,31 +1,36 @@
 import 'package:flutter/material.dart';
 
 class Sidebar extends StatelessWidget {
-  const Sidebar({super.key});
+  final int selectedIndex;
+  const Sidebar({super.key, this.selectedIndex = 0});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 250,
-      color: const Color(0xFF112233),
+      width: 220,
+      decoration: const BoxDecoration(
+        color: Color(0xFF101C2C),
+        borderRadius: BorderRadius.only(
+          topRight: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 32),
+          const SizedBox(height: 40),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: Row(
               children: [
-                Image.asset('assets/images/elite_logo.png', height: 54),
-                // Elite text and subtitle removed as per user request
+                Image.asset('assets/images/elite_logo.png', height: 48),
               ],
             ),
           ),
-          const SizedBox(height: 36),
+          const SizedBox(height: 40),
           SidebarButton(
             icon: Icons.dashboard,
             label: 'Dashboard',
-            selected: false,
+            selected: selectedIndex == 0,
             onTap: () {
               Navigator.of(context).pushReplacementNamed('/receptionist/dashboard');
             },
@@ -33,7 +38,7 @@ class Sidebar extends StatelessWidget {
           SidebarButton(
             icon: Icons.add_circle_outline,
             label: 'New Request',
-            selected: false,
+            selected: selectedIndex == 1,
             onTap: () {
               Navigator.of(context).pushReplacementNamed('/receptionist/new-job-request');
             },
@@ -41,7 +46,7 @@ class Sidebar extends StatelessWidget {
           SidebarButton(
             icon: Icons.person_add_alt,
             label: 'Assign salesperson',
-            selected: false,
+            selected: selectedIndex == 2,
             onTap: () {
               Navigator.of(context).pushReplacementNamed('/receptionist/assign-salesperson');
             },
@@ -57,13 +62,32 @@ class Sidebar extends StatelessWidget {
           //   selected: false,
           // ),
           const Spacer(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+              },
+              icon: const Icon(Icons.logout, size: 18),
+              label: const Text('Logout'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(44),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                textStyle: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class SidebarButton extends StatelessWidget {
+class SidebarButton extends StatefulWidget {
   final IconData icon;
   final String label;
   final bool selected;
@@ -78,27 +102,52 @@ class SidebarButton extends StatelessWidget {
   });
 
   @override
+  State<SidebarButton> createState() => _SidebarButtonState();
+}
+
+class _SidebarButtonState extends State<SidebarButton> {
+  bool _hovering = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-      decoration: selected
-          ? BoxDecoration(
-              color: const Color(0xFF24344D),
-              borderRadius: BorderRadius.circular(10),
-            )
-          : null,
-      child: ListTile(
-        leading: Icon(icon, color: selected ? Color(0xFF4A6CF7) : Colors.white, size: 26),
-        title: Text(
-          label,
-          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: selected ? FontWeight.bold : FontWeight.normal),
+    Color bgColor;
+    if (widget.selected) {
+      bgColor = Colors.white;
+    } else if (_hovering) {
+      bgColor = Colors.white.withOpacity(0.08);
+    } else {
+      bgColor = Colors.transparent;
+    }
+    Color iconColor = widget.selected ? const Color(0xFF101C2C) : Colors.white;
+    Color textColor = widget.selected ? const Color(0xFF101C2C) : Colors.white;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(12),
         ),
-        dense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 10),
-        selected: selected,
-        selectedTileColor: const Color(0xFF24344D),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        onTap: onTap,
+        child: ListTile(
+          leading: Icon(widget.icon, color: iconColor, size: 24),
+          title: Text(
+            widget.label,
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
+          ),
+          dense: true,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          selected: widget.selected,
+          selectedTileColor: Colors.white,
+          hoverColor: Colors.transparent,
+          onTap: widget.onTap,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+        ),
       ),
     );
   }

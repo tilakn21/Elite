@@ -13,7 +13,7 @@ class TopBar extends StatelessWidget {
     const sidebarColor = Color(0xFF112233);
     return Container(
       height: 70,
-      color: isDashboard ? Colors.white : sidebarColor,
+      color: sidebarColor,
       padding: const EdgeInsets.symmetric(horizontal: 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -85,6 +85,23 @@ class TopBar extends StatelessWidget {
               const SizedBox(width: 8),
               Icon(Icons.arrow_drop_down, color: isDashboard ? Color(0xFF9BA8B7) : Colors.white),
             ],
+          ),
+          const SizedBox(width: 24),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+            },
+            icon: const Icon(Icons.logout, size: 18),
+            label: const Text('Logout'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              textStyle: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
           const SizedBox(width: 32),
         ],

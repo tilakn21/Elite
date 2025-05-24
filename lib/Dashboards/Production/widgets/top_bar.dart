@@ -41,6 +41,24 @@ class ProductionTopBar extends StatelessWidget {
           const SizedBox(width: 18),
           Icon(Icons.notifications_none, color: Color(0xFF232B3E), size: 26),
           const SizedBox(width: 18),
+          // Logout button
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+            },
+            icon: const Icon(Icons.logout, size: 18),
+            label: const Text('Logout'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              textStyle: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(width: 18),
           // User info
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

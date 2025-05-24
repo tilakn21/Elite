@@ -17,6 +17,13 @@ class DesignSidebar extends StatelessWidget {
           topRight: Radius.circular(30),
           bottomRight: Radius.circular(30),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 8,
+            offset: Offset(2, 0),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -27,34 +34,12 @@ class DesignSidebar extends StatelessWidget {
             child: Row(
               children: [
                 Image.asset('assets/images/elite_logo.png', height: 48),
-                const SizedBox(width: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  // children: const [
-                  //   Text(
-                  //     'elite',
-                  //     style: TextStyle(
-                  //       color: Colors.white,
-                  //       fontSize: 28,
-                  //       fontWeight: FontWeight.w700,
-                  //       letterSpacing: 1.2,
-                  //     ),
-                  //   ),
-                  //   Text(
-                  //     'CREATIVE PRINT SIGN DISPLAY',
-                  //     style: TextStyle(
-                  //       color: Color(0xFFB0B7C3),
-                  //       fontSize: 10,
-                  //       fontWeight: FontWeight.w500,
-                  //       letterSpacing: 1.1,
-                  //     ),
-                  //   ),
-                  // ],
-                ),
               ],
             ),
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 16),
+          const Divider(color: Color(0xFF25304A), thickness: 1, indent: 24, endIndent: 24),
+          const SizedBox(height: 24),
           _SidebarButton(
             icon: Icons.dashboard,
             label: 'Dashboard',
@@ -80,13 +65,32 @@ class DesignSidebar extends StatelessWidget {
             onTap: () => onItemTapped(3),
           ),
           const Spacer(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+              },
+              icon: const Icon(Icons.logout, size: 18),
+              label: const Text('Logout'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                textStyle: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _SidebarButton extends StatelessWidget {
+class _SidebarButton extends StatefulWidget {
   final IconData icon;
   final String label;
   final bool selected;
@@ -100,35 +104,56 @@ class _SidebarButton extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<_SidebarButton> createState() => _SidebarButtonState();
+}
+
+class _SidebarButtonState extends State<_SidebarButton> {
+  bool _hovering = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            color: selected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
+    final bool isSelected = widget.selected;
+    final bool isHovering = _hovering;
+    Color bgColor;
+    if (isSelected) {
+      bgColor = Colors.white;
+    } else if (isHovering) {
+      bgColor = Colors.white.withOpacity(0.08);
+    } else {
+      bgColor = Colors.transparent;
+    }
+    Color iconColor = isSelected ? const Color(0xFF101C2C) : Colors.white;
+    Color textColor = isSelected ? const Color(0xFF101C2C) : Colors.white;
+    FontWeight fontWeight = isSelected ? FontWeight.bold : FontWeight.w600;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.ease,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        child: ListTile(
+          leading: Icon(widget.icon, color: iconColor, size: 24),
+          title: Text(
+            widget.label,
+            style: TextStyle(
+              color: textColor,
+              fontWeight: fontWeight,
+              fontSize: 15,
+              letterSpacing: 0.2,
+            ),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          child: Row(
-            children: [
-              Icon(icon,
-                  color: selected ? Color(0xFF101C2C) : Colors.white, size: 22),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: selected ? Color(0xFF101C2C) : Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                  ),
-                ),
-              ),
-            ],
-          ),
+          dense: true,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          selected: isSelected,
+          selectedTileColor: Colors.white,
+          hoverColor: Colors.transparent,
+          onTap: widget.onTap,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
         ),
       ),
     );
