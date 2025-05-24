@@ -13,11 +13,11 @@ class AssignSalespersonScreen extends StatelessWidget {
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Sidebar(),
+          const Sidebar(selectedIndex: 2),
           Expanded(
             child: Column(
               children: [
-                const TopBar(isDashboard: false),
+                const TopBar(),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(

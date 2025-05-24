@@ -8,14 +8,23 @@ class AccountsSidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 220,
-      color: const Color(0xFF19202E),
+      decoration: const BoxDecoration(
+        color: Color(0xFF101C2C),
+        borderRadius: BorderRadius.only(
+          topRight: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 32),
+          const SizedBox(height: 40),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Image.asset('assets/images/elite_logo.png', height: 48),
+            child: Row(
+              children: [
+                Image.asset('assets/images/elite_logo.png', height: 48),
+              ],
+            ),
           ),
           const SizedBox(height: 40),
           Expanded(
@@ -47,6 +56,25 @@ class AccountsSidebar extends StatelessWidget {
                   },
                 ),
               ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+              },
+              icon: const Icon(Icons.logout, size: 18),
+              label: const Text('Logout'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(44),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                textStyle: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         ],

@@ -44,6 +44,23 @@ class PrintingTopBar extends StatelessWidget {
           const SizedBox(width: 32),
           Row(
             children: [
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                },
+                icon: const Icon(Icons.logout, size: 18),
+                label: const Text('Logout'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(width: 16),
               const CircleAvatar(
                 backgroundColor: Color(0xFF232B3E),
                 child: Text('J', style: TextStyle(color: Colors.white)),

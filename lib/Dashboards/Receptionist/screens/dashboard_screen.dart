@@ -27,13 +27,13 @@ class DashboardPage extends StatelessWidget {
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Sidebar(),
+          const Sidebar(selectedIndex: 0),
           Expanded(
             child: Column(
               children: [
                 const SizedBox(height: 32),
                 // Top bar
-                const TopBar(isDashboard: true),
+                const TopBar(),
                 const SizedBox(height: 8),
                 // Responsive, scrollable dashboard content
                 Expanded(

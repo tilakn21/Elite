@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'Dashboards/Admin/screens/employee_management_screen.dart';
+import 'Dashboards/Admin/screens/admin_dashboard_screen.dart';
 import 'package:provider/provider.dart';
 
 // Providers
@@ -94,6 +96,9 @@ class MyApp extends StatelessWidget {
       home: const LoginScreen(),
       //home: const SalespersonHomeScreen(),
       routes: {
+        '/admin/dashboard': (context) => AdminDashboardScreen(),
+        '/admin/employees': (context) => const EmployeeManagementScreen(),
+        '/login': (context) => const LoginScreen(),
         '/receptionist/dashboard': (context) => const DashboardPage(),
         '/receptionist/new-job-request': (context) =>
             const NewJobRequestScreen(),
@@ -116,10 +121,7 @@ class MyApp extends StatelessWidget {
             const PrintingAssignLabourScreen(),
         '/printing/qualitycheck': (context) =>
             const PrintingQualityCheckScreen(),
-        '/admin/dashboard': (context) => Scaffold(
-            body: Center(
-                child:
-                    Text('Admin Dashboard', style: TextStyle(fontSize: 28)))),
+        '/admin/dashboard': (context) => const AdminDashboardScreen(),
       },
     );
   }

@@ -13,11 +13,11 @@ class NewJobRequestScreen extends StatelessWidget {
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Sidebar(),
+          const Sidebar(selectedIndex: 1),
           Expanded(
             child: Column(
               children: [
-                const TopBar(isDashboard: false),
+                const TopBar(),
                 Expanded(
                   child: Center(
                     child: Container(
@@ -59,6 +59,7 @@ class NewJobRequestScreen extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 32),
+                          // Updated Form Fields
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -70,34 +71,21 @@ class NewJobRequestScreen extends StatelessWidget {
                                     _Label('Name'),
                                     _InputField(hint: 'Enter name'),
                                     SizedBox(height: 20),
-                                    _Label('Email address'),
-                                    _InputField(hint: 'Your email address'),
+                                    _Label('Phone number'),
+                                    _InputField(hint: 'Enter phone number'),
                                     SizedBox(height: 20),
-                                    _Label('Date'),
-                                    _InputField(
-                                      hint: 'Select date',
-                                      suffixIcon: Icon(Icons.calendar_today,
-                                          size: 18, color: Color(0xFFBDBDBD)),
-                                    ),
+                                    _Label('Shop name'),
+                                    _InputField(hint: 'Enter shop name'),
+                                    SizedBox(height: 20),
+                                    _Label('Street address'),
+                                    _InputField(hint: 'Enter street address'),
                                   ],
                                 ),
                               ),
                               SizedBox(width: 32),
                               // Right column
                               Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _Label('Phone no.'),
-                                    _InputField(hint: 'Enter phone number'),
-                                    SizedBox(height: 20),
-                                    _Label('Shop name'),
-                                    _InputField(hint: 'Enter shop name'),
-                                    SizedBox(height: 20),
-                                    _Label('Shop address'),
-                                    _InputField(hint: 'Enter shop address'),
-                                  ],
-                                ),
+                                child: _RightFormFields(),
                               ),
                             ],
                           ),
@@ -163,12 +151,17 @@ class _Label extends StatelessWidget {
 class _InputField extends StatelessWidget {
   final String hint;
   final Widget? suffixIcon;
-  const _InputField({required this.hint, this.suffixIcon, Key? key})
-      : super(key: key);
+  final TextEditingController? controller;
+  final bool readOnly;
+  final VoidCallback? onTap;
+  const _InputField({required this.hint, this.suffixIcon, this.controller, this.readOnly = false, this.onTap, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
+      readOnly: readOnly,
+      onTap: onTap,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(fontSize: 13, color: Color(0xFFBDBDBD)),
@@ -181,6 +174,69 @@ class _InputField extends StatelessWidget {
         ),
         suffixIcon: suffixIcon,
       ),
+    );
+  }
+}
+
+// Right column fields as a separate widget for clarity
+class _RightFormFields extends StatefulWidget {
+  const _RightFormFields({Key? key}) : super(key: key);
+  @override
+  State<_RightFormFields> createState() => _RightFormFieldsState();
+}
+
+class _RightFormFieldsState extends State<_RightFormFields> {
+  final TextEditingController streetNumberController = TextEditingController();
+  final TextEditingController townController = TextEditingController();
+  final TextEditingController postcodeController = TextEditingController();
+  final TextEditingController dateController = TextEditingController();
+
+  @override
+  void dispose() {
+    streetNumberController.dispose();
+    townController.dispose();
+    postcodeController.dispose();
+    dateController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() {
+        dateController.text = "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _Label('Street number'),
+        _InputField(hint: 'Enter street number', controller: streetNumberController),
+        SizedBox(height: 20),
+        _Label('Town'),
+        _InputField(hint: 'Enter town', controller: townController),
+        SizedBox(height: 20),
+        _Label('Postcode'),
+        _InputField(hint: 'Enter postcode', controller: postcodeController),
+        SizedBox(height: 20),
+        _Label('Date of appointment'),
+        _InputField(
+          hint: 'Select date',
+          controller: dateController,
+          readOnly: true,
+          onTap: () => _pickDate(context),
+          suffixIcon: Icon(Icons.calendar_today, size: 18, color: Color(0xFFBDBDBD)),
+        ),
+      ],
     );
   }
 }

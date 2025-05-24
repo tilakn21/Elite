@@ -8,6 +8,7 @@ import '../widgets/job_details_card.dart';
 import '../widgets/active_chats_card.dart';
 import '../widgets/calendar_card.dart';
 import '../widgets/sidebar.dart';
+import '../widgets/design_top_bar.dart';
 import 'job_list_screen.dart';
 import 'active_chats_screen.dart';
 
@@ -43,14 +44,21 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: Column(
         children: [
-          DesignSidebar(
-              selectedIndex: _selectedIndex, onItemTapped: _onSidebarTap),
+          const DesignTopBar(),
           Expanded(
-            child: _buildSelectedView(_selectedIndex, context, jobProvider,
-                chatProvider, isDesktop, isTablet, isMobile),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DesignSidebar(
+                    selectedIndex: _selectedIndex, onItemTapped: _onSidebarTap),
+                Expanded(
+                  child: _buildSelectedView(_selectedIndex, context, jobProvider,
+                      chatProvider, isDesktop, isTablet, isMobile),
+                ),
+              ],
+            ),
           ),
         ],
       ),
