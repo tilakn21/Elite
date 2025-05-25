@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'Dashboards/Admin/screens/employee_management_screen.dart';
 import 'Dashboards/Admin/screens/admin_dashboard_screen.dart';
 import 'package:provider/provider.dart';
@@ -61,8 +62,14 @@ import 'Dashboards/Design/widgets/upload_draft_widget.dart';
 
 // Login Screen
 import 'screens/login_screen.dart';
+import 'utils/supabase_keys.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Supabase.initialize(
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
+  );
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.dumpErrorToConsole(details);
     // ignore: avoid_print

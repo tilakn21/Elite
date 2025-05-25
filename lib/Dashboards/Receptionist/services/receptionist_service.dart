@@ -1,6 +1,7 @@
 import '../models/job_request.dart';
 import '../models/salesperson.dart';
 import 'package:uuid/uuid.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ReceptionistService {
   final Uuid _uuid = const Uuid();
@@ -163,5 +164,64 @@ class ReceptionistService {
       return _mockSalespersons[index];
     }
     return null;
+  }
+
+  // Add a new job to Supabase (jobs table)
+  Future<void> addJobToSupabase({
+    required String customerName,
+    required String phone,
+    required String shopName,
+    required String streetAddress,
+    required String streetNumber,
+    required String town,
+    required String postcode,
+    required String dateOfAppointment,
+    required String dateOfVisit,
+    required String timeOfVisit,
+    required String? assignedSalesperson,
+    required String createdBy, // receptionist user id
+  }) async {
+    final supabase = Supabase.instance.client;
+    final now = DateTime.now().toUtc().toIso8601String();
+    final address = '$streetAddress, $streetNumber, $town, $postcode';
+    final receptionistJson = {
+      'customerName': customerName,
+      'phone': phone,
+      'shopName': shopName,
+      'address': address,
+      'dateOfAppointment': dateOfAppointment,
+      'dateOfVisit': dateOfVisit,
+      'timeOfVisit': timeOfVisit,
+      'assignedSalesperson': assignedSalesperson,
+      'createdBy': createdBy,
+      'createdAt': now,
+    };
+    try {
+      await supabase
+          .from('jobs')
+          .insert({
+            'status': 'reception',
+            'created_at': now,
+            'receptionist': receptionistJson,
+          })
+          .select()
+          .single();
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to add job: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to add job: $e');
+    }
+  }
+
+  // Fetch all employees with id starting with 'sal' from Supabase
+  Future<List<String>> fetchSalespersonIdsFromSupabase() async {
+    final supabase = Supabase.instance.client;
+    final response = await supabase
+        .from('employee')
+        .select('id')
+        .ilike('id', 'sal%');
+    return List<Map<String, dynamic>>.from(response)
+        .map<String>((e) => e['id'] as String)
+        .toList();
   }
 }

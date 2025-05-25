@@ -1,4 +1,7 @@
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import '../../Design/services/design_service.dart';
 import '../utils/app_theme.dart';
 
 class UploadDraftWidget extends StatefulWidget {
@@ -10,6 +13,28 @@ class UploadDraftWidget extends StatefulWidget {
 
 class _UploadDraftWidgetState extends State<UploadDraftWidget> {
   bool _isDragging = false;
+  File? _selectedFile;
+  String? _uploadStatus;
+
+  Future<void> _pickAndUploadFile() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.any);
+    if (result != null && result.files.single.path != null) {
+      setState(() {
+        _selectedFile = File(result.files.single.path!);
+        _uploadStatus = null;
+      });
+      try {
+        await DesignService().uploadDraftFile(_selectedFile!);
+        setState(() {
+          _uploadStatus = 'Upload successful!';
+        });
+      } catch (e) {
+        setState(() {
+          _uploadStatus = 'Upload failed: \\${e.toString()}';
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,9 +69,7 @@ class _UploadDraftWidgetState extends State<UploadDraftWidget> {
         },
         builder: (context, candidateData, rejectedData) {
           return InkWell(
-            onTap: () {
-              // Open file picker
-            },
+            onTap: _pickAndUploadFile,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -69,6 +92,17 @@ class _UploadDraftWidgetState extends State<UploadDraftWidget> {
                   'Drag and drop files here or click to browse',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
+                if (_uploadStatus != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _uploadStatus!,
+                    style: TextStyle(
+                      color: _uploadStatus!.contains('successful')
+                          ? Colors.green
+                          : Colors.red,
+                    ),
+                  ),
+                ],
               ],
             ),
           );

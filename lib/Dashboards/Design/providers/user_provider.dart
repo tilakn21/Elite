@@ -25,8 +25,10 @@ class UserProvider with ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
     try {
-      _users = await _designService.getUsers();
-      _currentUser = await _designService.getCurrentUser();
+      final users = await _designService.getUsers();
+      final currentUser = await _designService.getCurrentUser();
+      _users = users ?? [];
+      _currentUser = currentUser;
       
       if (_currentUser == null && _users.isNotEmpty) {
         // If service doesn't specify a current user, default to first from the list (if any)
@@ -40,10 +42,12 @@ class UserProvider with ChangeNotifier {
       if (kDebugMode) {
         print('Error fetching initial user data from service: $e');
       }
-      _loadSampleUsers(); // Fallback to sample data
-      if (_currentUser == null && _users.isNotEmpty) {
-        _currentUser = _users.first;
-      }
+      _users = [];
+      _currentUser = null;
+      // _loadSampleUsers(); // Fallback to sample data
+      // if (_currentUser == null && _users.isNotEmpty) {
+      //   _currentUser = _users.first;
+      // }
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -53,18 +57,21 @@ class UserProvider with ChangeNotifier {
   void _loadSampleUsers() {
     _users = [
       User(
+        id: '1',
         name: 'John Doe',
         email: 'john@elitesigns.com',
         role: 'Admin',
         avatar: 'assets/images/avatar1.png',
       ),
       User(
+        id: '2',
         name: 'Jane Smith',
         email: 'jane@elitesigns.com',
         role: 'Salesperson',
         avatar: 'assets/images/avatar2.png',
       ),
       User(
+        id: '3',
         name: 'Mike Johnson',
         email: 'mike@elitesigns.com',
         role: 'Designer',
@@ -98,12 +105,12 @@ class UserProvider with ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
     try {
-      final newUser = await _designService.createUser(user);
-      _users.add(newUser);
+      // TODO: Implement addUser with Supabase or your backend
+      _users.add(user);
     } catch (e) {
       _errorMessage = e.toString();
       if (kDebugMode) {
-        print('Error adding user via service: $e');
+        print('Error adding user: $e');
       }
     } finally {
       _isLoading = false;
@@ -116,20 +123,20 @@ class UserProvider with ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
     try {
-      final returnedUser = await _designService.updateUser(updatedUser);
-      final index = _users.indexWhere((user) => user.id == returnedUser.id);
+      // TODO: Implement updateUser with Supabase or your backend
+      final index = _users.indexWhere((user) => user.id == updatedUser.id);
       if (index != -1) {
-        _users[index] = returnedUser;
-        if (_currentUser != null && _currentUser!.id == returnedUser.id) {
-          _currentUser = returnedUser;
+        _users[index] = updatedUser;
+        if (_currentUser != null && _currentUser!.id == updatedUser.id) {
+          _currentUser = updatedUser;
         }
       } else {
-        print('UserProvider: Updated user ID ${returnedUser.id} not found in local list.');
+        print('UserProvider: Updated user ID ${updatedUser.id} not found in local list.');
       }
     } catch (e) {
       _errorMessage = e.toString();
       if (kDebugMode) {
-        print('Error updating user via service: $e');
+        print('Error updating user: $e');
       }
     } finally {
       _isLoading = false;
@@ -142,16 +149,15 @@ class UserProvider with ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
     try {
-      await _designService.deleteUser(id);
+      // TODO: Implement deleteUser with Supabase or your backend
       _users.removeWhere((user) => user.id == id);
       if (_currentUser != null && _currentUser!.id == id) {
-        _currentUser = _users.isNotEmpty ? _users.first : null; 
-        // If current user deleted, might need to inform service or trigger re-login
+        _currentUser = _users.isNotEmpty ? _users.first : null;
       }
     } catch (e) {
       _errorMessage = e.toString();
       if (kDebugMode) {
-        print('Error deleting user via service: $e');
+        print('Error deleting user: $e');
       }
     } finally {
       _isLoading = false;
