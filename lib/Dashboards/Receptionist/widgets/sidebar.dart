@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 class Sidebar extends StatelessWidget {
   final int selectedIndex;
-  final ValueChanged<int>? onTabChanged;
-  const Sidebar({super.key, this.selectedIndex = 0, this.onTabChanged});
+  const Sidebar({super.key, this.selectedIndex = 0});
 
   @override
   Widget build(BuildContext context) {
@@ -32,19 +31,25 @@ class Sidebar extends StatelessWidget {
             icon: Icons.dashboard,
             label: 'Dashboard',
             selected: selectedIndex == 0,
-            onTap: () => onTabChanged?.call(0),
+            onTap: () {
+              Navigator.of(context).pushReplacementNamed('/receptionist/dashboard');
+            },
           ),
           SidebarButton(
             icon: Icons.add_circle_outline,
             label: 'New Request',
             selected: selectedIndex == 1,
-            onTap: () => onTabChanged?.call(1),
+            onTap: () {
+              Navigator.of(context).pushReplacementNamed('/receptionist/new-job-request');
+            },
           ),
           SidebarButton(
             icon: Icons.person_add_alt,
             label: 'Assign salesperson',
             selected: selectedIndex == 2,
-            onTap: () => onTabChanged?.call(2),
+            onTap: () {
+              Navigator.of(context).pushReplacementNamed('/receptionist/assign-salesperson');
+            },
           ),
           // SidebarButton(
           //   icon: Icons.bar_chart_outlined,

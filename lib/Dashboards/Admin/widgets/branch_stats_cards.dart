@@ -2,10 +2,9 @@ export 'branch_stats_card.dart';
 
 import 'package:flutter/material.dart';
 import 'branch_stats_card.dart';
-import '../models/branch.dart';
 
 class BranchStatsCards extends StatelessWidget {
-  final List<Branch> branches;
+  final List<Map<String, dynamic>> branches;
   final String selectedBranch;
   final int selectedBranchIndex;
   final ValueChanged<String?> onBranchChanged;
@@ -45,8 +44,8 @@ class BranchStatsCards extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF101C2C)),
               items: branches.map((branch) {
                 return DropdownMenuItem<String>(
-                  value: branch.name,
-                  child: Text(branch.name, overflow: TextOverflow.ellipsis),
+                  value: branch['name'],
+                  child: Text(branch['name'], overflow: TextOverflow.ellipsis),
                 );
               }).toList(),
               onChanged: onBranchChanged,
