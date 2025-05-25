@@ -43,14 +43,6 @@ class Sidebar extends StatelessWidget {
               Navigator.of(context).pushReplacementNamed('/receptionist/new-job-request');
             },
           ),
-          SidebarButton(
-            icon: Icons.person_add_alt,
-            label: 'Assign salesperson',
-            selected: selectedIndex == 2,
-            onTap: () {
-              Navigator.of(context).pushReplacementNamed('/receptionist/assign-salesperson');
-            },
-          ),
           // SidebarButton(
           //   icon: Icons.bar_chart_outlined,
           //   label: 'Job progress',
