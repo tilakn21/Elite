@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../widgets/salesperson_sidebar.dart';
+import '../models/salesperson_job_details.dart';
 
 class SalespersonDetailsScreen extends StatefulWidget {
   const SalespersonDetailsScreen({Key? key}) : super(key: key);
 
   @override
-  State<SalespersonDetailsScreen> createState() => _SalespersonDetailsScreenState();
+  State<SalespersonDetailsScreen> createState() =>
+      _SalespersonDetailsScreenState();
 }
 
 class _SalespersonDetailsScreenState extends State<SalespersonDetailsScreen> {
@@ -17,12 +19,42 @@ class _SalespersonDetailsScreenState extends State<SalespersonDetailsScreen> {
   final TextEditingController _typeOfSignController = TextEditingController();
   final TextEditingController _materialController = TextEditingController();
   final TextEditingController _toolsNailsController = TextEditingController();
-  final TextEditingController _timeForProductionController = TextEditingController();
-  final TextEditingController _timeForFittingController = TextEditingController();
+  final TextEditingController _timeForProductionController =
+      TextEditingController();
+  final TextEditingController _timeForFittingController =
+      TextEditingController();
   final TextEditingController _extraDetailsController = TextEditingController();
-  final TextEditingController _signMeasurementsController = TextEditingController();
-  final TextEditingController _windowVinylMeasurementsController = TextEditingController();
+  final TextEditingController _signMeasurementsController =
+      TextEditingController();
+  final TextEditingController _windowVinylMeasurementsController =
+      TextEditingController();
   String _stickSide = 'Inside';
+
+  // Example: Use model to initialize demo data (could be loaded from backend in real app)
+  late final SalespersonJobDetails jobDetails;
+
+  @override
+  void initState() {
+    super.initState();
+    jobDetails = SalespersonJobDetails(
+      customer: 'John Doe',
+      jobNo: 'J-12345',
+      date: '10/05/2025',
+      typeOfSign: '',
+      material: '',
+      toolsNails: '',
+      timeForProduction: '',
+      timeForFitting: '',
+      extraDetails: '',
+      signMeasurements: '',
+      windowVinylMeasurements: '',
+      stickSide: 'Inside',
+    );
+    _customerController.text = jobDetails.customer;
+    _jobNoController.text = jobDetails.jobNo;
+    _dateController.text = jobDetails.date;
+    _stickSide = jobDetails.stickSide;
+  }
 
   @override
   void dispose() {
@@ -40,20 +72,6 @@ class _SalespersonDetailsScreenState extends State<SalespersonDetailsScreen> {
     super.dispose();
   }
 
-  Future<void> _pickDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) {
-      setState(() {
-        _dateController.text = "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,14 +81,17 @@ class _SalespersonDetailsScreenState extends State<SalespersonDetailsScreen> {
         builder: (context, constraints) {
           final isLargeScreen = constraints.maxWidth >= 900;
           return Drawer(
-            width: isLargeScreen ? 320 : MediaQuery.of(context).size.width * 0.75,
+            width:
+                isLargeScreen ? 320 : MediaQuery.of(context).size.width * 0.75,
             child: SalespersonSidebar(
               selectedRoute: 'home',
               onItemSelected: (route) {
                 if (route == 'home') {
-                  Navigator.of(context).pushReplacementNamed('/salesperson/dashboard');
+                  Navigator.of(context)
+                      .pushReplacementNamed('/salesperson/dashboard');
                 } else if (route == 'profile') {
-                  Navigator.of(context).pushReplacementNamed('/salesperson/profile');
+                  Navigator.of(context)
+                      .pushReplacementNamed('/salesperson/profile');
                 }
               },
             ),
@@ -96,7 +117,8 @@ class _SalespersonDetailsScreenState extends State<SalespersonDetailsScreen> {
             ),
           ],
         ),
-        title: const Text('Details', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
+        title: const Text('Details',
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
         centerTitle: true,
         actions: [
           Padding(
@@ -121,30 +143,39 @@ class _SalespersonDetailsScreenState extends State<SalespersonDetailsScreen> {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text('Customer', style: TextStyle(fontWeight: FontWeight.w600)),
-                      SizedBox(height: 4),
-                      Text('John Doe', style: TextStyle(fontSize: 15, color: Colors.black87)),
+                    children: [
+                      const Text('Customer',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 4),
+                      Text(_customerController.text,
+                          style: const TextStyle(
+                              fontSize: 15, color: Colors.black87)),
                     ],
                   ),
                 ),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text('Job No', style: TextStyle(fontWeight: FontWeight.w600)),
-                      SizedBox(height: 4),
-                      Text('J-12345', style: TextStyle(fontSize: 15, color: Colors.black87)),
+                    children: [
+                      const Text('Job No',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 4),
+                      Text(_jobNoController.text,
+                          style: const TextStyle(
+                              fontSize: 15, color: Colors.black87)),
                     ],
                   ),
                 ),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text('Date', style: TextStyle(fontWeight: FontWeight.w600)),
-                      SizedBox(height: 4),
-                      Text('10/05/2025', style: TextStyle(fontSize: 15, color: Colors.black87)),
+                    children: [
+                      const Text('Date',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 4),
+                      Text(_dateController.text,
+                          style: const TextStyle(
+                              fontSize: 15, color: Colors.black87)),
                     ],
                   ),
                 ),
@@ -210,7 +241,8 @@ class _SalespersonDetailsScreenState extends State<SalespersonDetailsScreen> {
             TextField(
               controller: _extraDetailsController,
               decoration: const InputDecoration(
-                labelText: 'Extra Details (Frame, bracket or additional requirements to complete this job)',
+                labelText:
+                    'Extra Details (Frame, bracket or additional requirements to complete this job)',
                 border: OutlineInputBorder(),
               ),
               maxLines: 2,
@@ -351,13 +383,18 @@ class _SalespersonDetailsScreenState extends State<SalespersonDetailsScreen> {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF3EC1D3),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                   elevation: 0,
                 ),
                 onPressed: () {
                   // Submit logic here
                 },
-                child: const Text('Submit Details', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16)),
+                child: const Text('Submit Details',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16)),
               ),
             ),
           ],

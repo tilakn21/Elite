@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/printing_job.dart';
 
 class PrintingJobTable extends StatelessWidget {
   const PrintingJobTable({Key? key}) : super(key: key);
@@ -6,62 +7,102 @@ class PrintingJobTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final jobs = [
-      {
-        'jobNo': '#1001',
-        'clientName': 'Jhon Due',
-        'approvedDate': '24/12/2022\n03:00 PM',
-        'design': 'Logo and Text',
-        'status': 'Printing',
-      },
-      {
-        'jobNo': '#1002',
-        'clientName': 'Jena Smith',
-        'approvedDate': '23/12/2022\n12:40 PM',
-        'design': 'promotional graphics',
-        'status': 'Printing',
-      },
-      {
-        'jobNo': '#1003',
-        'clientName': 'Ace Crop',
-        'approvedDate': '22/12/2022\n05:20 PM',
-        'design': 'Product Advertisement',
-        'status': 'Completed',
-      },
-      {
-        'jobNo': '#1004',
-        'clientName': 'Bob Jhonrison',
-        'approvedDate': '21/12/2022\n10:40 PM',
-        'design': 'Logo and text',
-        'status': 'Pending',
-      },
-      {
-        'jobNo': '#1005',
-        'clientName': 'Broklin Fin',
-        'approvedDate': '24/12/2022\n03:00 PM',
-        'design': 'Product Advertisement',
-        'status': 'Printing',
-      },
-      {
-        'jobNo': '#1006',
-        'clientName': 'Jhon Duow',
-        'approvedDate': '23/12/2022\n12:40 PM',
-        'design': 'Logo and text',
-        'status': 'Printing',
-      },
-      {
-        'jobNo': '#1007',
-        'clientName': 'Sana Jin',
-        'approvedDate': '22/12/2022\n05:20 PM',
-        'design': 'Product Advertisement',
-        'status': 'Printing',
-      },
-      {
-        'jobNo': '#1008',
-        'clientName': 'Fin otis',
-        'approvedDate': '21/12/2022\n10:40 PM',
-        'design': 'Logo and text',
-        'status': 'Pending',
-      },
+      PrintingJob(
+        id: '1',
+        jobNo: '#1001',
+        title: 'Logo and Text',
+        clientName: 'Jhon Due',
+        submittedAt: DateTime(2022, 12, 24, 15, 0),
+        status: PrintingStatus.inProgress,
+        specifications: const [],
+        assignedPrinter: 'Printer 1',
+        copies: 1,
+        progress: 0.5,
+      ),
+      PrintingJob(
+        id: '2',
+        jobNo: '#1002',
+        title: 'Promotional Graphics',
+        clientName: 'Jena Smith',
+        submittedAt: DateTime(2022, 12, 23, 12, 40),
+        status: PrintingStatus.inProgress,
+        specifications: const [],
+        assignedPrinter: 'Printer 2',
+        copies: 1,
+        progress: 0.3,
+      ),
+      PrintingJob(
+        id: '3',
+        jobNo: '#1003',
+        title: 'Product Advertisement',
+        clientName: 'Ace Crop',
+        submittedAt: DateTime(2022, 12, 22, 17, 20),
+        status: PrintingStatus.completed,
+        specifications: const [],
+        assignedPrinter: 'Printer 1',
+        copies: 1,
+        progress: 1.0,
+      ),
+      PrintingJob(
+        id: '4',
+        jobNo: '#1004',
+        title: 'Logo and Text',
+        clientName: 'Bob Jhonrison',
+        submittedAt: DateTime(2022, 12, 21, 22, 40),
+        status: PrintingStatus.queued,
+        specifications: const [],
+        assignedPrinter: 'Printer 3',
+        copies: 1,
+        progress: 0.0,
+      ),
+      PrintingJob(
+        id: '5',
+        jobNo: '#1005',
+        title: 'Product Advertisement',
+        clientName: 'Broklin Fin',
+        submittedAt: DateTime(2022, 12, 24, 15, 0),
+        status: PrintingStatus.inProgress,
+        specifications: const [],
+        assignedPrinter: 'Printer 2',
+        copies: 1,
+        progress: 0.6,
+      ),
+      PrintingJob(
+        id: '6',
+        jobNo: '#1006',
+        title: 'Logo and text',
+        clientName: 'Jhon Duow',
+        submittedAt: DateTime(2022, 12, 23, 12, 40),
+        status: PrintingStatus.inProgress,
+        specifications: const [],
+        assignedPrinter: 'Printer 1',
+        copies: 1,
+        progress: 0.4,
+      ),
+      PrintingJob(
+        id: '7',
+        jobNo: '#1007',
+        title: 'Product Advertisement',
+        clientName: 'Sana Jin',
+        submittedAt: DateTime(2022, 12, 22, 17, 20),
+        status: PrintingStatus.inProgress,
+        specifications: const [],
+        assignedPrinter: 'Printer 3',
+        copies: 2,
+        progress: 0.8,
+      ),
+      PrintingJob(
+        id: '8',
+        jobNo: '#1008',
+        title: 'Logo and text',
+        clientName: 'Fin otis',
+        submittedAt: DateTime(2022, 12, 21, 22, 40),
+        status: PrintingStatus.queued,
+        specifications: const [],
+        assignedPrinter: 'Printer 2',
+        copies: 3,
+        progress: 0.1,
+      ),
     ];
 
     return Container(
@@ -95,18 +136,23 @@ class PrintingJobTable extends StatelessWidget {
           Expanded(
             child: ListView.separated(
               itemCount: jobs.length,
-              separatorBuilder: (context, index) => const Divider(height: 1, color: Color(0xFFEDECF7)),
+              separatorBuilder: (context, index) =>
+                  const Divider(height: 1, color: Color(0xFFEDECF7)),
               itemBuilder: (context, index) {
                 final job = jobs[index];
                 return Container(
                   color: Colors.white,
                   child: Row(
                     children: [
-                      _TableCell(job['jobNo']!, flex: 2),
-                      _TableCell(job['clientName']!, flex: 3),
-                      _TableCell(job['approvedDate']!, flex: 3),
-                      _TableCell(job['design']!, flex: 3),
-                      _StatusCell(status: job['status']!),
+                      _TableCell(job.jobNo, flex: 2),
+                      _TableCell(job.clientName, flex: 3),
+                      _TableCell(
+                        '${job.submittedAt.day}/${job.submittedAt.month}/${job.submittedAt.year}\n'
+                        '${job.submittedAt.hour}:${job.submittedAt.minute} ${job.submittedAt.hour >= 12 ? 'PM' : 'AM'}',
+                        flex: 3,
+                      ),
+                      _TableCell(job.title, flex: 3),
+                      _StatusCell(status: job.status.name),
                       const Spacer(),
                       Padding(
                         padding: const EdgeInsets.only(right: 16.0),
@@ -116,15 +162,19 @@ class PrintingJobTable extends StatelessWidget {
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF57B9C6),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
                             ),
                             onPressed: () {},
-                            child: const Text('View print details', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                            child: const Text('View print details',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w600, fontSize: 14)),
                           ),
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.arrow_forward_ios, size: 18, color: Color(0xFF888FA6)),
+                        icon: const Icon(Icons.arrow_forward_ios,
+                            size: 18, color: Color(0xFF888FA6)),
                         onPressed: () {},
                       ),
                     ],
@@ -150,7 +200,10 @@ class _HeaderCell extends StatelessWidget {
       flex: flex,
       child: Text(
         label,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFFB1B5C9)),
+        style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+            color: Color(0xFFB1B5C9)),
       ),
     );
   }
@@ -169,7 +222,10 @@ class _TableCell extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 18.0, horizontal: 4),
         child: Text(
           value,
-          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15, color: Color(0xFF232B3E)),
+          style: const TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 15,
+              color: Color(0xFF232B3E)),
         ),
       ),
     );
@@ -182,11 +238,11 @@ class _StatusCell extends StatelessWidget {
 
   Color get _bgColor {
     switch (status) {
-      case 'Printing':
+      case 'inProgress':
         return const Color(0xFFEEE6FF);
-      case 'Completed':
+      case 'completed':
         return const Color(0xFFE6FFF5);
-      case 'Pending':
+      case 'pending':
         return const Color(0xFFFFE6E6);
       default:
         return const Color(0xFFEDECF7);
@@ -195,11 +251,11 @@ class _StatusCell extends StatelessWidget {
 
   Color get _textColor {
     switch (status) {
-      case 'Printing':
+      case 'inProgress':
         return const Color(0xFF9B6FF7);
-      case 'Completed':
+      case 'completed':
         return const Color(0xFF1BC47D);
-      case 'Pending':
+      case 'pending':
         return const Color(0xFFF57B7B);
       default:
         return const Color(0xFF888FA6);
@@ -220,7 +276,8 @@ class _StatusCell extends StatelessWidget {
         child: Center(
           child: Text(
             status,
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: _textColor),
+            style: TextStyle(
+                fontWeight: FontWeight.w600, fontSize: 13, color: _textColor),
           ),
         ),
       ),

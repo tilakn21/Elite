@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/salesperson_sidebar.dart';
+import '../models/salesperson_profile.dart';
 
 class SalespersonProfileScreen extends StatefulWidget {
   const SalespersonProfileScreen({Key? key}) : super(key: key);
@@ -11,6 +12,12 @@ class SalespersonProfileScreen extends StatefulWidget {
 
 class _SalespersonProfileScreenState extends State<SalespersonProfileScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final SalespersonProfile profile = SalespersonProfile(
+    fullName: 'Brooklyn Simmons',
+    phoneNumber: '(603) 555-0123',
+    email: 'brooklyns@mail.com',
+    age: 26,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -32,10 +39,12 @@ class _SalespersonProfileScreenState extends State<SalespersonProfileScreen> {
         return Scaffold(
           key: _scaffoldKey,
           backgroundColor: Colors.white,
-          drawer: isLargeScreen ? null : Drawer(
-            width: MediaQuery.of(context).size.width * 0.75,
-            child: sidebar,
-          ),
+          drawer: isLargeScreen
+              ? null
+              : Drawer(
+                  width: MediaQuery.of(context).size.width * 0.75,
+                  child: sidebar,
+                ),
           appBar: AppBar(
             backgroundColor: Colors.white,
             elevation: 0,
@@ -60,12 +69,14 @@ class _SalespersonProfileScreenState extends State<SalespersonProfileScreen> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.menu, color: Colors.black87),
-                        onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                        onPressed: () =>
+                            _scaffoldKey.currentState?.openDrawer(),
                       ),
                     ],
                   ),
             title: const Text('Profile',
-                style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
+                style: TextStyle(
+                    color: Colors.black, fontWeight: FontWeight.w700)),
             centerTitle: true,
           ),
           body: Row(
@@ -79,7 +90,8 @@ class _SalespersonProfileScreenState extends State<SalespersonProfileScreen> {
               Expanded(
                 child: SingleChildScrollView(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 22.0, vertical: 12.0),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 22.0, vertical: 12.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -88,13 +100,14 @@ class _SalespersonProfileScreenState extends State<SalespersonProfileScreen> {
                           child: CircleAvatar(
                             backgroundColor: Color(0xFFE7F6FB),
                             radius: 46,
-                            child: Icon(Icons.person, color: Color(0xFF5A6CEA), size: 56),
+                            child: Icon(Icons.person,
+                                color: Color(0xFF5A6CEA), size: 56),
                           ),
                         ),
                         const SizedBox(height: 18),
-                        const Text(
-                          'Brooklyn Simmons',
-                          style: TextStyle(
+                        Text(
+                          profile.fullName,
+                          style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 20,
                               color: Colors.black),
@@ -110,24 +123,24 @@ class _SalespersonProfileScreenState extends State<SalespersonProfileScreen> {
                         const SizedBox(height: 24),
                         _ProfileCard(
                           label: 'Full Name',
-                          value: 'Brooklyn Simmons',
+                          value: profile.fullName,
                           isBold: true,
                         ),
                         const SizedBox(height: 12),
                         _ProfileCard(
                           label: 'Phone no.',
-                          value: '(603) 555-0123',
+                          value: profile.phoneNumber,
                         ),
                         const SizedBox(height: 12),
                         _ProfileCard(
                           label: 'Email Address',
-                          value: 'brooklyns@mail.com',
+                          value: profile.email,
                           isBold: true,
                         ),
                         const SizedBox(height: 12),
                         _ProfileCard(
                           label: 'Age',
-                          value: '26 yr',
+                          value: '${profile.age} yr',
                         ),
                       ],
                     ),

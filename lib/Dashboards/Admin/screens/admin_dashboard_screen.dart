@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../widgets/admin_sidebar.dart';
-import 'employee_management_screen.dart';
 import '../widgets/admin_top_bar.dart';
 import '../widgets/branch_stats_cards.dart';
 import '../widgets/summary_card.dart';
-import '../widgets/summary_cards.dart';
 import '../widgets/job_status_table.dart';
 import '../widgets/sales_performance_chart.dart';
-import 'package:fl_chart/fl_chart.dart';
+import '../models/branch.dart';
+import '../models/admin_job.dart';
+import '../models/sales_data.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({Key? key}) : super(key: key);
@@ -32,7 +33,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       backgroundColor: const Color(0xFFF7F6FF),
       body: Row(
         children: [
-          AdminSidebar(selectedIndex: _selectedIndex, onItemTapped: _onSidebarItemTapped),
+          AdminSidebar(
+              selectedIndex: _selectedIndex,
+              onItemTapped: _onSidebarItemTapped),
           Expanded(
             child: Column(
               children: const [
@@ -59,52 +62,39 @@ class _AdminDashboardContent extends StatefulWidget {
 class _AdminDashboardContentState extends State<_AdminDashboardContent> {
   int selectedBranch = 0;
 
-  final branches = [
-    {
-      'name': 'Branch A',
-      'completed': 281,
-      'revenue': '\u0000250,000',
-      'delays': 2,
-    },
-    {
-      'name': 'Branch B',
-      'completed': 281,
-      'revenue': '\u0000250,000',
-      'delays': 4,
-    },
-    {
-      'name': 'Branch C',
-      'completed': 281,
-      'revenue': '\u0000250,000',
-      'delays': 3,
-    },
+  final List<Branch> branches = [
+    Branch(name: 'Branch A', completed: 281, revenue: '\u0000250,000', delays: 2),
+    Branch(name: 'Branch B', completed: 281, revenue: '\u0000250,000', delays: 4),
+    Branch(name: 'Branch C', completed: 281, revenue: '\u0000250,000', delays: 3),
   ];
 
-  final jobs = List.generate(5, (i) => {
-    'no': '#1001',
-    'title': i % 2 == 0 ? 'Office renovation' : 'Window installation',
-    'client': 'Brooklyn Simmons',
-    'date': '22/04/24',
-    'status': 'Approved',
-  });
+  final List<AdminJob> jobs = List.generate(
+      5,
+      (i) => AdminJob(
+            no: '#1001',
+            title: i % 2 == 0 ? 'Office renovation' : 'Window installation',
+            client: 'Brooklyn Simmons',
+            date: '22/04/24',
+            status: 'Approved',
+          ));
 
-  final salesData = [
-    FlSpot(0, 200),
-    FlSpot(1, 350),
-    FlSpot(2, 400),
-    FlSpot(3, 500),
-    FlSpot(4, 300),
-    FlSpot(5, 600),
-    FlSpot(6, 450),
-    FlSpot(7, 500),
-    FlSpot(8, 600),
+  final List<SalesData> salesData = [
+    SalesData(0, 200),
+    SalesData(1, 350),
+    SalesData(2, 400),
+    SalesData(3, 500),
+    SalesData(4, 300),
+    SalesData(5, 600),
+    SalesData(6, 450),
+    SalesData(7, 500),
+    SalesData(8, 600),
   ];
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 1100;
+        final bool isNarrow = constraints.maxWidth < 1100;
         return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 22),
           child: Column(
@@ -117,16 +107,22 @@ class _AdminDashboardContentState extends State<_AdminDashboardContent> {
                   Container(
                     margin: const EdgeInsets.only(right: 18),
                     child: DropdownButton<String>(
-                      value: branches[selectedBranch]['name'] as String,
-                      items: branches.map((b) => DropdownMenuItem<String>(
-                        value: b['name'] as String,
-                        child: Text(b['name'] as String, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      )).toList(),
+                      value: branches[selectedBranch].name,
+                      items: branches
+                          .map((b) => DropdownMenuItem<String>(
+                                value: b.name,
+                                child: Text(b.name,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600)),
+                              ))
+                          .toList(),
                       onChanged: (val) {
-                        final idx = branches.indexWhere((b) => b['name'] == val);
+                        final int idx =
+                            branches.indexWhere((b) => b.name == val);
                         if (idx != -1) setState(() => selectedBranch = idx);
                       },
-                      style: const TextStyle(fontSize: 15, color: Color(0xFF101C2C)),
+                      style: const TextStyle(
+                          fontSize: 15, color: Color(0xFF101C2C)),
                       underline: Container(),
                       icon: const Icon(Icons.keyboard_arrow_down),
                       dropdownColor: Colors.white,
@@ -138,14 +134,16 @@ class _AdminDashboardContentState extends State<_AdminDashboardContent> {
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
-                        children: List.generate(branches.length, (index) =>
-                          Container(
-                            margin: EdgeInsets.only(right: 12),
+                        children: List.generate(
+                          branches.length,
+                          (index) => Container(
+                            margin: const EdgeInsets.only(right: 12),
                             width: 180,
                             child: BranchStatsCard(
                               branch: branches[index],
                               selected: selectedBranch == index,
-                              onTap: () => setState(() => selectedBranch = index),
+                              onTap: () =>
+                                  setState(() => selectedBranch = index),
                             ),
                           ),
                         ),
@@ -207,14 +205,15 @@ class _AdminDashboardContentState extends State<_AdminDashboardContent> {
                   children: [
                     const Text(
                       'Job status',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+                      style:
+                          TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
                     ),
                     Container(
                       margin: const EdgeInsets.only(top: 4),
                       height: 2,
                       width: 44,
                       decoration: BoxDecoration(
-                        color: Color(0xFF1673FF).withOpacity(0.22),
+                        color: const Color(0xFF1673FF).withOpacity(0.22),
                         borderRadius: BorderRadius.circular(1),
                       ),
                     ),
@@ -228,7 +227,8 @@ class _AdminDashboardContentState extends State<_AdminDashboardContent> {
                           padding: const EdgeInsets.only(bottom: 14),
                           child: JobStatusTable(jobs: jobs),
                         ),
-                        SalesPerformanceChart(data: salesData),
+                        // When passing sales data to SalesPerformanceChart, convert SalesData to FlSpot:
+                        SalesPerformanceChart(data: salesData.map((e) => FlSpot(e.x, e.y)).toList()),
                       ],
                     )
                   : Row(
@@ -243,7 +243,7 @@ class _AdminDashboardContentState extends State<_AdminDashboardContent> {
                         ),
                         Expanded(
                           flex: 2,
-                          child: SalesPerformanceChart(data: salesData),
+                          child: SalesPerformanceChart(data: salesData.map((e) => FlSpot(e.x, e.y)).toList()),
                         ),
                       ],
                     ),
@@ -254,4 +254,3 @@ class _AdminDashboardContentState extends State<_AdminDashboardContent> {
     );
   }
 }
-
