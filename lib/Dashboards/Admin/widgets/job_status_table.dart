@@ -1,76 +1,174 @@
 import 'package:flutter/material.dart';
+import '../models/models.dart';
+import 'package:intl/intl.dart';
 
 class JobStatusTable extends StatelessWidget {
-  final List<Map<String, dynamic>> jobs;
-  const JobStatusTable({Key? key, required this.jobs}) : super(key: key);
+  final List<AdminJob> jobs;
+
+  const JobStatusTable({
+    Key? key,
+    required this.jobs,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            color: const Color(0xFF101C2C),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: const [
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                    'No.',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'Title',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'Client',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                    'Date',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 100,
+                  child: Text(
+                    'Status',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ...jobs.map((job) => _JobStatusRow(job: job)),
+        ],
+      ),
+    );
+  }
+}
+
+class _JobStatusRow extends StatelessWidget {
+  final AdminJob job;
+  static final _dateFormat = DateFormat('dd/MM/yy');
+
+  const _JobStatusRow({
+    Key? key,
+    required this.job,
+  }) : super(key: key);
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return Colors.green;
+      case 'pending':
+        return Colors.orange;
+      case 'in process':
+        return Colors.blue;
+      default:
+        return Colors.grey;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.07),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade200),
+        ),
       ),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
         children: [
-          const Text('Job status', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
-          const SizedBox(height: 14),
-          DataTable(
-            columnSpacing: 22,
-            headingRowHeight: 34,
-            dataRowHeight: 36,
-            border: TableBorder(horizontalInside: BorderSide(color: Color(0xFFF1F1F1), width: 1)),
-            columns: const [
-              DataColumn(label: Text('Job no.', style: TextStyle(fontWeight: FontWeight.w600))),
-              DataColumn(label: Text('Job and Client', style: TextStyle(fontWeight: FontWeight.w600))),
-              DataColumn(label: Text('Date', style: TextStyle(fontWeight: FontWeight.w600))),
-              DataColumn(label: Text('View', style: TextStyle(fontWeight: FontWeight.w600))),
-              DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.w600))),
-            ],
-            rows: jobs.map((job) {
-              return DataRow(cells: [
-                DataCell(Text(job['no'], style: const TextStyle(fontWeight: FontWeight.bold))),
-                DataCell(Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(job['title'], style: const TextStyle(fontWeight: FontWeight.w600)),
-                    Text(job['client'], style: const TextStyle(fontSize: 11, color: Color(0xFFB0B3C7))),
-                  ],
-                )),
-                DataCell(Text(job['date'])),
-                DataCell(
-                  InkWell(
-                    onTap: () {/* TODO: Navigate to job details */},
-                    child: Text('view Job', style: TextStyle(color: Color(0xFF1673FF), fontWeight: FontWeight.w600)),
-                  ),
+          Expanded(
+            flex: 1,
+            child: Text(
+              job.jobNo,
+              style: const TextStyle(fontSize: 13),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              job.title,
+              style: const TextStyle(fontSize: 13),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              job.clientName,
+              style: const TextStyle(fontSize: 13),
+            ),
+          ),
+          Expanded(
+            flex: 1,
+            child: Text(
+              _dateFormat.format(job.date),
+              style: const TextStyle(fontSize: 13),
+            ),
+          ),
+          SizedBox(
+            width: 100,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: _getStatusColor(job.status).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                job.status,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: _getStatusColor(job.status),
                 ),
-                DataCell(Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: job['status'] == 'Approved' ? const Color(0xFFE8FFF3) : Colors.orange.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    job['status'],
-                    style: TextStyle(
-                      color: job['status'] == 'Approved' ? Colors.green : Colors.orange,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                )),
-              ]);
-            }).toList(),
+              ),
+            ),
           ),
         ],
       ),
