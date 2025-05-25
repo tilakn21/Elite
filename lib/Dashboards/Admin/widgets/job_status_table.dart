@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import '../models/admin_job.dart';
 
 class JobStatusTable extends StatelessWidget {
-  final List<Map<String, dynamic>> jobs;
+  final List<AdminJob> jobs;
   const JobStatusTable({Key? key, required this.jobs}) : super(key: key);
 
   @override
@@ -38,16 +39,16 @@ class JobStatusTable extends StatelessWidget {
             ],
             rows: jobs.map((job) {
               return DataRow(cells: [
-                DataCell(Text(job['no'], style: const TextStyle(fontWeight: FontWeight.bold))),
+                DataCell(Text(job.no, style: const TextStyle(fontWeight: FontWeight.bold))),
                 DataCell(Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(job['title'], style: const TextStyle(fontWeight: FontWeight.w600)),
-                    Text(job['client'], style: const TextStyle(fontSize: 11, color: Color(0xFFB0B3C7))),
+                    Text(job.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Text(job.client, style: const TextStyle(fontSize: 11, color: Color(0xFFB0B3C7))),
                   ],
                 )),
-                DataCell(Text(job['date'])),
+                DataCell(Text(job.date)),
                 DataCell(
                   InkWell(
                     onTap: () {/* TODO: Navigate to job details */},
@@ -57,13 +58,13 @@ class JobStatusTable extends StatelessWidget {
                 DataCell(Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: job['status'] == 'Approved' ? const Color(0xFFE8FFF3) : Colors.orange.shade50,
+                    color: job.status == 'Approved' ? const Color(0xFFE8FFF3) : Colors.orange.shade50,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    job['status'],
+                    job.status,
                     style: TextStyle(
-                      color: job['status'] == 'Approved' ? Colors.green : Colors.orange,
+                      color: job.status == 'Approved' ? Colors.green : Colors.orange,
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
                     ),

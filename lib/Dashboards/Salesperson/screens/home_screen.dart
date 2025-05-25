@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/salesperson_sidebar.dart';
 import 'details_screen.dart';
-import 'profile_screen.dart';
+import '../models/site_visit_item.dart';
 
 class SalespersonHomeScreen extends StatefulWidget {
   const SalespersonHomeScreen({Key? key}) : super(key: key);
@@ -10,27 +10,23 @@ class SalespersonHomeScreen extends StatefulWidget {
   State<SalespersonHomeScreen> createState() => _SalespersonHomeScreenState();
 }
 
-class _SiteVisitItem {
-  final String siteId;
-  final String name;
-  final String avatarPath;
-  final String date;
-  final bool submitted;
-  _SiteVisitItem(this.siteId, this.name, this.avatarPath, this.date, this.submitted);
-}
-
 class _SalespersonHomeScreenState extends State<SalespersonHomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   String _selectedSidebar = 'home';
 
   @override
   Widget build(BuildContext context) {
-    final List<_SiteVisitItem> visits = [
-      _SiteVisitItem('S001', 'Brooklyn Simmons', 'assets/images/avatar1.png', '21/12/2022', true),
-      _SiteVisitItem('S002', 'Kristin Watson', 'assets/images/avatar2.png', '21/12/2022', false),
-      _SiteVisitItem('S003', 'Brooklyn Simmons', 'assets/images/avatar3.png', '21/12/2022', false),
-      _SiteVisitItem('S004', 'Cody Fisher', 'assets/images/avatar4.png', '21/12/2022', true),
-      _SiteVisitItem('S005', 'Jacob Jones', 'assets/images/avatar5.png', '21/12/2022', false),
+    final List<SiteVisitItem> visits = [
+      SiteVisitItem('S001', 'Brooklyn Simmons', 'assets/images/avatar1.png',
+          '21/12/2022', true),
+      SiteVisitItem('S002', 'Kristin Watson', 'assets/images/avatar2.png',
+          '21/12/2022', false),
+      SiteVisitItem('S003', 'Brooklyn Simmons', 'assets/images/avatar3.png',
+          '21/12/2022', false),
+      SiteVisitItem('S004', 'Cody Fisher', 'assets/images/avatar4.png',
+          '21/12/2022', true),
+      SiteVisitItem('S005', 'Jacob Jones', 'assets/images/avatar5.png',
+          '21/12/2022', false),
     ];
 
     return LayoutBuilder(
@@ -43,19 +39,23 @@ class _SalespersonHomeScreenState extends State<SalespersonHomeScreen> {
               _selectedSidebar = route;
             });
             if (route == 'profile') {
-              Navigator.of(context).pushReplacementNamed('/salesperson/profile');
+              Navigator.of(context)
+                  .pushReplacementNamed('/salesperson/profile');
             } else if (route == 'home') {
-              Navigator.of(context).pushReplacementNamed('/salesperson/dashboard');
+              Navigator.of(context)
+                  .pushReplacementNamed('/salesperson/dashboard');
             }
           },
         );
         return Scaffold(
           key: _scaffoldKey,
           backgroundColor: Colors.white,
-          drawer: isLargeScreen ? null : Drawer(
-            width: MediaQuery.of(context).size.width * 0.75,
-            child: sidebar,
-          ),
+          drawer: isLargeScreen
+              ? null
+              : Drawer(
+                  width: MediaQuery.of(context).size.width * 0.75,
+                  child: sidebar,
+                ),
           appBar: AppBar(
             backgroundColor: Colors.white,
             elevation: 0,
@@ -80,18 +80,22 @@ class _SalespersonHomeScreenState extends State<SalespersonHomeScreen> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.menu, color: Colors.black87),
-                        onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                        onPressed: () =>
+                            _scaffoldKey.currentState?.openDrawer(),
                       ),
                     ],
                   ),
-            title: const Text('Home', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
+            title: const Text('Home',
+                style: TextStyle(
+                    color: Colors.black, fontWeight: FontWeight.w600)),
             centerTitle: true,
             actions: [
               Padding(
                 padding: const EdgeInsets.only(right: 16.0),
                 child: GestureDetector(
                   onTap: () {
-                    Navigator.of(context).pushReplacementNamed('/salesperson/profile');
+                    Navigator.of(context)
+                        .pushReplacementNamed('/salesperson/profile');
                   },
                   child: CircleAvatar(
                     backgroundColor: Color(0xFFE7F6FB),
@@ -120,14 +124,17 @@ class _SalespersonHomeScreenState extends State<SalespersonHomeScreen> {
                       Expanded(
                         child: ListView.separated(
                           itemCount: visits.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 8),
                           itemBuilder: (context, index) {
                             final item = visits[index];
                             return GestureDetector(
                               onTap: () {
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(builder: (_) => const SalespersonDetailsScreen()),
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          const SalespersonDetailsScreen()),
                                 );
                               },
                               child: _SiteVisitCard(item: item),
@@ -151,7 +158,8 @@ class _SalespersonHomeScreenState extends State<SalespersonHomeScreen> {
                       topRight: Radius.circular(28),
                     ),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: const [
@@ -167,7 +175,7 @@ class _SalespersonHomeScreenState extends State<SalespersonHomeScreen> {
 }
 
 class _SiteVisitCard extends StatelessWidget {
-  final _SiteVisitItem item;
+  final SiteVisitItem item;
   const _SiteVisitCard({required this.item});
   @override
   Widget build(BuildContext context) {
@@ -187,7 +195,9 @@ class _SiteVisitCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    CircleAvatar(backgroundImage: AssetImage(item.avatarPath), radius: 22),
+                    CircleAvatar(
+                        backgroundImage: AssetImage(item.avatarPath),
+                        radius: 22),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -195,19 +205,26 @@ class _SiteVisitCard extends StatelessWidget {
                         children: [
                           Text(
                             item.name,
-                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: Colors.black87),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                                color: Colors.black87),
                             overflow: TextOverflow.ellipsis,
                           ),
                           Row(
                             children: [
                               Text(
                                 'Site ID: ',
-                                style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                                style: TextStyle(
+                                    fontSize: 13, color: Colors.grey.shade700),
                               ),
                               Flexible(
                                 child: Text(
                                   item.siteId,
-                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF5A6CEA)),
+                                  style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF5A6CEA)),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
@@ -215,7 +232,8 @@ class _SiteVisitCard extends StatelessWidget {
                           ),
                           Text(
                             item.date,
-                            style: const TextStyle(fontSize: 13, color: Colors.black54),
+                            style: const TextStyle(
+                                fontSize: 13, color: Colors.black54),
                           ),
                         ],
                       ),
@@ -226,15 +244,20 @@ class _SiteVisitCard extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
-                        color: item.submitted ? const Color(0xFFD2F6E7) : const Color(0xFFFFE3E3),
+                        color: item.submitted
+                            ? const Color(0xFFD2F6E7)
+                            : const Color(0xFFFFE3E3),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         item.submitted ? 'Submitted' : 'Pending',
                         style: TextStyle(
-                          color: item.submitted ? const Color(0xFF3BB77E) : const Color(0xFFD32F2F),
+                          color: item.submitted
+                              ? const Color(0xFF3BB77E)
+                              : const Color(0xFFD32F2F),
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
                         ),
@@ -246,7 +269,8 @@ class _SiteVisitCard extends StatelessWidget {
                         color: const Color(0xFFF3F3FB),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.arrow_forward_ios, size: 22, color: Color(0xFFBDBDBD)),
+                      child: const Icon(Icons.arrow_forward_ios,
+                          size: 22, color: Color(0xFFBDBDBD)),
                     ),
                   ],
                 ),
@@ -263,7 +287,8 @@ class _SiteVisitCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                CircleAvatar(backgroundImage: AssetImage(item.avatarPath), radius: 22),
+                CircleAvatar(
+                    backgroundImage: AssetImage(item.avatarPath), radius: 22),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -271,26 +296,34 @@ class _SiteVisitCard extends StatelessWidget {
                     children: [
                       Text(
                         item.name,
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: Colors.black87),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            color: Colors.black87),
                         overflow: TextOverflow.ellipsis,
                       ),
                       Row(
                         children: [
                           Text(
                             'Site ID: ',
-                            style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                            style: TextStyle(
+                                fontSize: 13, color: Colors.grey.shade700),
                           ),
                           Flexible(
                             child: Text(
                               item.siteId,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF5A6CEA)),
+                              style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF5A6CEA)),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 16),
                           Text(
                             item.date,
-                            style: const TextStyle(fontSize: 13, color: Colors.black54),
+                            style: const TextStyle(
+                                fontSize: 13, color: Colors.black54),
                           ),
                         ],
                       ),
@@ -298,15 +331,20 @@ class _SiteVisitCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
-                    color: item.submitted ? const Color(0xFFD2F6E7) : const Color(0xFFFFE3E3),
+                    color: item.submitted
+                        ? const Color(0xFFD2F6E7)
+                        : const Color(0xFFFFE3E3),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     item.submitted ? 'Submitted' : 'Pending',
                     style: TextStyle(
-                      color: item.submitted ? const Color(0xFF3BB77E) : const Color(0xFFD32F2F),
+                      color: item.submitted
+                          ? const Color(0xFF3BB77E)
+                          : const Color(0xFFD32F2F),
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                     ),
@@ -318,7 +356,8 @@ class _SiteVisitCard extends StatelessWidget {
                     color: const Color(0xFFF3F3FB),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.arrow_forward_ios, size: 22, color: Color(0xFFBDBDBD)),
+                  child: const Icon(Icons.arrow_forward_ios,
+                      size: 22, color: Color(0xFFBDBDBD)),
                 ),
               ],
             ),

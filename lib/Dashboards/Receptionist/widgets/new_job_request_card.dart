@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import '../models/job_request.dart';
 
 class NewJobRequestCard extends StatelessWidget {
-  const NewJobRequestCard({super.key});
+  final List<JobRequest> jobRequests;
+  const NewJobRequestCard({super.key, required this.jobRequests});
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +39,7 @@ class NewJobRequestCard extends StatelessWidget {
                   ),
                   const Divider(
                       height: 18, thickness: 1, color: Color(0xFFF2F2F2)),
-                  ..._jobRequests.map((job) => _JobRow(job)).toList(),
+                  ...jobRequests.map((job) => _JobRow(job)).toList(),
                 ],
               ),
             ),
@@ -62,7 +64,7 @@ class _Header extends StatelessWidget {
 }
 
 class _JobRow extends StatelessWidget {
-  final Map<String, dynamic> job;
+  final JobRequest job;
   const _JobRow(this.job);
   @override
   Widget build(BuildContext context) {
@@ -77,24 +79,24 @@ class _JobRow extends StatelessWidget {
                   child: Icon(Icons.person, color: Colors.grey.shade500)),
               const SizedBox(width: 10),
               Flexible(
-                  child: Text(job['name'],
+                  child: Text(job.name,
                       style: const TextStyle(
                           fontWeight: FontWeight.w500, fontSize: 15))),
             ]),
           ),
           Expanded(
-              child: Text(job['phone'],
+              child: Text(job.phone,
                   style:
                       const TextStyle(fontSize: 14, color: Color(0xFF1B2330)))),
           Expanded(
-              child: Text(job['email'],
+              child: Text(job.email,
                   style:
                       const TextStyle(fontSize: 14, color: Color(0xFF1B2330)),
                   overflow: TextOverflow.ellipsis)),
           Expanded(
               child: Align(
                   alignment: Alignment.centerLeft,
-                  child: _StatusChip(job['status']))),
+                  child: _StatusChip(job.status.name))),
         ],
       ),
     );
@@ -129,30 +131,3 @@ class _StatusChip extends StatelessWidget {
     );
   }
 }
-
-const List<Map<String, dynamic>> _jobRequests = [
-  {
-    'name': 'Jane Cooper',
-    'phone': '(225) 555-0118',
-    'email': 'jane@microsoft.com',
-    'status': 'Approved',
-  },
-  {
-    'name': 'Floyd Miles',
-    'phone': '(205) 555-0100',
-    'email': 'floyd@yahoo.com',
-    'status': 'Declined',
-  },
-  {
-    'name': 'Ronald Richards',
-    'phone': '(302) 555-0107',
-    'email': 'ronald@adobex.com',
-    'status': 'Approved',
-  },
-  {
-    'name': 'Marvin McKinney',
-    'phone': '(252) 555-0028',
-    'email': 'marvin@tesla.com',
-    'status': 'Approved',
-  },
-];

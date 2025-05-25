@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/sidebar.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/progress_bar.dart';
+import '../models/production_job.dart';
 
 class UpdateJobStatusScreen extends StatefulWidget {
   const UpdateJobStatusScreen({Key? key}) : super(key: key);
@@ -11,12 +12,12 @@ class UpdateJobStatusScreen extends StatefulWidget {
 }
 
 class _UpdateJobStatusScreenState extends State<UpdateJobStatusScreen> {
-  String selectedStatus = 'In progress';
-  final List<String> statusOptions = [
-    'In progress',
-    'Processed for printing',
-    'Completed',
-    'On hold',
+  JobStatus selectedStatus = JobStatus.inProgress;
+  final List<JobStatus> statusOptions = [
+    JobStatus.inProgress,
+    JobStatus.processedForPrinting,
+    JobStatus.completed,
+    JobStatus.onHold,
   ];
 
   @override
@@ -95,7 +96,7 @@ class _UpdateJobStatusScreenState extends State<UpdateJobStatusScreen> {
                                         'Assigned date', '24,april,2024'),
                                     const SizedBox(height: 8),
                                     _jobDetail(
-                                        'Current status', selectedStatus),
+                                        'Current status', selectedStatus.label),
                                   ],
                                 ),
                               ),
@@ -194,10 +195,22 @@ class _UpdateJobStatusScreenState extends State<UpdateJobStatusScreen> {
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 20)),
                                         const SizedBox(height: 24),
-                                        ...statusOptions
-                                            .map((status) =>
-                                                _statusOption(status))
-                                            .toList(),
+                                        DropdownButton<JobStatus>(
+                                          value: selectedStatus,
+                                          items: statusOptions.map((status) {
+                                            return DropdownMenuItem<JobStatus>(
+                                              value: status,
+                                              child: Text(status.label),
+                                            );
+                                          }).toList(),
+                                          onChanged: (value) {
+                                            if (value != null) {
+                                              setState(() {
+                                                selectedStatus = value;
+                                              });
+                                            }
+                                          },
+                                        ),
                                         const SizedBox(height: 24),
                                         Align(
                                           alignment: Alignment.bottomCenter,
@@ -257,22 +270,6 @@ class _UpdateJobStatusScreenState extends State<UpdateJobStatusScreen> {
         Text(value,
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
       ],
-    );
-  }
-
-  Widget _statusOption(String status) {
-    return CheckboxListTile(
-      value: selectedStatus == status,
-      onChanged: (checked) {
-        setState(() {
-          selectedStatus = status;
-        });
-      },
-      title: Text(status,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-      controlAffinity: ListTileControlAffinity.leading,
-      activeColor: const Color(0xFF57B9C6),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/worker.dart';
 import 'assign_labour_item.dart';
 
 class AssignLabourCard extends StatelessWidget {
@@ -6,6 +7,18 @@ class AssignLabourCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final workers = [
+      Worker(
+          name: 'Jhon Due',
+          role: 'Carpenter',
+          image: 'assets/images/avatar1.png',
+          assigned: false),
+      Worker(
+          name: 'Jana Smith',
+          role: 'Welder',
+          image: 'assets/images/avatar2.png',
+          assigned: true),
+    ];
     return Card(
       elevation: 2,
       color: Colors.white,
@@ -18,24 +31,16 @@ class AssignLabourCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Assign labour', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                const Text('Assign labour',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                 Icon(Icons.more_horiz, color: Colors.grey[400]),
               ],
             ),
             const SizedBox(height: 12),
-            AssignLabourItem(
-              name: 'Jhon Due',
-              role: 'Carpenter',
-              image: 'assets/images/avatar1.png',
-              assigned: false,
-            ),
+            AssignLabourItem(worker: workers[0]),
             const SizedBox(height: 12),
-            AssignLabourItem(
-              name: 'Jana Smith',
-              role: 'Welder',
-              image: 'assets/images/avatar2.png',
-              assigned: true,
-            ),
+            AssignLabourItem(worker: workers[1]),
           ],
         ),
       ),

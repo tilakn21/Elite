@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import '../models/branch.dart';
 
 class BranchStatsCard extends StatelessWidget {
-  final Map<String, dynamic> branch;
+  final Branch branch;
   final bool selected;
   final VoidCallback onTap;
   final double? width;
@@ -38,7 +39,7 @@ class BranchStatsCard extends StatelessWidget {
               children: [
                 Flexible(
                   child: Text(
-                    branch['name'],
+                    branch.name,
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
                     style: TextStyle(
@@ -77,7 +78,7 @@ class BranchStatsCard extends StatelessWidget {
                       ),
                       Flexible(
                         child: Text(
-                          branch['revenue'],
+                          branch.revenue,
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                           style: TextStyle(
@@ -96,20 +97,18 @@ class BranchStatsCard extends StatelessWidget {
                   child: Row(
                     children: [
                       Text(
-                        branch['completed'].toString(),
+                        branch.completed.toString(),
                         style: TextStyle(
                           color: selected ? Colors.white : const Color(0xFF101C2C),
                           fontWeight: FontWeight.bold,
                           fontSize: 13.5,
                         ),
                       ),
-                      const SizedBox(width: 2),
+                      const SizedBox(width: 4),
                       Text(
-                        'Delays: ${branch['delays']}',
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
+                        'Delays: ${branch.delays}',
                         style: TextStyle(
-                          color: selected ? Colors.yellowAccent : const Color(0xFFB0B3C7),
+                          color: selected ? Colors.white70 : const Color(0xFFB0B3C7),
                           fontWeight: FontWeight.w500,
                           fontSize: 10,
                         ),
