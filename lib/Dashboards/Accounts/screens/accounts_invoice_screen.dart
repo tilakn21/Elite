@@ -4,6 +4,8 @@ import '../widgets/accounts_top_bar.dart';
 import '../widgets/accounts_invoice_table.dart';
 import '../widgets/accounts_invoice_detail.dart';
 import '../models/invoice.dart';
+import 'package:provider/provider.dart';
+import '../providers/invoice_provider.dart';
 
 class AccountsInvoiceScreen extends StatefulWidget {
   const AccountsInvoiceScreen({super.key});
@@ -13,73 +15,22 @@ class AccountsInvoiceScreen extends StatefulWidget {
 }
 
 class _AccountsInvoiceScreenState extends State<AccountsInvoiceScreen> {
-  Invoice? selectedInvoice;
-  
-  // Sample invoice data
-  final List<Invoice> sampleInvoices = [
-    Invoice.createNew(
-      clientId: 'client_1',
-      clientName: 'John Doe',
-      issueDate: DateTime(2023, 5, 25),
-      dueDate: DateTime(2023, 6, 24),
-    ).copyWith(
-      id: 'inv_001',
-      invoiceNo: 'INV-001',
-      subtotal: 1200.0,
-      taxAmount: 0.0,
-      discountAmount: 0.0,
-      totalAmount: 1200.0,
-      amountPaid: 0.0,
-      balanceDue: 1200.0,
-      status: InvoiceStatus.pending,
-      items: [
-        InvoiceItem(
-          id: 'item_001',
-          description: 'Website Development',
-          quantity: 1.0,
-          unitPrice: 1000.0,
-          taxRate: 0.0,
-        ),
-        InvoiceItem(
-          id: 'item_002',
-          description: 'UI/UX Design',
-          quantity: 1.0,
-          unitPrice: 200.0,
-          taxRate: 0.0,
-        ),
-      ],
-    ),
-    Invoice.createNew(
-      clientId: 'client_2',
-      clientName: 'Jane Smith',
-      issueDate: DateTime(2023, 5, 24),
-      dueDate: DateTime(2023, 6, 23),
-    ).copyWith(
-      id: 'inv_002',
-      invoiceNo: 'INV-002',
-      subtotal: 800.0,
-      taxAmount: 50.50,
-      discountAmount: 0.0,
-      totalAmount: 850.50,
-      amountPaid: 850.50,
-      balanceDue: 0.0,
-      status: InvoiceStatus.paid,
-      paidDate: DateTime(2023, 5, 25),
-      paymentMethod: 'Credit Card',
-      items: [
-        InvoiceItem(
-          id: 'item_003',
-          description: 'Mobile App Development',
-          quantity: 1.0,
-          unitPrice: 800.0,
-          taxRate: 6.31, // 6.31% tax
-        ),
-      ],
-    ),
-  ];
+  // selectedInvoice is now managed by InvoiceProvider
+  // sampleInvoices list is removed as data is fetched by InvoiceProvider
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch initial data when the screen loads
+    // Use WidgetsBinding.instance.addPostFrameCallback to ensure BuildContext is available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<InvoiceProvider>(context, listen: false).fetchInvoices();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final invoiceProvider = Provider.of<InvoiceProvider>(context);
     return Scaffold(
       backgroundColor: const Color(0xFFF7F5FF),
       body: Row(
@@ -104,17 +55,21 @@ class _AccountsInvoiceScreenState extends State<AccountsInvoiceScreen> {
                               const Text('Invoice Managment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28)),
                               const SizedBox(height: 24),
                               Expanded(
-                                child: SingleChildScrollView(
-                                  child: AccountsInvoiceTable(
-                                    onSelectInvoice: (invoice) {
-                                      setState(() {
-                                        selectedInvoice = invoice;
-                                      });
-                                    },
-                                    invoices: sampleInvoices,
-                                    selectedInvoiceNo: selectedInvoice?.invoiceNo ?? '',
-                                  ),
-                                ),
+                                child: invoiceProvider.isLoading
+                                    ? const Center(child: CircularProgressIndicator())
+                                    : invoiceProvider.errorMessage != null
+                                        ? Center(child: Text('Error: ${invoiceProvider.errorMessage}'))
+                                        : invoiceProvider.invoices.isEmpty
+                                            ? const Center(child: Text('No invoices found.'))
+                                            : SingleChildScrollView(
+                                                child: AccountsInvoiceTable(
+                                                  onSelectInvoice: (invoice) {
+                                                    invoiceProvider.selectInvoice(invoice);
+                                                  },
+                                                  invoices: invoiceProvider.invoices,
+                                                  selectedInvoiceNo: invoiceProvider.selectedInvoice?.invoiceNo ?? '',
+                                                ),
+                                              ),
                               ),
                             ],
                           ),
@@ -124,12 +79,17 @@ class _AccountsInvoiceScreenState extends State<AccountsInvoiceScreen> {
                         Expanded(
                           flex: 5,
                           child: AccountsInvoiceDetail(
-                            invoice: selectedInvoice,
+                            invoice: invoiceProvider.selectedInvoice, // Use selected invoice from provider
                             onConfirmPayment: () {
-                              if (selectedInvoice != null) {
+                              final currentSelectedInvoice = invoiceProvider.selectedInvoice;
+                              if (currentSelectedInvoice != null) {
+                                // Placeholder for actual payment confirmation logic via provider
+                                // e.g., invoiceProvider.confirmPayment(currentSelectedInvoice.id);
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Payment confirmed for ${selectedInvoice!.clientName} (${selectedInvoice!.invoiceNo})')),
+                                  SnackBar(content: Text('Payment confirmed for ${currentSelectedInvoice.clientName} (${currentSelectedInvoice.invoiceNo})')),
                                 );
+                                // Potentially update status and refresh
+                                invoiceProvider.updateInvoice(currentSelectedInvoice.id, currentSelectedInvoice.copyWith(status: InvoiceStatus.paid, paidDate: DateTime.now(), balanceDue: 0, amountPaid: currentSelectedInvoice.totalAmount));
                               }
                             },
                           ),

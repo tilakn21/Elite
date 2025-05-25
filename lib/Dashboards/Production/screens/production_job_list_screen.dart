@@ -3,6 +3,8 @@ import '../widgets/sidebar.dart';
 import '../widgets/top_bar.dart';
 import '../models/production_job.dart';
 import '../models/worker.dart';
+import 'package:provider/provider.dart';
+import '../providers/production_job_provider.dart';
 
 class ProductionJobListScreen extends StatelessWidget {
   const ProductionJobListScreen({Key? key}) : super(key: key);
@@ -52,7 +54,20 @@ class ProductionJobListScreen extends StatelessWidget {
                             const SizedBox(height: 20),
                             _CompletedListRow(),
                             const SizedBox(height: 24),
-                            _JobDataTable(),
+                            Consumer<ProductionJobProvider>(
+                              builder: (context, jobProvider, child) {
+                                if (jobProvider.isLoading) {
+                                  return const Center(child: CircularProgressIndicator());
+                                }
+                                if (jobProvider.errorMessage != null) {
+                                  return Center(child: Text('Error: ${jobProvider.errorMessage}'));
+                                }
+                                if (jobProvider.jobs.isEmpty) {
+                                  return const Center(child: Text('No production jobs found.'));
+                                }
+                                return _JobDataTable(jobs: jobProvider.jobs);
+                              },
+                            ),
                           ],
                         ),
                       ),
@@ -133,6 +148,7 @@ class _CompletedListRow extends StatelessWidget {
         Expanded(
             child: _CompletedCard(
                 worker: Worker(
+                    id: 'w1',
                     name: 'Brooklyn Simmons',
                     role: 'Dermatologists',
                     image: 'https://randomuser.me/api/portraits/men/1.jpg'),
@@ -141,6 +157,7 @@ class _CompletedListRow extends StatelessWidget {
         Expanded(
             child: _CompletedCard(
                 worker: Worker(
+                    id: 'w2',
                     name: 'Kristin Watson',
                     role: 'Infectious disease',
                     image: 'https://randomuser.me/api/portraits/women/2.jpg'),
@@ -149,6 +166,7 @@ class _CompletedListRow extends StatelessWidget {
         Expanded(
             child: _CompletedCard(
                 worker: Worker(
+                    id: 'w3',
                     name: 'Jacob Jones',
                     role: 'Ophthalmologists',
                     image: 'https://randomuser.me/api/portraits/men/3.jpg'),
@@ -159,6 +177,9 @@ class _CompletedListRow extends StatelessWidget {
 }
 
 class _JobDataTable extends StatelessWidget {
+  final List<ProductionJob> jobs;
+  const _JobDataTable({required this.jobs});
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -224,65 +245,8 @@ class _JobDataTable extends StatelessWidget {
   }
 
   List<Widget> _jobRows() {
-    final jobs = [
-      ProductionJob(
-          jobNo: '#1001',
-          clientName: 'Jhon Due',
-          dueDate: '24/12/2022\n03:00 PM',
-          description: 'Window installation',
-          status: JobStatus.inProgress,
-          action: 'Assign labour'),
-      ProductionJob(
-          jobNo: '#1002',
-          clientName: 'Jana Smith',
-          dueDate: '23/12/2022\n12:40 PM',
-          description: 'Window installation',
-          status: JobStatus.inProgress,
-          action: 'Assign labour'),
-      ProductionJob(
-          jobNo: '#1003',
-          clientName: 'Ace Crop',
-          dueDate: '22/12/2022\n05:30 PM',
-          description: 'Office renovation',
-          status: JobStatus.completed,
-          action: 'Update status'),
-      ProductionJob(
-          jobNo: '#1004',
-          clientName: 'Bob Jhonison',
-          dueDate: '21/12/2022\n10:20 PM',
-          description: 'kitchen remodel',
-          status: JobStatus.pending,
-          action: 'View job details'),
-      ProductionJob(
-          jobNo: '#1005',
-          clientName: 'Broklin Fin',
-          dueDate: '24/12/2022\n03:00 PM',
-          description: 'Window installation',
-          status: JobStatus.inProgress,
-          action: 'Assign labour'),
-      ProductionJob(
-          jobNo: '#1006',
-          clientName: 'Jhon Duow',
-          dueDate: '23/12/2022\n10:40 PM',
-          description: 'Window installation',
-          status: JobStatus.inProgress,
-          action: 'Assign labour'),
-      ProductionJob(
-          jobNo: '#1007',
-          clientName: 'Sana Jin',
-          dueDate: '22/12/2022\n05:30 PM',
-          description: 'Window installation',
-          status: JobStatus.inProgress,
-          action: 'Assign labour'),
-      ProductionJob(
-          jobNo: '#1008',
-          clientName: 'Fin otis',
-          dueDate: '21/12/2022\n10:20 PM',
-          description: 'Window installation',
-          status: JobStatus.pending,
-          action: 'Assign labour'),
-    ];
-    return jobs.map((job) {
+
+    return this.jobs.map((job) {
       Color statusColor;
       Color statusBg;
       switch (job.status) {
@@ -315,7 +279,8 @@ class _JobDataTable extends StatelessWidget {
                     Text(job.clientName, style: const TextStyle(fontSize: 15))),
             Expanded(
                 flex: 3,
-                child: Text(job.dueDate.replaceAll('\\n', '\n'),
+                child: Text(
+                    "${job.dueDate.day.toString().padLeft(2, '0')}/${job.dueDate.month.toString().padLeft(2, '0')}/${job.dueDate.year}",
                     style: const TextStyle(fontSize: 15))),
             Expanded(
                 flex: 4,
@@ -358,14 +323,14 @@ class _JobDataTable extends StatelessWidget {
                           : job.action == 'View job details'
                               ? const Color(0xFFF39C12)
                               : Colors.white,
+                      elevation: 0,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8)),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 18, vertical: 10),
+                          horizontal: 16, vertical: 12),
                     ),
-                    child: Text(job.action,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 14)),
+                    child: Text(job.action ?? 'N/A',
+                        style: const TextStyle(fontSize: 13)),
                   ),
                   const SizedBox(width: 8),
                   IconButton(

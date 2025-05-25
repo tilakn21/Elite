@@ -1,0 +1,167 @@
+import '../models/job_request.dart';
+import '../models/salesperson.dart';
+import 'package:uuid/uuid.dart';
+
+class ReceptionistService {
+  final Uuid _uuid = const Uuid();
+
+  // Mock data for JobRequests
+  final List<JobRequest> _mockJobRequests = [
+    JobRequest(
+      id: 'jr1',
+      name: 'Alice Wonderland',
+      phone: '123-456-7890',
+      email: 'alice@example.com',
+      status: JobRequestStatus.pending,
+      dateAdded: DateTime.now().subtract(const Duration(days: 1)),
+      subtitle: 'New kitchen design inquiry',
+      avatar: 'assets/images/avatars/avatar1.png', // Placeholder path
+      time: '10:30 AM',
+      assigned: false,
+    ),
+    JobRequest(
+      id: 'jr2',
+      name: 'Bob The Builder',
+      phone: '987-654-3210',
+      email: 'bob@example.com',
+      status: JobRequestStatus.approved,
+      dateAdded: DateTime.now().subtract(const Duration(hours: 5)),
+      subtitle: 'Approved for site visit',
+      avatar: 'assets/images/avatars/avatar2.png', // Placeholder path
+      time: '02:15 PM',
+      assigned: true,
+    ),
+    JobRequest(
+      id: 'jr3',
+      name: 'Charlie Brown',
+      phone: '555-123-4567',
+      email: 'charlie@example.com',
+      status: JobRequestStatus.declined,
+      dateAdded: DateTime.now().subtract(const Duration(days: 2)),
+      subtitle: 'Not interested at this time',
+      avatar: 'assets/images/avatars/avatar3.png', // Placeholder path
+      time: '09:00 AM',
+      assigned: false,
+    ),
+  ];
+
+  // Mock data for Salespersons
+  final List<Salesperson> _mockSalespersons = [
+    Salesperson(
+      id: 'sp1',
+      name: 'Sarah Connor',
+      status: SalespersonStatus.available,
+      avatar: 'assets/images/sales/sales1.png', // Placeholder path
+      subtitle: 'Ready for new assignments',
+    ),
+    Salesperson(
+      id: 'sp2',
+      name: 'John Doe',
+      status: SalespersonStatus.onVisit,
+      avatar: 'assets/images/sales/sales2.png', // Placeholder path
+      subtitle: 'Currently on a client visit',
+    ),
+    Salesperson(
+      id: 'sp3',
+      name: 'Jane Smith',
+      status: SalespersonStatus.busy,
+      avatar: 'assets/images/sales/sales3.png', // Placeholder path
+      subtitle: 'Wrapping up previous task',
+    ),
+  ];
+
+  // Fetch all job requests
+  Future<List<JobRequest>> fetchJobRequests() async {
+    // Simulate API delay
+    await Future.delayed(const Duration(seconds: 1));
+    return List.from(_mockJobRequests);
+  }
+
+  // Fetch a single job request by ID
+  Future<JobRequest?> getJobRequestDetails(String id) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    try {
+      return _mockJobRequests.firstWhere((job) => job.id == id);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Add a new job request
+  Future<JobRequest> addJobRequest(JobRequest jobRequest) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    final newJobRequest = JobRequest(
+      id: _uuid.v4(),
+      name: jobRequest.name,
+      phone: jobRequest.phone,
+      email: jobRequest.email,
+      status: jobRequest.status,
+      dateAdded: jobRequest.dateAdded ?? DateTime.now(),
+      subtitle: jobRequest.subtitle,
+      avatar: jobRequest.avatar, // Ensure placeholder or actual path
+      time: jobRequest.time,
+      assigned: jobRequest.assigned,
+    );
+    _mockJobRequests.add(newJobRequest);
+    return newJobRequest;
+  }
+
+  // Update an existing job request (e.g., status, assignment)
+  Future<JobRequest?> updateJobRequest(String id, {JobRequestStatus? status, bool? assigned, String? salespersonId}) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    int index = _mockJobRequests.indexWhere((job) => job.id == id);
+    if (index != -1) {
+      var currentJob = _mockJobRequests[index];
+      _mockJobRequests[index] = JobRequest(
+        id: currentJob.id,
+        name: currentJob.name,
+        phone: currentJob.phone,
+        email: currentJob.email,
+        status: status ?? currentJob.status,
+        dateAdded: currentJob.dateAdded,
+        subtitle: currentJob.subtitle, 
+        avatar: currentJob.avatar,
+        time: currentJob.time,
+        assigned: assigned ?? currentJob.assigned,
+      );
+      // If assigning a salesperson, you might want to update the subtitle or link them.
+      // For now, this is a basic update.
+      return _mockJobRequests[index];
+    }
+    return null;
+  }
+
+  // Fetch all salespersons
+  Future<List<Salesperson>> fetchSalespersons() async {
+    await Future.delayed(const Duration(seconds: 1));
+    return List.from(_mockSalespersons);
+  }
+
+  // Fetch a single salesperson by ID
+  Future<Salesperson?> getSalespersonDetails(String id) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    try {
+      return _mockSalespersons.firstWhere((sp) => sp.id == id);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Update salesperson status
+  Future<Salesperson?> updateSalespersonStatus(String id, SalespersonStatus status) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    int index = _mockSalespersons.indexWhere((sp) => sp.id == id);
+    if (index != -1) {
+      var currentSp = _mockSalespersons[index];
+       _mockSalespersons[index] = Salesperson(
+         id: currentSp.id,
+         name: currentSp.name,
+         status: status,
+         avatar: currentSp.avatar,
+         subtitle: currentSp.subtitle, // Subtitle could be updated based on new status
+       );
+      return _mockSalespersons[index];
+    }
+    return null;
+  }
+}

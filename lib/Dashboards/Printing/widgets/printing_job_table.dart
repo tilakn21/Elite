@@ -2,109 +2,13 @@ import 'package:flutter/material.dart';
 import '../models/printing_job.dart';
 
 class PrintingJobTable extends StatelessWidget {
-  const PrintingJobTable({Key? key}) : super(key: key);
+  final List<PrintingJob> jobs;
+
+  const PrintingJobTable({Key? key, required this.jobs}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final jobs = [
-      PrintingJob(
-        id: '1',
-        jobNo: '#1001',
-        title: 'Logo and Text',
-        clientName: 'Jhon Due',
-        submittedAt: DateTime(2022, 12, 24, 15, 0),
-        status: PrintingStatus.inProgress,
-        specifications: const [],
-        assignedPrinter: 'Printer 1',
-        copies: 1,
-        progress: 0.5,
-      ),
-      PrintingJob(
-        id: '2',
-        jobNo: '#1002',
-        title: 'Promotional Graphics',
-        clientName: 'Jena Smith',
-        submittedAt: DateTime(2022, 12, 23, 12, 40),
-        status: PrintingStatus.inProgress,
-        specifications: const [],
-        assignedPrinter: 'Printer 2',
-        copies: 1,
-        progress: 0.3,
-      ),
-      PrintingJob(
-        id: '3',
-        jobNo: '#1003',
-        title: 'Product Advertisement',
-        clientName: 'Ace Crop',
-        submittedAt: DateTime(2022, 12, 22, 17, 20),
-        status: PrintingStatus.completed,
-        specifications: const [],
-        assignedPrinter: 'Printer 1',
-        copies: 1,
-        progress: 1.0,
-      ),
-      PrintingJob(
-        id: '4',
-        jobNo: '#1004',
-        title: 'Logo and Text',
-        clientName: 'Bob Jhonrison',
-        submittedAt: DateTime(2022, 12, 21, 22, 40),
-        status: PrintingStatus.queued,
-        specifications: const [],
-        assignedPrinter: 'Printer 3',
-        copies: 1,
-        progress: 0.0,
-      ),
-      PrintingJob(
-        id: '5',
-        jobNo: '#1005',
-        title: 'Product Advertisement',
-        clientName: 'Broklin Fin',
-        submittedAt: DateTime(2022, 12, 24, 15, 0),
-        status: PrintingStatus.inProgress,
-        specifications: const [],
-        assignedPrinter: 'Printer 2',
-        copies: 1,
-        progress: 0.6,
-      ),
-      PrintingJob(
-        id: '6',
-        jobNo: '#1006',
-        title: 'Logo and text',
-        clientName: 'Jhon Duow',
-        submittedAt: DateTime(2022, 12, 23, 12, 40),
-        status: PrintingStatus.inProgress,
-        specifications: const [],
-        assignedPrinter: 'Printer 1',
-        copies: 1,
-        progress: 0.4,
-      ),
-      PrintingJob(
-        id: '7',
-        jobNo: '#1007',
-        title: 'Product Advertisement',
-        clientName: 'Sana Jin',
-        submittedAt: DateTime(2022, 12, 22, 17, 20),
-        status: PrintingStatus.inProgress,
-        specifications: const [],
-        assignedPrinter: 'Printer 3',
-        copies: 2,
-        progress: 0.8,
-      ),
-      PrintingJob(
-        id: '8',
-        jobNo: '#1008',
-        title: 'Logo and text',
-        clientName: 'Fin otis',
-        submittedAt: DateTime(2022, 12, 21, 22, 40),
-        status: PrintingStatus.queued,
-        specifications: const [],
-        assignedPrinter: 'Printer 2',
-        copies: 3,
-        progress: 0.1,
-      ),
-    ];
-
+    // Sample data list was here. It's now passed via constructor.
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,

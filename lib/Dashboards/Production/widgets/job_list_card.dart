@@ -9,7 +9,7 @@ class JobListCard extends StatelessWidget {
     return DataRow(
       cells: [
         DataCell(Text(job.clientName)),
-        DataCell(Text(job.dueDate.replaceAll('\\n', '\n'))),
+        DataCell(Text("${job.dueDate.day.toString().padLeft(2, '0')}/${job.dueDate.month.toString().padLeft(2, '0')}/${job.dueDate.year}")),
         DataCell(Text(job.description,
             style: const TextStyle(fontWeight: FontWeight.w600))),
         DataCell(Container(
@@ -30,37 +30,42 @@ class JobListCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final jobs = [
       ProductionJob(
+          id: 'cardJob1',
           jobNo: '#1001',
           clientName: 'Jhon Due',
-          dueDate: '24/12/2022\n03:00 PM',
+          dueDate: DateTime(2022, 12, 24),
           description: 'Window installation',
           status: JobStatus.inProgress,
           action: 'Assign labour'),
       ProductionJob(
+          id: 'cardJob2',
           jobNo: '#1002',
           clientName: 'Jhon Due',
-          dueDate: '24/12/2022\n03:00 PM',
+          dueDate: DateTime(2022, 12, 24),
           description: 'Window installation',
           status: JobStatus.pending,
           action: 'Assign labour'),
       ProductionJob(
+          id: 'cardJob3',
           jobNo: '#1003',
           clientName: 'Jhon Due',
-          dueDate: '24/12/2022\n03:00 PM',
+          dueDate: DateTime(2022, 12, 24),
           description: 'Window installation',
           status: JobStatus.inProgress,
           action: 'Assign labour'),
       ProductionJob(
+          id: 'cardJob4',
           jobNo: '#1004',
           clientName: 'Jhon Due',
-          dueDate: '24/12/2022\n03:00 PM',
+          dueDate: DateTime(2022, 12, 24),
           description: 'Window installation',
           status: JobStatus.inProgress,
           action: 'Assign labour'),
       ProductionJob(
+          id: 'cardJob5',
           jobNo: '#1005',
           clientName: 'Jhon Due',
-          dueDate: '24/12/2022\n03:00 PM',
+          dueDate: DateTime(2022, 12, 24),
           description: 'Window installation',
           status: JobStatus.inProgress,
           action: 'Assign labour'),

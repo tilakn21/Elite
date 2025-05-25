@@ -28,6 +28,28 @@ class InvoiceItem {
   });
 
   double get total => quantity * unitPrice;
+
+  // Factory constructor for creating a new InvoiceItem instance from a map.
+  factory InvoiceItem.fromJson(Map<String, dynamic> json) {
+    return InvoiceItem(
+      id: json['id'] as String,
+      description: json['description'] as String,
+      quantity: (json['quantity'] as num).toDouble(),
+      unitPrice: (json['unitPrice'] as num).toDouble(),
+      taxRate: (json['taxRate'] as num).toDouble(),
+    );
+  }
+
+  // Method for converting an InvoiceItem instance to a map.
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'description': description,
+      'quantity': quantity,
+      'unitPrice': unitPrice,
+      'taxRate': taxRate,
+    };
+  }
 }
 
 // Model for invoice
@@ -67,6 +89,55 @@ class Invoice {
     this.paymentMethod,
     required this.items,
   });
+
+  // Factory constructor for creating a new Invoice instance from a map.
+  factory Invoice.fromJson(Map<String, dynamic> json) {
+    var itemsFromJson = json['items'] as List<dynamic>?;
+    List<InvoiceItem> itemList = itemsFromJson != null
+        ? itemsFromJson.map((i) => InvoiceItem.fromJson(i as Map<String, dynamic>)).toList()
+        : [];
+
+    return Invoice(
+      id: json['id'] as String,
+      invoiceNo: json['invoiceNo'] as String,
+      clientId: json['clientId'] as String,
+      clientName: json['clientName'] as String,
+      issueDate: DateTime.parse(json['issueDate'] as String),
+      dueDate: DateTime.parse(json['dueDate'] as String),
+      subtotal: (json['subtotal'] as num).toDouble(),
+      taxAmount: (json['taxAmount'] as num).toDouble(),
+      discountAmount: (json['discountAmount'] as num).toDouble(),
+      totalAmount: (json['totalAmount'] as num).toDouble(),
+      amountPaid: (json['amountPaid'] as num).toDouble(),
+      balanceDue: (json['balanceDue'] as num).toDouble(),
+      status: InvoiceStatus.values.byName(json['status'] as String? ?? InvoiceStatus.draft.name),
+      paidDate: json['paidDate'] != null ? DateTime.parse(json['paidDate'] as String) : null,
+      paymentMethod: json['paymentMethod'] as String?,
+      items: itemList,
+    );
+  }
+
+  // Method for converting an Invoice instance to a map.
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'invoiceNo': invoiceNo,
+      'clientId': clientId,
+      'clientName': clientName,
+      'issueDate': issueDate.toIso8601String(),
+      'dueDate': dueDate.toIso8601String(),
+      'subtotal': subtotal,
+      'taxAmount': taxAmount,
+      'discountAmount': discountAmount,
+      'totalAmount': totalAmount,
+      'amountPaid': amountPaid,
+      'balanceDue': balanceDue,
+      'status': status.name, // Uses the enum value's name string
+      'paidDate': paidDate?.toIso8601String(),
+      'paymentMethod': paymentMethod,
+      'items': items.map((item) => item.toJson()).toList(),
+    };
+  }
 
   // Factory method to create a new invoice with default values
   static Invoice createNew({

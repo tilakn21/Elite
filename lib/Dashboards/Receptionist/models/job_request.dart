@@ -27,26 +27,26 @@ class JobRequest {
     this.assigned,
   }) : id = id ?? const Uuid().v4();
 
-  factory JobRequest.fromMap(Map<String, dynamic> map) {
+  factory JobRequest.fromJson(Map<String, dynamic> json) {
     return JobRequest(
-      id: map['id'],
-      name: map['name'],
-      phone: map['phone'],
-      email: map['email'],
+      id: json['id'],
+      name: json['name'],
+      phone: json['phone'],
+      email: json['email'],
       status: JobRequestStatus.values.firstWhere(
         (e) =>
-            e.name.toLowerCase() == (map['status']?.toLowerCase() ?? 'pending'),
+            e.name.toLowerCase() == (json['status']?.toLowerCase() ?? 'pending'),
         orElse: () => JobRequestStatus.pending,
       ),
-      dateAdded: map['date'] != null ? DateTime.tryParse(map['date']) : null,
-      subtitle: map['subtitle'],
-      avatar: map['avatar'],
-      time: map['time'],
-      assigned: map['assigned'],
+      dateAdded: json['date'] != null ? DateTime.tryParse(json['date']) : null,
+      subtitle: json['subtitle'],
+      avatar: json['avatar'],
+      time: json['time'],
+      assigned: json['assigned'],
     );
   }
 
-  Map<String, dynamic> toMap() => {
+  Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
         'phone': phone,
@@ -75,17 +75,17 @@ class ReceptionistJob {
     required this.location,
   });
 
-  factory ReceptionistJob.fromMap(Map<String, dynamic> map) {
+  factory ReceptionistJob.fromJson(Map<String, dynamic> json) {
     return ReceptionistJob(
-      id: map['id'] ?? '',
-      name: map['name'] ?? '',
-      subtitle: map['subtitle'] ?? '',
-      avatar: map['avatar'] ?? '',
-      location: map['location'] ?? '',
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      subtitle: json['subtitle'] ?? '',
+      avatar: json['avatar'] ?? '',
+      location: json['location'] ?? '',
     );
   }
 
-  Map<String, dynamic> toMap() => {
+  Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
         'subtitle': subtitle,

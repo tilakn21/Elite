@@ -32,7 +32,6 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
   Chat? _activeChat;
   bool _isEditingDetails = false;
   bool _showChatPanel = false;
-  List<String> _uploadedImages = [];
 
   // Status tracking
   double _progressValue = 0.0;
@@ -60,47 +59,51 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
 
   void _loadJobDetails() {
     final jobProvider = Provider.of<JobProvider>(context, listen: false);
-    final job = jobProvider.getJobById(widget.jobId);
+    final Job? nullableJob = jobProvider.getJobById(widget.jobId);
 
-    if (job != null) {
-      setState(() {
-        _job = job;
-        if (job.notes != null) {
-          _notesController.text = job.notes!;
-        }
-        if (job.address != null) {
-          _addressController.text = job.address;
-        }
-        if (job.phoneNumber != null) {
-          _phoneController.text = job.phoneNumber;
-        }
-        if (job.measurements != null) {
-          _measurementsController.text = job.measurements!;
-        }
-
-        // Set progress based on status
-        switch (job.status) {
-          case JobStatus.inProgress:
-            _progressValue = 0.3;
-            _progressStatus = 'In Progress';
-            _estimatedCompletion = DateFormat('dd/MM/yyyy')
-                .format(DateTime.now().add(const Duration(days: 14)));
-            break;
-          case JobStatus.pending:
-            _progressValue = 0.7;
-            _progressStatus = 'Pending Approval';
-            _estimatedCompletion = DateFormat('dd/MM/yyyy')
-                .format(DateTime.now().add(const Duration(days: 7)));
-            break;
-          case JobStatus.approved:
-            _progressValue = 1.0;
-            _progressStatus = 'Completed';
-            _estimatedCompletion = DateFormat('dd/MM/yyyy')
-                .format(DateTime.now().subtract(const Duration(days: 2)));
-            break;
-        }
-      });
+    if (nullableJob == null) {
+      // Handle the case where job is not found
+      if (mounted) { // Check if the widget is still in the tree
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Job with ID ${widget.jobId} not found.')),
+        );
+        // Optionally navigate back or show an error UI
+        Navigator.of(context).pop();
+      }
+      return;
     }
+    // If we reach here, nullableJob is not null.
+    final Job job = nullableJob;
+
+    setState(() {
+      _job = job;
+      _notesController.text = job.notes ?? "";
+      _addressController.text = job.address; // job.address is non-nullable
+      _phoneController.text = job.phoneNumber ?? "";
+      _measurementsController.text = job.measurements ?? "";
+
+      // Set progress based on status
+      switch (job.status) {
+        case JobStatus.inProgress:
+          _progressValue = 0.3;
+          _progressStatus = 'In Progress';
+          _estimatedCompletion = DateFormat('dd/MM/yyyy')
+              .format(DateTime.now().add(const Duration(days: 14)));
+          break;
+        case JobStatus.pending:
+          _progressValue = 0.7;
+          _progressStatus = 'Pending Approval';
+          _estimatedCompletion = DateFormat('dd/MM/yyyy')
+              .format(DateTime.now().add(const Duration(days: 7)));
+          break;
+        case JobStatus.approved:
+          _progressValue = 1.0;
+          _progressStatus = 'Completed';
+          _estimatedCompletion = DateFormat('dd/MM/yyyy')
+              .format(DateTime.now().subtract(const Duration(days: 2)));
+          break;
+      }
+    });
   }
 
   void _loadActiveChat() {
@@ -222,7 +225,6 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     final isDesktop = MediaQuery.of(context).size.width >= 1100;
     final isTablet = MediaQuery.of(context).size.width >= 600 &&
         MediaQuery.of(context).size.width < 1100;
-    final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
