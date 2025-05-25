@@ -17,22 +17,22 @@ class Salesperson {
     this.subtitle,
   }) : id = id ?? const Uuid().v4();
 
-  factory Salesperson.fromMap(Map<String, dynamic> map) {
+  factory Salesperson.fromJson(Map<String, dynamic> json) {
     return Salesperson(
-      id: map['id'],
-      name: map['name'],
+      id: json['id'],
+      name: json['name'],
       status: SalespersonStatus.values.firstWhere(
         (e) =>
             e.name.toLowerCase() ==
-            (map['status']?.toLowerCase() ?? 'available'),
+            (json['status']?.toLowerCase() ?? 'available'),
         orElse: () => SalespersonStatus.available,
       ),
-      avatar: map['avatar'],
-      subtitle: map['subtitle'],
+      avatar: json['avatar'],
+      subtitle: json['subtitle'],
     );
   }
 
-  Map<String, dynamic> toMap() => {
+  Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
         'status': status.name,

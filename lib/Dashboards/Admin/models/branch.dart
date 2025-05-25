@@ -11,4 +11,22 @@ class Branch {
     required this.revenue,
     required this.delays,
   });
+
+  factory Branch.fromJson(Map<String, dynamic> json) {
+    return Branch(
+      name: json['name'] as String,
+      completed: json['completed'] as int,
+      revenue: json['revenue'] as String, // Assuming revenue is stored as a string, adjust if it's a number
+      delays: json['delays'] as int,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'completed': completed,
+      'revenue': revenue,
+      'delays': delays,
+    };
+  }
 }

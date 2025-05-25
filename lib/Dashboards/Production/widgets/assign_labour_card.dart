@@ -9,11 +9,13 @@ class AssignLabourCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final workers = [
       Worker(
+          id: 'alw1',
           name: 'Jhon Due',
           role: 'Carpenter',
           image: 'assets/images/avatar1.png',
           assigned: false),
       Worker(
+          id: 'alw2',
           name: 'Jana Smith',
           role: 'Welder',
           image: 'assets/images/avatar2.png',

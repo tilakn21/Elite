@@ -13,4 +13,24 @@ class AdminJob {
     required this.date,
     required this.status,
   });
+
+  factory AdminJob.fromJson(Map<String, dynamic> json) {
+    return AdminJob(
+      no: json['no'] as String,
+      title: json['title'] as String,
+      client: json['client'] as String,
+      date: json['date'] as String,
+      status: json['status'] as String,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'no': no,
+      'title': title,
+      'client': client,
+      'date': date,
+      'status': status,
+    };
+  }
 }

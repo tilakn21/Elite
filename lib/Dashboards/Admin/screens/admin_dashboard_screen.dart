@@ -6,9 +6,9 @@ import '../widgets/branch_stats_cards.dart';
 import '../widgets/summary_card.dart';
 import '../widgets/job_status_table.dart';
 import '../widgets/sales_performance_chart.dart';
-import '../models/branch.dart';
-import '../models/admin_job.dart';
-import '../models/sales_data.dart';
+import '../models/branch.dart'; // Branch is used for currentSelectedBranch type
+import 'package:provider/provider.dart';
+import '../providers/admin_provider.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({Key? key}) : super(key: key);
@@ -60,38 +60,53 @@ class _AdminDashboardContent extends StatefulWidget {
 }
 
 class _AdminDashboardContentState extends State<_AdminDashboardContent> {
-  int selectedBranch = 0;
+  int selectedBranch = 0; // Index for the selected branch in the Dropdown
 
-  final List<Branch> branches = [
-    Branch(name: 'Branch A', completed: 281, revenue: '\u0000250,000', delays: 2),
-    Branch(name: 'Branch B', completed: 281, revenue: '\u0000250,000', delays: 4),
-    Branch(name: 'Branch C', completed: 281, revenue: '\u0000250,000', delays: 3),
-  ];
-
-  final List<AdminJob> jobs = List.generate(
-      5,
-      (i) => AdminJob(
-            no: '#1001',
-            title: i % 2 == 0 ? 'Office renovation' : 'Window installation',
-            client: 'Brooklyn Simmons',
-            date: '22/04/24',
-            status: 'Approved',
-          ));
-
-  final List<SalesData> salesData = [
-    SalesData(0, 200),
-    SalesData(1, 350),
-    SalesData(2, 400),
-    SalesData(3, 500),
-    SalesData(4, 300),
-    SalesData(5, 600),
-    SalesData(6, 450),
-    SalesData(7, 500),
-    SalesData(8, 600),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AdminProvider>(context, listen: false).fetchAdminData().then((_) {
+        if (mounted) {
+          final provider = Provider.of<AdminProvider>(context, listen: false);
+          if (selectedBranch >= provider.branchStats.length && provider.branchStats.isNotEmpty) {
+            setState(() {
+              selectedBranch = 0;
+            });
+          } else if (provider.branchStats.isEmpty) {
+            setState(() {
+              selectedBranch = 0; 
+            });
+          }
+        }
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final adminProvider = Provider.of<AdminProvider>(context);
+
+    if (adminProvider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (adminProvider.errorMessage != null) {
+      return Center(child: Text('Error: ${adminProvider.errorMessage}'));
+    }
+
+    final currentBranches = adminProvider.branchStats;
+    final currentAdminJobs = adminProvider.adminJobs;
+    final currentSalesData = adminProvider.salesPerformance;
+
+    if (currentBranches.isEmpty && currentAdminJobs.isEmpty && currentSalesData.isEmpty && !adminProvider.isLoading) {
+        return const Center(child: Text('No admin data available.'));
+    }
+    
+    final Branch? currentSelectedBranch = currentBranches.isNotEmpty && selectedBranch < currentBranches.length 
+                                          ? currentBranches[selectedBranch] 
+                                          : null;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final bool isNarrow = constraints.maxWidth < 1100;
@@ -100,54 +115,29 @@ class _AdminDashboardContentState extends State<_AdminDashboardContent> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Branch cards row
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    margin: const EdgeInsets.only(right: 18),
-                    child: DropdownButton<String>(
-                      value: branches[selectedBranch].name,
-                      items: branches
-                          .map((b) => DropdownMenuItem<String>(
-                                value: b.name,
-                                child: Text(b.name,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w600)),
-                              ))
-                          .toList(),
-                      onChanged: (val) {
-                        final int idx =
-                            branches.indexWhere((b) => b.name == val);
-                        if (idx != -1) setState(() => selectedBranch = idx);
+                  Expanded(
+                    child: BranchStatsCards(
+                      branches: currentBranches,
+                      selectedBranch: currentSelectedBranch?.name ?? (currentBranches.isNotEmpty ? currentBranches.first.name : ''),
+                      selectedBranchIndex: selectedBranch,
+                      onBranchChanged: (String? newValue) {
+                        if (newValue != null) {
+                          final int idx = currentBranches.indexWhere((b) => b.name == newValue);
+                          if (idx != -1) {
+                            setState(() {
+                              selectedBranch = idx;
+                            });
+                          }
+                        }
                       },
-                      style: const TextStyle(
-                          fontSize: 15, color: Color(0xFF101C2C)),
-                      underline: Container(),
-                      icon: const Icon(Icons.keyboard_arrow_down),
-                      dropdownColor: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  SizedBox(
-                    height: 92,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: List.generate(
-                          branches.length,
-                          (index) => Container(
-                            margin: const EdgeInsets.only(right: 12),
-                            width: 180,
-                            child: BranchStatsCard(
-                              branch: branches[index],
-                              selected: selectedBranch == index,
-                              onTap: () =>
-                                  setState(() => selectedBranch = index),
-                            ),
-                          ),
-                        ),
-                      ),
+                      onSelect: (int index) {
+                        setState(() {
+                          selectedBranch = index;
+                        });
+                      },
                     ),
                   ),
                 ],
@@ -165,7 +155,7 @@ class _AdminDashboardContentState extends State<_AdminDashboardContent> {
                       padding: const EdgeInsets.only(right: 12),
                       child: SummaryCard(
                         label: 'Total pending',
-                        value: 34,
+                        value: currentAdminJobs.where((j) => (j.status.toLowerCase() == 'pending' || j.status.toLowerCase() == 'approved')).length,
                         color: Colors.orange,
                         icon: Icons.access_time,
                       ),
@@ -176,7 +166,7 @@ class _AdminDashboardContentState extends State<_AdminDashboardContent> {
                       padding: const EdgeInsets.symmetric(horizontal: 6),
                       child: SummaryCard(
                         label: 'In process',
-                        value: 28,
+                        value: currentAdminJobs.where((j) => j.status.toLowerCase() == 'in progress').length,
                         color: Colors.blue,
                         icon: Icons.autorenew,
                       ),
@@ -187,7 +177,7 @@ class _AdminDashboardContentState extends State<_AdminDashboardContent> {
                       padding: const EdgeInsets.only(left: 12),
                       child: SummaryCard(
                         label: 'Completed',
-                        value: 137,
+                        value: currentAdminJobs.where((j) => j.status.toLowerCase() == 'completed').length,
                         color: Colors.green,
                         icon: Icons.check_circle,
                         highlight: true,
@@ -197,7 +187,6 @@ class _AdminDashboardContentState extends State<_AdminDashboardContent> {
                 ],
               ),
               const SizedBox(height: 18),
-              // Job status section with divider
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Column(
@@ -220,33 +209,45 @@ class _AdminDashboardContentState extends State<_AdminDashboardContent> {
                   ],
                 ),
               ),
-              isNarrow
-                  ? Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 14),
-                          child: JobStatusTable(jobs: jobs),
-                        ),
-                        // When passing sales data to SalesPerformanceChart, convert SalesData to FlSpot:
-                        SalesPerformanceChart(data: salesData.map((e) => FlSpot(e.x, e.y)).toList()),
-                      ],
-                    )
-                  : Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 16),
-                            child: JobStatusTable(jobs: jobs),
+              if (currentAdminJobs.isEmpty && currentSalesData.isEmpty && !adminProvider.isLoading)
+                const Center(child: Padding(padding: EdgeInsets.all(16.0), child: Text("No job or sales data available.")))
+              else
+                isNarrow
+                    ? Column(
+                        children: [
+                          if (currentAdminJobs.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 14),
+                              child: JobStatusTable(jobs: currentAdminJobs),
+                            )
+                          else if (!adminProvider.isLoading)
+                             const Center(child: Padding(padding: EdgeInsets.all(8.0), child: Text("No jobs to display."))),
+                          if (currentSalesData.isNotEmpty)
+                            SalesPerformanceChart(data: currentSalesData.map((e) => FlSpot(e.x, e.y)).toList())
+                          else if (!adminProvider.isLoading)
+                             const Center(child: Padding(padding: EdgeInsets.all(8.0), child: Text("No sales data to display."))),
+                        ],
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 16),
+                              child: currentAdminJobs.isNotEmpty 
+                                     ? JobStatusTable(jobs: currentAdminJobs)
+                                     : (!adminProvider.isLoading ? const Center(child: Padding(padding: EdgeInsets.all(8.0), child: Text("No jobs to display."))) : Container()),
+                            ),
                           ),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: SalesPerformanceChart(data: salesData.map((e) => FlSpot(e.x, e.y)).toList()),
-                        ),
-                      ],
-                    ),
+                          Expanded(
+                            flex: 2,
+                            child: currentSalesData.isNotEmpty
+                                   ? SalesPerformanceChart(data: currentSalesData.map((e) => FlSpot(e.x, e.y)).toList())
+                                   : (!adminProvider.isLoading ? const Center(child: Padding(padding: EdgeInsets.all(8.0), child: Text("No sales data to display."))) : Container()),
+                          ),
+                        ],
+                      ),
             ],
           ),
         );

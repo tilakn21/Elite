@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // Added Provider
+import '../providers/printing_job_provider.dart'; // Added PrintingJobProvider
 import '../widgets/printing_sidebar.dart';
 import '../widgets/printing_top_bar.dart';
 import '../widgets/printing_job_table.dart';
@@ -8,6 +10,8 @@ class PrintingDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final printingJobProvider = Provider.of<PrintingJobProvider>(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F5FF),
       body: Row(
@@ -52,10 +56,10 @@ class PrintingDashboardScreen extends StatelessWidget {
                   ),
                 ),
                 // Job Table
-                const Expanded(
+                Expanded(
                   child: Padding(
-                    padding: EdgeInsets.only(left: 40, right: 40, top: 16, bottom: 0),
-                    child: PrintingJobTable(),
+                    padding: const EdgeInsets.only(left: 40, right: 40, top: 16, bottom: 0),
+                    child: _buildJobContent(printingJobProvider),
                   ),
                 ),
               ],
@@ -64,6 +68,32 @@ class PrintingDashboardScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildJobContent(PrintingJobProvider provider) {
+    if (provider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (provider.errorMessage != null) {
+      return Center(
+        child: Text(
+          'Error: ${provider.errorMessage}',
+          style: const TextStyle(color: Colors.red, fontSize: 16),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    if (provider.printingJobs.isEmpty) {
+      return const Center(
+        child: Text(
+          'No printing jobs found.',
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+      );
+    }
+    return PrintingJobTable(jobs: provider.printingJobs);
   }
 }
 

@@ -157,10 +157,8 @@ class JobDetailsCard extends StatelessWidget {
           _buildInfoRow(context, 'Phone no.', job!.phoneNumber, isMobile),
           const SizedBox(height: 12),
           _buildInfoRow(context, 'Address', job!.address, isMobile),
-          if (job!.status != null) ...[
-            const SizedBox(height: 12),
-            _buildStatusRow(context, job!.status),
-          ],
+          const SizedBox(height: 12),
+          _buildStatusRow(context, job!.status),
         ],
       ),
     );

@@ -7,13 +7,22 @@ import 'package:provider/provider.dart';
 import 'Dashboards/Design/providers/job_provider.dart';
 import 'Dashboards/Design/providers/chat_provider.dart';
 import 'Dashboards/Design/providers/user_provider.dart';
+import 'Dashboards/Accounts/providers/invoice_provider.dart'; // Added InvoiceProvider
+import 'Dashboards/Admin/providers/admin_provider.dart'; // Added AdminProvider
+import 'Dashboards/Admin/services/admin_service.dart'; // Added AdminService for AdminProvider
+import 'Dashboards/Design/services/design_service.dart'; // Added DesignService for JobProvider
+import 'Dashboards/Printing/providers/printing_job_provider.dart'; // Added PrintingJobProvider
+import 'Dashboards/Printing/services/printing_service.dart'; // Added PrintingService for PrintingJobProvider
+import 'Dashboards/Production/providers/production_job_provider.dart'; // Added ProductionJobProvider
+import 'Dashboards/Production/services/production_service.dart'; // Added ProductionService for ProductionJobProvider
+import 'Dashboards/Receptionist/services/receptionist_service.dart'; // Added ReceptionistService
+import 'Dashboards/Receptionist/providers/job_request_provider.dart'; // Added JobRequestProvider
+import 'Dashboards/Receptionist/providers/salesperson_provider.dart'; // Added SalespersonProvider
 
 // Screens
 import 'Dashboards/Design/screens/dashboard_screen.dart';
 import 'Dashboards/Design/screens/job_list_screen.dart';
-import 'Dashboards/Design/screens/job_details_screen.dart';
 import 'Dashboards/Design/screens/active_chats_screen.dart';
-import 'Dashboards/Design/screens/chat_screen.dart';
 
 // Receptionist Dashboard
 import 'Dashboards/Receptionist/screens/dashboard_screen.dart';
@@ -49,9 +58,6 @@ import 'Dashboards/Design/utils/app_theme.dart';
 
 // Widgets
 import 'Dashboards/Design/widgets/upload_draft_widget.dart';
-import 'Dashboards/Design/widgets/job_details_card.dart';
-import 'Dashboards/Design/widgets/active_chats_card.dart';
-import 'Dashboards/Design/widgets/calendar_card.dart';
 
 // Login Screen
 import 'screens/login_screen.dart';
@@ -67,9 +73,17 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => UserProvider()),
-        ChangeNotifierProvider(create: (_) => JobProvider()),
-        ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => UserProvider(DesignService())),
+        ChangeNotifierProvider(create: (_) => JobProvider(DesignService())),
+        ChangeNotifierProvider(create: (_) => ChatProvider(DesignService())),
+        ChangeNotifierProvider(create: (_) => InvoiceProvider()), // Registered InvoiceProvider
+        ChangeNotifierProvider(create: (_) => AdminProvider(AdminService())),   // Registered AdminProvider with AdminService
+        ChangeNotifierProvider(create: (_) => PrintingJobProvider(PrintingService())), // Registered PrintingJobProvider
+        ChangeNotifierProvider(create: (_) => ProductionJobProvider(ProductionService())), // Registered ProductionJobProvider
+        // Provide ReceptionistService so other providers can read it.
+        Provider(create: (_) => ReceptionistService()), 
+        ChangeNotifierProvider(create: (context) => JobRequestProvider(context.read<ReceptionistService>())),
+        ChangeNotifierProvider(create: (context) => SalespersonProvider(context.read<ReceptionistService>())),
       ],
       child: MyApp(),
     ),
@@ -121,7 +135,6 @@ class MyApp extends StatelessWidget {
             const PrintingAssignLabourScreen(),
         '/printing/qualitycheck': (context) =>
             const PrintingQualityCheckScreen(),
-        '/admin/dashboard': (context) => const AdminDashboardScreen(),
       },
     );
   }
