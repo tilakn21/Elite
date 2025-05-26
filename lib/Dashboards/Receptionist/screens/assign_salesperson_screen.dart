@@ -39,16 +39,33 @@ class AssignSalespersonScreen extends StatelessWidget {
       model.Salesperson(
           name: 'Loura wisdom', status: model.SalespersonStatus.busy),
     ];
+    final double width = MediaQuery.of(context).size.width;
+    final bool isMobile = width < 600;
+    final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
     return Scaffold(
+      key: scaffoldKey,
       backgroundColor: const Color(0xFFF6F3FE),
+      drawer: isMobile
+          ? Drawer(
+              child: Sidebar(
+                selectedIndex: 2,
+                isDrawer: true,
+                onClose: () => Navigator.of(context).pop(),
+              ),
+            )
+          : null,
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Sidebar(selectedIndex: 2),
+          if (!isMobile) Sidebar(selectedIndex: 2),
           Expanded(
             child: Column(
               children: [
-                const TopBar(),
+                TopBar(
+                  isDashboard: false,
+                  showMenu: isMobile,
+                  onMenuTap: () => scaffoldKey.currentState?.openDrawer(),
+                ),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(

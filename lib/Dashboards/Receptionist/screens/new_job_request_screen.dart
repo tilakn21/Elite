@@ -2,41 +2,68 @@ import 'package:flutter/material.dart';
 import '../widgets/sidebar.dart';
 import '../widgets/topbar.dart';
 import '../services/receptionist_service.dart';
+import 'package:provider/provider.dart';
+import '../providers/salesperson_provider.dart';
 
 class NewJobRequestScreen extends StatelessWidget {
   const NewJobRequestScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final double formWidth = MediaQuery.of(context).size.width < 900 ? double.infinity : 800;
+    final width = MediaQuery.of(context).size.width;
+    final isMobile = width < 600;
+    final isTablet = width >= 600 && width < 900;
+    final double formWidth = isMobile ? double.infinity : (isTablet ? 500 : 800);
+    final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
     return Scaffold(
+      key: scaffoldKey,
       backgroundColor: const Color(0xFFF6F3FE),
+      drawer: isMobile
+          ? Drawer(
+              child: Sidebar(
+                selectedIndex: 1,
+                isDrawer: true,
+                onClose: () => Navigator.of(context).pop(),
+              ),
+            )
+          : null,
       body: Row(
         children: [
-          Sidebar(selectedIndex: 1),
+          if (!isMobile) Sidebar(selectedIndex: 1),
           Expanded(
             child: Column(
               children: [
-                const TopBar(isDashboard: false),
+                TopBar(
+                  isDashboard: false,
+                  showMenu: isMobile,
+                  onMenuTap: () => scaffoldKey.currentState?.openDrawer(),
+                ),
                 Expanded(
                   child: Center(
                     child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
+                      padding: EdgeInsets.symmetric(
+                        vertical: isMobile ? 8 : 24,
+                        horizontal: isMobile ? 0 : 8,
+                      ),
                       child: Container(
                         width: formWidth,
-                        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+                        padding: EdgeInsets.symmetric(
+                          vertical: isMobile ? 16 : 32,
+                          horizontal: isMobile ? 8 : 16,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(isMobile ? 0 : 12),
                           boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withAlpha(10),
-                              blurRadius: 24,
-                              offset: const Offset(0, 8),
-                            ),
+                            if (!isMobile)
+                              BoxShadow(
+                                color: Colors.black.withAlpha(10),
+                                blurRadius: 24,
+                                offset: const Offset(0, 8),
+                              ),
                           ],
                         ),
-                        child: _JobRequestForm(),
+                        child: _JobRequestForm(isMobile: isMobile),
                       ),
                     ),
                   ),
@@ -51,6 +78,8 @@ class NewJobRequestScreen extends StatelessWidget {
 }
 
 class _JobRequestForm extends StatefulWidget {
+  final bool isMobile;
+  const _JobRequestForm({this.isMobile = false});
   @override
   State<_JobRequestForm> createState() => _JobRequestFormState();
 }
@@ -68,8 +97,9 @@ class _JobRequestFormState extends State<_JobRequestForm> {
   final TextEditingController dateOfVisitController = TextEditingController();
   final TextEditingController dateOfAppointmentController = TextEditingController();
 
-  String? selectedSalesperson;
-  List<String> availableSalespersons = [];
+  String? selectedSalespersonId;
+  String? selectedSalespersonName;
+  List<Map<String, String>> availableSalespersons = [];
   bool _isLoadingSalespersons = false;
 
   bool _isSubmitting = false;
@@ -91,9 +121,13 @@ class _JobRequestFormState extends State<_JobRequestForm> {
 
   Future<void> _fetchSalespersons() async {
     setState(() { _isLoadingSalespersons = true; });
-    final ids = await _receptionistService.fetchSalespersonIdsFromSupabase();
+    final salespersons = await _receptionistService.fetchSalespersonsFromSupabase();
+    // Only include available salespersons in the dropdown
     setState(() {
-      availableSalespersons = ids;
+      availableSalespersons = salespersons
+        .where((sp) => sp.status.name.toLowerCase() == 'available')
+        .map((sp) => {'id': sp.id, 'name': sp.name})
+        .toList();
       _isLoadingSalespersons = false;
     });
   }
@@ -180,16 +214,30 @@ class _JobRequestFormState extends State<_JobRequestForm> {
         dateOfAppointment: DateTime.now().toIso8601String(), // Use current date
         dateOfVisit: dateOfVisitController.text.trim(),
         timeOfVisit: timeController.text.trim(),
-        assignedSalesperson: selectedSalesperson,
+        assignedSalesperson: selectedSalespersonId, // Pass the ID
         createdBy: createdBy,
       );
+      // Set salesperson as unavailable
+      if (selectedSalespersonId != null) {
+        await _receptionistService.setSalespersonUnavailable(selectedSalespersonId!);
+      }
       setState(() {
         _submitMessage = 'Job request submitted successfully!';
       });
       _clearForm();
+      // Refresh available salespersons after submission
+      await _fetchSalespersons();
+      // Refresh provider for dashboard card if available
+      try {
+        final salespersonProvider = Provider.of<SalespersonProvider>(context, listen: false);
+        await salespersonProvider.fetchSalespersons();
+      } catch (_) {
+        // Provider not found, ignore
+      }
+      // TODO: Optionally, notify dashboard/sales_allocation_card to refresh as well
     } catch (e) {
       setState(() {
-        _submitMessage = 'Failed to submit job request: ${e.toString()}';
+        _submitMessage = 'Failed to submit job request: \\${e.toString()}';
       });
     } finally {
       setState(() {
@@ -248,7 +296,7 @@ class _JobRequestFormState extends State<_JobRequestForm> {
       missingFields.add('Time of visit');
       _invalidFields.add('timeOfVisit');
     }
-    if (selectedSalesperson == null) {
+    if (selectedSalespersonId == null) {
       missingFields.add('Salesperson');
       _invalidFields.add('salesperson');
     }
@@ -276,13 +324,14 @@ class _JobRequestFormState extends State<_JobRequestForm> {
     timeController.clear();
     dateOfVisitController.clear();
     setState(() {
-      selectedSalesperson = null;
+      selectedSalespersonId = null;
+      selectedSalespersonName = null;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
+    final isMobile = widget.isMobile;
     return Form(
       key: _formKey,
       child: Column(
@@ -293,7 +342,7 @@ class _JobRequestFormState extends State<_JobRequestForm> {
               Text(
                 'Basic information',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: isMobile ? 14 : 16,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF1B2330),
                 ),
@@ -307,7 +356,7 @@ class _JobRequestFormState extends State<_JobRequestForm> {
               ),
             ],
           ),
-          const SizedBox(height: 32),
+          SizedBox(height: isMobile ? 16 : 32),
           isMobile
               ? Column(
                   children: _buildFormFields(isMobile),
@@ -330,10 +379,10 @@ class _JobRequestFormState extends State<_JobRequestForm> {
                     ),
                   ],
                 ),
-          const SizedBox(height: 32),
+          SizedBox(height: isMobile ? 16 : 32),
           // Salesperson dropdown
           Padding(
-            padding: const EdgeInsets.only(bottom: 24.0),
+            padding: EdgeInsets.only(bottom: isMobile ? 12.0 : 24.0),
             child: _isLoadingSalespersons
                 ? const Center(child: CircularProgressIndicator())
                 : DropdownButtonFormField<String>(
@@ -341,19 +390,20 @@ class _JobRequestFormState extends State<_JobRequestForm> {
                     decoration: InputDecoration(
                       labelText: 'Assign Salesperson',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: isMobile ? 10 : 14),
                       errorText: _invalidFields.contains('salesperson') ? 'Please select a salesperson' : null,
                     ),
-                    value: selectedSalesperson,
+                    value: selectedSalespersonId,
                     items: availableSalespersons
                         .map((sp) => DropdownMenuItem<String>(
-                              value: sp,
-                              child: Text(sp),
+                              value: sp['id'],
+                              child: Text(sp['name'] ?? '', style: TextStyle(fontSize: isMobile ? 13 : 15)),
                             ))
                         .toList(),
                     onChanged: (value) {
                       setState(() {
-                        selectedSalesperson = value;
+                        selectedSalespersonId = value;
+                        selectedSalespersonName = availableSalespersons.firstWhere((sp) => sp['id'] == value)['name'];
                       });
                     },
                   ),
@@ -363,7 +413,7 @@ class _JobRequestFormState extends State<_JobRequestForm> {
             children: [
               Expanded(
                 child: SizedBox(
-                  height: 44,
+                  height: isMobile ? 38 : 44,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFF36A1C5),
@@ -379,12 +429,12 @@ class _JobRequestFormState extends State<_JobRequestForm> {
                             height: 24,
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           )
-                        : const Text(
+                        : Text(
                             'Submit',
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w500,
-                              fontSize: 16,
+                              fontSize: isMobile ? 14 : 16,
                             ),
                           ),
                   ),
@@ -393,12 +443,13 @@ class _JobRequestFormState extends State<_JobRequestForm> {
             ],
           ),
           if (_submitMessage != null) ...[
-            const SizedBox(height: 16),
+            SizedBox(height: isMobile ? 10 : 16),
             Text(
               _submitMessage!,
               style: TextStyle(
                 color: _submitMessage!.contains('success') ? Colors.green : Colors.red,
                 fontWeight: FontWeight.w600,
+                fontSize: isMobile ? 13 : 15,
               ),
             ),
           ],
@@ -417,14 +468,14 @@ class _JobRequestFormState extends State<_JobRequestForm> {
 
   List<Widget> _buildLeftFields() {
     return [
-      _Label('Name'),
+      _Label('Name', tooltip: 'Customer full name'),
       _InputField(
         hint: 'Enter name',
         controller: nameController,
         error: _invalidFields.contains('name'),
       ),
       SizedBox(height: 20),
-      _Label('Phone number'),
+      _Label('Phone number', tooltip: 'At least 8 digits, numbers only'),
       _InputField(
         hint: 'Enter phone number',
         controller: phoneController,
@@ -433,21 +484,21 @@ class _JobRequestFormState extends State<_JobRequestForm> {
         helperText: _invalidFields.contains('phone') ? 'Enter at least 8 digits, numbers only' : null,
       ),
       SizedBox(height: 20),
-      _Label('Shop name'),
+      _Label('Shop name', tooltip: 'Business/shop name'),
       _InputField(
         hint: 'Enter shop name',
         controller: shopNameController,
         error: _invalidFields.contains('shopName'),
       ),
       SizedBox(height: 20),
-      _Label('Street address'),
+      _Label('Street address', tooltip: 'Street name (no number)'),
       _InputField(
         hint: 'Enter street address',
         controller: streetAddressController,
         error: _invalidFields.contains('streetAddress'),
       ),
       SizedBox(height: 20),
-      _Label('Date of appointment'),
+      _Label('Date of appointment', tooltip: 'Auto-filled as today'),
       _InputField(
         hint: '',
         controller: dateOfAppointmentController,
@@ -459,21 +510,21 @@ class _JobRequestFormState extends State<_JobRequestForm> {
 
   List<Widget> _buildRightFields() {
     return [
-      _Label('Street number'),
+      _Label('Street number', tooltip: 'Building/street number'),
       _InputField(
         hint: 'Enter street number',
         controller: streetNumberController,
         error: _invalidFields.contains('streetNumber'),
       ),
       SizedBox(height: 20),
-      _Label('Town'),
+      _Label('Town', tooltip: 'Town or city'),
       _InputField(
         hint: 'Enter town',
         controller: townController,
         error: _invalidFields.contains('town'),
       ),
       SizedBox(height: 20),
-      _Label('Postcode'),
+      _Label('Postcode', tooltip: '4-8 digits, numbers only'),
       _InputField(
         hint: 'Enter postcode',
         controller: postcodeController,
@@ -482,7 +533,7 @@ class _JobRequestFormState extends State<_JobRequestForm> {
         helperText: _invalidFields.contains('postcode') ? 'Enter 4-8 digits, numbers only' : null,
       ),
       SizedBox(height: 20),
-      _Label('Date of visit'),
+      _Label('Date of visit', tooltip: 'Date the salesperson will visit'),
       _InputField(
         hint: 'Select date of visit',
         controller: dateOfVisitController,
@@ -492,7 +543,7 @@ class _JobRequestFormState extends State<_JobRequestForm> {
         error: _invalidFields.contains('dateOfVisit'),
       ),
       SizedBox(height: 20),
-      _Label('Time of visit'),
+      _Label('Time of visit', tooltip: 'Time the salesperson will visit'),
       _InputField(
         hint: 'Select time',
         controller: timeController,
@@ -507,17 +558,31 @@ class _JobRequestFormState extends State<_JobRequestForm> {
 
 class _Label extends StatelessWidget {
   final String text;
-  const _Label(this.text, {Key? key}) : super(key: key);
+  final String? tooltip;
+  const _Label(this.text, {this.tooltip, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontSize: 12,
-        color: Color(0xFF7B7B7B),
-        fontWeight: FontWeight.w500,
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 12,
+            color: Color(0xFF7B7B7B),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        if (tooltip != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 4.0),
+            child: Tooltip(
+              message: tooltip!,
+              child: Icon(Icons.info_outline, size: 15, color: Color(0xFFBDBDBD)),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -545,31 +610,47 @@ class _InputField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      readOnly: readOnly,
-      onTap: onTap,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(fontSize: 13, color: Color(0xFFBDBDBD)),
-        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        filled: true,
-        fillColor: Color(0xFFF8F8F8),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4),
-          borderSide: BorderSide.none,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(4),
+        boxShadow: error
+            ? [
+                BoxShadow(
+                  color: Colors.red.withOpacity(0.15),
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+              ]
+            : [],
+      ),
+      child: TextField(
+        controller: controller,
+        readOnly: readOnly,
+        onTap: onTap,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(fontSize: 13, color: Color(0xFFBDBDBD)),
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          filled: true,
+          fillColor: Color(0xFFF8F8F8),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4),
+            borderSide: BorderSide.none,
+          ),
+          suffixIcon: suffixIcon,
+          errorText: error ? '' : null,
+          errorBorder: error
+              ? OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(4),
+                  borderSide: BorderSide(color: Colors.red, width: 1.5),
+                )
+              : null,
+          helperText: helperText,
+          helperStyle: TextStyle(color: Colors.red, fontSize: 11),
         ),
-        suffixIcon: suffixIcon,
-        errorText: error ? '' : null,
-        errorBorder: error
-            ? OutlineInputBorder(
-                borderRadius: BorderRadius.circular(4),
-                borderSide: BorderSide(color: Colors.red, width: 1.5),
-              )
-            : null,
-        helperText: helperText,
-        helperStyle: TextStyle(color: Colors.red, fontSize: 11),
       ),
     );
   }

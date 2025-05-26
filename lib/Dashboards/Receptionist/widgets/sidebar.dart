@@ -2,10 +2,79 @@ import 'package:flutter/material.dart';
 
 class Sidebar extends StatelessWidget {
   final int selectedIndex;
-  const Sidebar({super.key, this.selectedIndex = 0});
+  final bool isDrawer;
+  final VoidCallback? onClose;
+  const Sidebar({super.key, this.selectedIndex = 0, this.isDrawer = false, this.onClose});
 
   @override
   Widget build(BuildContext context) {
+    final sidebarContent = Column(
+      children: [
+        const SizedBox(height: 40),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Row(
+            children: [
+              Image.asset('assets/images/elite_logo.png', height: 48),
+              if (isDrawer)
+                Spacer(),
+              if (isDrawer)
+                IconButton(
+                  icon: Icon(Icons.close, color: Colors.white),
+                  onPressed: onClose ?? () => Navigator.of(context).pop(),
+                  tooltip: 'Close',
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 40),
+        SidebarButton(
+          icon: Icons.dashboard,
+          label: 'Dashboard',
+          selected: selectedIndex == 0,
+          onTap: () {
+            Navigator.of(context).pushReplacementNamed('/receptionist/dashboard');
+            if (isDrawer && onClose != null) onClose!();
+          },
+        ),
+        SidebarButton(
+          icon: Icons.add_circle_outline,
+          label: 'New Request',
+          selected: selectedIndex == 1,
+          onTap: () {
+            Navigator.of(context).pushReplacementNamed('/receptionist/new-job-request');
+            if (isDrawer && onClose != null) onClose!();
+          },
+        ),
+        const Spacer(),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+          child: ElevatedButton.icon(
+            onPressed: () {
+              Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+            },
+            icon: const Icon(Icons.logout, size: 18),
+            label: const Text('Logout'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(44),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              textStyle: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+      ],
+    );
+    if (isDrawer) {
+      return Container(
+        width: 240,
+        color: const Color(0xFF101C2C),
+        child: SafeArea(child: sidebarContent),
+      );
+    }
     return Container(
       width: 220,
       decoration: const BoxDecoration(
@@ -15,66 +84,7 @@ class Sidebar extends StatelessWidget {
           bottomRight: Radius.circular(30),
         ),
       ),
-      child: Column(
-        children: [
-          const SizedBox(height: 40),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Row(
-              children: [
-                Image.asset('assets/images/elite_logo.png', height: 48),
-              ],
-            ),
-          ),
-          const SizedBox(height: 40),
-          SidebarButton(
-            icon: Icons.dashboard,
-            label: 'Dashboard',
-            selected: selectedIndex == 0,
-            onTap: () {
-              Navigator.of(context).pushReplacementNamed('/receptionist/dashboard');
-            },
-          ),
-          SidebarButton(
-            icon: Icons.add_circle_outline,
-            label: 'New Request',
-            selected: selectedIndex == 1,
-            onTap: () {
-              Navigator.of(context).pushReplacementNamed('/receptionist/new-job-request');
-            },
-          ),
-          // SidebarButton(
-          //   icon: Icons.bar_chart_outlined,
-          //   label: 'Job progress',
-          //   selected: false,
-          // ),
-          // SidebarButton(
-          //   icon: Icons.calendar_month_outlined,
-          //   label: 'Calendar',
-          //   selected: false,
-          // ),
-          const Spacer(),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-              },
-              icon: const Icon(Icons.logout, size: 18),
-              label: const Text('Logout'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-                foregroundColor: Colors.white,
-                minimumSize: const Size.fromHeight(44),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                textStyle: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
-      ),
+      child: sidebarContent,
     );
   }
 }

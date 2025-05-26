@@ -7,6 +7,27 @@ class SalesAllocationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (salesPeople.isEmpty) {
+      return Card(
+        elevation: 8,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        color: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(32, 28, 32, 28),
+          child: Center(
+            child: Text(
+              'No salespersons found.',
+              style: TextStyle(
+                color: Colors.red.shade400,
+                fontWeight: FontWeight.w500,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Card(
       elevation: 8,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
@@ -103,7 +124,7 @@ class _SalesRow extends StatelessWidget {
                 ),
               ),
               Expanded(
-                child: _StatusPill(person.status.name),
+                child: _StatusPill(isAvailable: person.status == model.SalespersonStatus.available),
               ),
             ],
           ),
@@ -115,20 +136,21 @@ class _SalesRow extends StatelessWidget {
 }
 
 class _StatusPill extends StatelessWidget {
-  final String status;
-  const _StatusPill(this.status);
+  final bool isAvailable;
+  const _StatusPill({required this.isAvailable});
 
   @override
   Widget build(BuildContext context) {
-    final statusInfo = _getStatusInfo(status);
-
+    final statusLabel = isAvailable ? 'Available' : 'Unavailable';
+    final statusColor = isAvailable ? const Color(0xFF4CAF50) : const Color(0xFFE53935);
+    final bgColor = isAvailable ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE);
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: 12,
         vertical: 6,
       ),
       decoration: BoxDecoration(
-        color: statusInfo.backgroundColor,
+        color: bgColor,
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
@@ -138,15 +160,15 @@ class _StatusPill extends StatelessWidget {
             width: 6,
             height: 6,
             decoration: BoxDecoration(
-              color: statusInfo.color,
+              color: statusColor,
               shape: BoxShape.circle,
             ),
           ),
           const SizedBox(width: 8),
           Text(
-            status,
+            statusLabel,
             style: TextStyle(
-              color: statusInfo.color,
+              color: statusColor,
               fontWeight: FontWeight.w500,
               fontSize: 13,
             ),
@@ -154,35 +176,5 @@ class _StatusPill extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  ({Color color, Color backgroundColor}) _getStatusInfo(String status) {
-    switch (status) {
-      case 'Available':
-        return (
-          color: const Color(0xFF4CAF50),
-          backgroundColor: const Color(0xFFE8F5E9),
-        );
-      case 'On Visit':
-        return (
-          color: const Color(0xFF2196F3),
-          backgroundColor: const Color(0xFFE3F2FD),
-        );
-      case 'Busy':
-        return (
-          color: const Color(0xFFE53935),
-          backgroundColor: const Color(0xFFFFEBEE),
-        );
-      case 'Away':
-        return (
-          color: const Color(0xFFFFA000),
-          backgroundColor: const Color(0xFFFFF3E0),
-        );
-      default:
-        return (
-          color: Colors.grey,
-          backgroundColor: Colors.grey.shade100,
-        );
-    }
   }
 }

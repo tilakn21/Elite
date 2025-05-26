@@ -23,9 +23,19 @@ class SalespersonProvider with ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
     try {
-      _salespersons = await _receptionistService.fetchSalespersons();
+      final salespersons = await _receptionistService.fetchSalespersonsFromSupabase();
+      if (salespersons.isEmpty) {
+        _errorMessage = 'No salespersons found in Supabase.';
+        debugPrint('DEBUG: No salespersons found in Supabase.');
+        _salespersons = [];
+      } else {
+        debugPrint('DEBUG: Fetched \\${salespersons.length} salespersons from Supabase.');
+        _salespersons = salespersons;
+      }
     } catch (e) {
       _errorMessage = e.toString();
+      debugPrint('DEBUG: Error fetching salespersons: \\${e.toString()}');
+      _salespersons = [];
     } finally {
       _isLoading = false;
       notifyListeners();
