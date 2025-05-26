@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 ///   TopBar(isDashboard: false) // for all other screens
 class TopBar extends StatelessWidget {
   final bool isDashboard;
-  const TopBar({Key? key, this.isDashboard = false}) : super(key: key);
+  final bool showMenu;
+  final VoidCallback? onMenuTap;
+  const TopBar({Key? key, this.isDashboard = false, this.showMenu = false, this.onMenuTap}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +20,13 @@ class TopBar extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const SizedBox(width: 32),
+          if (showMenu)
+            IconButton(
+              icon: Icon(Icons.menu, color: Colors.white, size: 28),
+              onPressed: onMenuTap,
+              tooltip: 'Open menu',
+            ),
+          if (!showMenu) const SizedBox(width: 32),
           Text(
             'Receptionist',
             style: TextStyle(
@@ -79,31 +87,12 @@ class TopBar extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('John Doe', style: TextStyle(fontWeight: FontWeight.normal, fontSize: 13, color: isDashboard ? Color(0xFF1B2330) : Colors.white)),
-                  Text('Admin', style: TextStyle(fontSize: 11, color: isDashboard ? Color(0xFF9BA8B7) : Colors.white70)),
+                  Text('Receptionist', style: TextStyle(fontWeight: FontWeight.w400, fontSize: 11, color: isDashboard ? Color(0xFF1B2330) : Colors.white)),
                 ],
               ),
-              const SizedBox(width: 8),
-              Icon(Icons.arrow_drop_down, color: isDashboard ? Color(0xFF9BA8B7) : Colors.white),
             ],
           ),
           const SizedBox(width: 24),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-            },
-            icon: const Icon(Icons.logout, size: 18),
-            label: const Text('Logout'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              textStyle: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(width: 32),
         ],
       ),
     );

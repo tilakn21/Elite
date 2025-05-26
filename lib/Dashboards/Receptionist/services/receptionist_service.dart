@@ -214,14 +214,80 @@ class ReceptionistService {
   }
 
   // Fetch all employees with id starting with 'sal' from Supabase
-  Future<List<String>> fetchSalespersonIdsFromSupabase() async {
+  Future<List<Salesperson>> fetchSalespersonsFromSupabase() async {
     final supabase = Supabase.instance.client;
     final response = await supabase
         .from('employee')
-        .select('id')
+        .select('id, full_name, is_available')
         .ilike('id', 'sal%');
     return List<Map<String, dynamic>>.from(response)
-        .map<String>((e) => e['id'] as String)
+        .map<Salesperson>((e) => Salesperson(
+              id: e['id']?.toString() ?? '',
+              name: e['full_name'] ?? '',
+              status: (e['is_available'] == true)
+                  ? SalespersonStatus.available
+                  : SalespersonStatus.busy,
+            ))
         .toList();
+  }
+  
+
+  // Fetch all jobs from Supabase (jobs table, receptionist field)
+  Future<List<JobRequest>> fetchJobRequestsFromSupabase() async {
+    final supabase = Supabase.instance.client;
+    final response = await supabase
+        .from('jobs')
+        .select('id, status, created_at, receptionist');
+    return List<Map<String, dynamic>>.from(response).map<JobRequest>((e) {
+      final receptionist = e['receptionist'] as Map<String, dynamic>?;
+      return JobRequest(
+        id: e['id']?.toString() ?? '',
+        name: receptionist?['customerName'] ?? '',
+        phone: receptionist?['phone'] ?? '',
+        email: receptionist?['createdBy'] ?? '',
+        status: _parseJobStatus(e['status']),
+        dateAdded: e['created_at'] != null ? DateTime.tryParse(e['created_at']) : null,
+        subtitle: receptionist?['shopName'] ?? '',
+        avatar: '',
+        time: receptionist?['timeOfVisit'] ?? '',
+        assigned: receptionist?['assignedSalesperson'] != null,
+      );
+    }).toList();
+  }
+
+  // Fetch all jobs from Supabase (raw, for dialog display)
+  Future<List<Map<String, dynamic>>> fetchJobsFromSupabase() async {
+    final supabase = Supabase.instance.client;
+    final response = await supabase.from('jobs').select();
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  // Helper to parse job status from string
+  JobRequestStatus _parseJobStatus(dynamic status) {
+    switch (status?.toString().toLowerCase()) {
+      case 'approved':
+        return JobRequestStatus.approved;
+      case 'declined':
+        return JobRequestStatus.declined;
+      case 'pending':
+        return JobRequestStatus.pending;
+      default:
+        return JobRequestStatus.pending;
+    }
+  }
+
+  // Set is_available to false for a salesperson in Supabase
+  Future<void> setSalespersonUnavailable(String salespersonId) async {
+    final supabase = Supabase.instance.client;
+    try {
+      await supabase
+          .from('employee')
+          .update({'is_available': false})
+          .eq('id', salespersonId);
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to update salesperson availability: \\${e.message}');
+    } catch (e) {
+      throw Exception('Failed to update salesperson availability: $e');
+    }
   }
 }

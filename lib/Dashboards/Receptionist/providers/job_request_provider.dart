@@ -23,7 +23,7 @@ class JobRequestProvider with ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
     try {
-      _jobRequests = await _receptionistService.fetchJobRequests();
+      _jobRequests = await _receptionistService.fetchJobRequestsFromSupabase();
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
