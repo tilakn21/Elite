@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/salesperson_sidebar.dart';
+import '../widgets/salesperson_topbar.dart';
 import '../models/salesperson_profile.dart';
 
 class SalespersonProfileScreen extends StatefulWidget {
@@ -12,145 +14,150 @@ class SalespersonProfileScreen extends StatefulWidget {
 
 class _SalespersonProfileScreenState extends State<SalespersonProfileScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final SalespersonProfile profile = SalespersonProfile(
-    fullName: 'Brooklyn Simmons',
-    phoneNumber: '(603) 555-0123',
-    email: 'brooklyns@mail.com',
-    age: 26,
-  );
+  Map<String, dynamic>? employee;
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchEmployee();
+  }
+
+  Future<void> _fetchEmployee() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('employee')
+          .select()
+          .eq('id', 'sal2002')
+          .single();
+      setState(() {
+        employee = response;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load profile: $e';
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isLargeScreen = constraints.maxWidth >= 900;
-        Widget sidebar = SalespersonSidebar(
-          selectedRoute: 'profile',
-          onItemSelected: (route) {
-            if (route == 'home') {
-              Navigator.of(context)
-                  .pushReplacementNamed('/salesperson/dashboard');
-            } else if (route == 'profile') {
-              if (isLargeScreen) return;
-              Navigator.of(context).pop();
-            }
-          },
-        );
-        return Scaffold(
-          key: _scaffoldKey,
-          backgroundColor: Colors.white,
-          drawer: isLargeScreen
-              ? null
-              : Drawer(
-                  width: MediaQuery.of(context).size.width * 0.75,
-                  child: sidebar,
+    final double width = MediaQuery.of(context).size.width;
+    final bool isMobile = width < 600;
+    final GlobalKey<ScaffoldState> scaffoldKey = _scaffoldKey;
+    Widget sidebar = SalespersonSidebar(
+      selectedRoute: 'profile',
+      onItemSelected: (route) {
+        if (route == 'home') {
+          Navigator.of(context).pushReplacementNamed('/salesperson/dashboard');
+        } else if (route == 'profile') {
+          if (isMobile) Navigator.of(context).pop();
+        }
+      },
+    );
+    return Scaffold(
+      key: scaffoldKey,
+      backgroundColor: Colors.white,
+      drawer: isMobile
+          ? Drawer(
+              width: MediaQuery.of(context).size.width * 0.75,
+              child: sidebar,
+            )
+          : null,
+      body: Row(
+        children: [
+          if (!isMobile)
+            SizedBox(width: 240, child: sidebar),
+          Expanded(
+            child: Column(
+              children: [
+                SalespersonTopBar(
+                  isDashboard: false,
+                  showMenu: isMobile,
+                  onMenuTap: () => scaffoldKey.currentState?.openDrawer(),
                 ),
-          appBar: AppBar(
-            backgroundColor: Colors.white,
-            elevation: 0,
-            leading: isLargeScreen
-                ? Padding(
-                    padding: const EdgeInsets.only(left: 12.0),
-                    child: Image.asset(
-                      'assets/images/elite_logo.png',
-                      height: 36,
-                      fit: BoxFit.contain,
-                    ),
-                  )
-                : Row(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 12.0),
-                        child: Image.asset(
-                          'assets/images/elite_logo.png',
-                          height: 36,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.menu, color: Colors.black87),
-                        onPressed: () =>
-                            _scaffoldKey.currentState?.openDrawer(),
-                      ),
-                    ],
-                  ),
-            title: const Text('Profile',
-                style: TextStyle(
-                    color: Colors.black, fontWeight: FontWeight.w700)),
-            centerTitle: true,
-          ),
-          body: Row(
-            children: [
-              if (isLargeScreen) ...[
-                SizedBox(
-                  width: 240,
-                  child: sidebar,
+                Expanded(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _error != null
+                          ? Center(child: Text(_error!, style: TextStyle(color: Colors.red)))
+                          : employee == null
+                              ? Center(child: Text('No profile found.', style: TextStyle(color: Colors.grey)))
+                              : SingleChildScrollView(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 22.0, vertical: 12.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        const SizedBox(height: 20),
+                                        Center(
+                                          child: Image.asset(
+                                            'assets/images/elite_logo.png',
+                                            height: 92,
+                                            fit: BoxFit.contain,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 18),
+                                        Text(
+                                          employee!['full_name'] ?? '',
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 20,
+                                              color: Colors.black),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          (employee!['role'] ?? '').toString().replaceAll('_', ' ').replaceFirst(RegExp(r'^.'), (employee!['role'] ?? '').isNotEmpty ? (employee!['role'] ?? '').substring(0, 1).toUpperCase() : ''),
+                                          style: const TextStyle(
+                                              color: Color(0xFFBDBDBD),
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w500),
+                                        ),
+                                        const SizedBox(height: 24),
+                                        _ProfileCard(
+                                          label: 'Full Name',
+                                          value: employee!['full_name'] ?? '',
+                                          isBold: true,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        _ProfileCard(
+                                          label: 'Phone no.',
+                                          value: employee!['phone'] ?? '',
+                                        ),
+                                        const SizedBox(height: 12),
+                                        _ProfileCard(
+                                          label: 'Role',
+                                          value: employee!['role'] ?? '',
+                                          isBold: true,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        _ProfileCard(
+                                          label: 'Branch ID',
+                                          value: employee!['branch_id']?.toString() ?? '-',
+                                        ),
+                                        const SizedBox(height: 12),
+                                        _ProfileCard(
+                                          label: 'Created At',
+                                          value: (employee!['created_at'] ?? '').toString().split('T').first,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                 ),
               ],
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 22.0, vertical: 12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        const SizedBox(height: 20),
-                        Center(
-                          child: CircleAvatar(
-                            backgroundColor: Color(0xFFE7F6FB),
-                            radius: 46,
-                            child: Icon(Icons.person,
-                                color: Color(0xFF5A6CEA), size: 56),
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        Text(
-                          profile.fullName,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 20,
-                              color: Colors.black),
-                        ),
-                        const SizedBox(height: 2),
-                        const Text(
-                          'Sales person',
-                          style: TextStyle(
-                              color: Color(0xFFBDBDBD),
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500),
-                        ),
-                        const SizedBox(height: 24),
-                        _ProfileCard(
-                          label: 'Full Name',
-                          value: profile.fullName,
-                          isBold: true,
-                        ),
-                        const SizedBox(height: 12),
-                        _ProfileCard(
-                          label: 'Phone no.',
-                          value: profile.phoneNumber,
-                        ),
-                        const SizedBox(height: 12),
-                        _ProfileCard(
-                          label: 'Email Address',
-                          value: profile.email,
-                          isBold: true,
-                        ),
-                        const SizedBox(height: 12),
-                        _ProfileCard(
-                          label: 'Age',
-                          value: '${profile.age} yr',
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }

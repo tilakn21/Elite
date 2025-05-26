@@ -255,13 +255,6 @@ class ReceptionistService {
     }).toList();
   }
 
-  // Fetch all jobs from Supabase (raw, for dialog display)
-  Future<List<Map<String, dynamic>>> fetchJobsFromSupabase() async {
-    final supabase = Supabase.instance.client;
-    final response = await supabase.from('jobs').select();
-    return List<Map<String, dynamic>>.from(response);
-  }
-
   // Helper to parse job status from string
   JobRequestStatus _parseJobStatus(dynamic status) {
     switch (status?.toString().toLowerCase()) {

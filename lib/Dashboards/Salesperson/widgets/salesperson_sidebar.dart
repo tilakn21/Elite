@@ -50,10 +50,10 @@ class SalespersonSidebar extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 28),
                     child: Row(
                       children: [
-                        CircleAvatar(
-                          backgroundColor: const Color(0xFF24344D),
-                          radius: isMobile ? 22 : 26,
-                          child: const Icon(Icons.person, color: Colors.white, size: 28),
+                        Image.asset(
+                          'assets/images/elite_logo.png',
+                          height: isMobile ? 38 : 48,
+                          fit: BoxFit.contain,
                         ),
                         if (!isMobile)
                           const SizedBox(width: 14),
@@ -62,7 +62,7 @@ class SalespersonSidebar extends StatelessWidget {
                             'Elite',
                             style: TextStyle(
                               color: Colors.white,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w700,
                               fontSize: 20,
                               letterSpacing: 1.2,
                             ),
