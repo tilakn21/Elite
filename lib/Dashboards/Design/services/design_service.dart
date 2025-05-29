@@ -10,52 +10,24 @@ class DesignService {
   // static const String _baseUrl = 'https://api.example.com/design';
 
   Future<List<Job>> getJobs() async {
-    print('DesignService: Fetching jobs (mocked)');
-    await Future.delayed(const Duration(seconds: 1)); // Simulate network delay
-    final now = DateTime.now();
-    return [
-      Job(
-        jobNo: '#DSGN001',
-        clientName: 'Creative Solutions Ltd.',
-        email: 'contact@creativesolutions.com',
-        phoneNumber: '(555) 123-4567',
-        address: '123 Design Avenue, Art City',
-        dateAdded: now.subtract(const Duration(days: 5)),
-        status: JobStatus.inProgress,
-        assignedTo: 'Designer Alice',
-        measurements: 'Banner: 3m x 1m',
-        uploadedImages: ['https://via.placeholder.com/150/FF0000/FFFFFF?Text=Draft1.jpg'],
-        notes: 'Client wants a modern and sleek design.',
-      ),
-      Job(
-        jobNo: '#DSGN002',
-        clientName: 'Tech Innovators Inc.',
-        email: 'info@techinnovators.com',
-        phoneNumber: '(555) 987-6543',
-        address: '456 Innovation Drive, Techville',
-        dateAdded: now.subtract(const Duration(days: 2)),
-        status: JobStatus.pending,
-        assignedTo: 'Designer Bob',
-        measurements: 'Logo: various sizes',
-        notes: 'Awaiting client brief for logo requirements.',
-      ),
-      Job(
-        jobNo: '#DSGN003',
-        clientName: 'Local Bakery Co.',
-        email: 'orders@localbakery.com',
-        phoneNumber: '(555) 222-3333',
-        address: '789 Pastry Lane, Sweet Town',
-        dateAdded: now.subtract(const Duration(days: 10)),
-        status: JobStatus.approved,
-        assignedTo: 'Designer Carol',
-        measurements: 'Menu Board: 1.5m x 0.8m',
-        uploadedImages: [
-          'https://via.placeholder.com/150/00FF00/FFFFFF?Text=MenuV1.jpg',
-          'https://via.placeholder.com/150/0000FF/FFFFFF?Text=MenuV2.jpg'
-        ],
-        notes: 'Final design approved. Ready for production.',
-      ),
-    ];
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('jobs')
+          .select()
+          .not('receptionist', 'is', null)
+          .not('salesperson', 'is', null)
+          .filter('design', 'is', null);
+      
+      // Map each job from Supabase to the Job model
+      return List<Map<String, dynamic>>.from(response)
+          .map((json) => Job.fromJson(json))
+          .toList();
+    } catch (e) {
+      print('Error fetching jobs from Supabase: $e');
+      // Re-throw the error to let the provider handle it
+      throw Exception('Failed to fetch jobs from database: $e');
+    }
   }
 
   Future<Job> createJob(Job job) async {
@@ -154,13 +126,58 @@ class DesignService {
   }
 
   Future<String?> uploadDraftFile(File file) async {
-    final fileName = file.path.split('/').last;
-    final response = await Supabase.instance.client.storage.from('drafts').upload(
-      fileName,
-      file,
-      fileOptions: const FileOptions(upsert: true),
-    );
-    return response;
+    try {
+      // Create a unique filename with timestamp to avoid overwriting
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = '${timestamp}_${file.path.split('/').last}';
+      
+      // Upload the file
+      await Supabase.instance.client.storage.from('eliteimage').upload(
+        fileName,
+        file,
+        fileOptions: const FileOptions(upsert: true),
+      );
+      
+      // Get the public URL of the uploaded file
+      final publicUrl = Supabase.instance.client.storage.from('eliteimage').getPublicUrl(fileName);
+      return publicUrl;
+    } catch (e) {
+      print('Error uploading file: $e');
+      rethrow;
+    }
+  }
+  
+  Future<void> updateJobDesignData(String jobId, Map<String, dynamic> newDraft) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('jobs')
+          .select()
+          .eq('id', jobId)
+          .maybeSingle();
+      if (response == null) {
+        throw Exception('Job not found');
+      }
+      // Always store design as a List<Map<String, dynamic>>
+      List<dynamic> drafts = [];
+      if (response['design'] != null) {
+        final existing = response['design'];
+        if (existing is List) {
+          drafts = List<Map<String, dynamic>>.from(existing);
+        } else if (existing is Map) {
+          drafts = [Map<String, dynamic>.from(existing)];
+        }
+      }
+      drafts.add(newDraft);
+      await supabase
+          .from('jobs')
+          .update({'design': drafts})
+          .eq('id', jobId);
+      print('Successfully appended new draft to job design data for job: $jobId');
+    } catch (e) {
+      print('Error updating job design data: $e');
+      rethrow;
+    }
   }
 
   // Mocked user data for demonstration

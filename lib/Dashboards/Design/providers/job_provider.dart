@@ -25,16 +25,18 @@ class JobProvider with ChangeNotifier {
   Future<void> _fetchJobs() async {
     _isLoading = true;
     _errorMessage = null;
-    notifyListeners();
-    try {
+    notifyListeners();    try {
       _jobs = await _designService.getJobs();
+      if (_jobs.isEmpty) {
+        _errorMessage = 'No jobs found';
+      }
     } catch (e) {
       _errorMessage = e.toString();
       if (kDebugMode) {
         print('Error fetching jobs from service: $e');
       }
-      // Fallback to sample data if service fails
-      _loadSampleJobs(); 
+      // Don't fallback to sample data in production
+      _jobs = [];
     } finally {
       _isLoading = false;
       notifyListeners();

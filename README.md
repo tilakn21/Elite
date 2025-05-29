@@ -1,16 +1,75 @@
-# elite_signboard_app
+# Elite Signboard Management Software
 
-A new Flutter project.
+A comprehensive cross-platform application for managing signboard manufacturing operations. Built with Flutter for desktop, web, and mobile platforms.
 
-## Getting Started
+## Features
 
-This project is a starting point for a Flutter application.
+### 1. Multi-Role Access
+- **Admin Dashboard**: System administration and user management
+- **Receptionist Dashboard**: Handle incoming job requests and salesperson allocation
+- **Salesperson Dashboard**: Manage site visits and client interactions
+- **Design Dashboard**: Design approval workflow and client communication
+- **Production Dashboard**: Track manufacturing progress
+- **Accounts Dashboard**: Handle invoicing and financial operations
+- **Printing Dashboard**: Manage printing operations
 
-A few resources to get you started if this is your first Flutter project:
+### 2. Key Functionalities
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+#### Receptionist Module
+- New job request management
+- Salesperson allocation
+- Calendar management for appointments
+- Job tracking and status updates
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+#### Salesperson Module
+- Site visit management
+- Image capture and upload
+- Job details collection
+- Client communication
+
+#### Design Module
+- Design upload and management
+- Client approval workflow
+- Chat system with image sharing
+- Design iteration tracking
+
+#### Production Module
+- Job status tracking
+- Labor assignment
+- Progress monitoring
+- Quality control
+
+#### Accounts Module
+- Invoice generation
+- Payment tracking
+- Financial reporting
+- Employee payroll
+
+### 3. Technical Features
+- Real-time chat with image sharing
+- Multi-file upload support
+- Responsive UI for all screen sizes
+- Offline data persistence
+- Cloud storage integration
+- Cross-platform compatibility
+
+## Setup
+
+### Prerequisites
+- Flutter SDK ^3.6.1
+- Dart SDK ^3.6.1
+- Supabase account for backend services
+
+### Installation
+1. Clone the repository
+2. Run `flutter pub get` to install dependencies
+3. Configure Supabase credentials in `lib/utils/supabase_keys.dart`
+4. Run `flutter run` for your target platform
+
+### Dependencies
+- Provider for state management
+- Supabase for backend services
+- File and image picking functionality
+- Chart visualization
+- Calendar integration
+- Custom fonts (Poppins)

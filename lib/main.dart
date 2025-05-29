@@ -10,6 +10,7 @@ import 'Dashboards/Design/providers/chat_provider.dart';
 import 'Dashboards/Design/providers/user_provider.dart';
 import 'Dashboards/Accounts/providers/invoice_provider.dart'; // Added InvoiceProvider
 import 'Dashboards/Admin/providers/admin_provider.dart'; // Added AdminProvider
+import 'Dashboards/Production/providers/worker_provider.dart'; // Added WorkerProvider
 import 'Dashboards/Admin/services/admin_service.dart'; // Added AdminService for AdminProvider
 import 'Dashboards/Design/services/design_service.dart'; // Added DesignService for JobProvider
 import 'Dashboards/Printing/providers/printing_job_provider.dart'; // Added PrintingJobProvider
@@ -78,15 +79,16 @@ void main() async {
     print(details.stack);
   };
   runApp(
-    MultiProvider(
-      providers: [
+    MultiProvider(      providers: [
         ChangeNotifierProvider(create: (_) => UserProvider(DesignService())),
         ChangeNotifierProvider(create: (_) => JobProvider(DesignService())),
         ChangeNotifierProvider(create: (_) => ChatProvider(DesignService())),
         ChangeNotifierProvider(create: (_) => InvoiceProvider()), // Registered InvoiceProvider
         ChangeNotifierProvider(create: (_) => AdminProvider(AdminService())),   // Registered AdminProvider with AdminService
-        ChangeNotifierProvider(create: (_) => PrintingJobProvider(PrintingService())), // Registered PrintingJobProvider
-        ChangeNotifierProvider(create: (_) => ProductionJobProvider(ProductionService())), // Registered ProductionJobProvider
+        ChangeNotifierProvider(create: (_) => PrintingJobProvider(PrintingService())), // Registered PrintingJobProvider        
+        Provider(create: (_) => ProductionService()), // Provide ProductionService so other providers can read it
+        ChangeNotifierProvider(create: (context) => ProductionJobProvider(context.read<ProductionService>())),
+        ChangeNotifierProvider(create: (context) => WorkerProvider(context.read<ProductionService>())),
         // Provide ReceptionistService so other providers can read it.
         Provider(create: (_) => ReceptionistService()), 
         ChangeNotifierProvider(create: (context) => JobRequestProvider(context.read<ReceptionistService>())),
@@ -101,19 +103,20 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Elite Signboard Management',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: const Color(0xFF1A237E),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1A237E),
-          primary: const Color(0xFF1A237E),
-          secondary: const Color(0xFF536DFE),
+  Widget build(BuildContext context) {    return FocusTraversalGroup(
+      policy: OrderedTraversalPolicy(),
+      child: MaterialApp(
+        title: 'Elite Signboard Management',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          primaryColor: const Color(0xFF1A237E),
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF1A237E),
+            primary: const Color(0xFF1A237E),
+            secondary: const Color(0xFF536DFE),
+          ),
+          fontFamily: 'Poppins',
         ),
-        fontFamily: 'Poppins',
-      ),
       home: const LoginScreen(),
       //home: const SalespersonHomeScreen(),
       routes: {
@@ -143,6 +146,7 @@ class MyApp extends StatelessWidget {
         '/printing/qualitycheck': (context) =>
             const PrintingQualityCheckScreen(),
       },
+      )
     );
   }
 }

@@ -24,6 +24,46 @@ class ProductionJobProvider with ChangeNotifier {
 
     try {
       _jobs = await _productionService.fetchProductionJobs();
+      
+      // Print fetched data in a structured format
+      print('\n=== Production Jobs Data ===');
+      print('Total jobs found: ${_jobs.length}\n');
+      
+      for (var job in _jobs) {
+        print('Job Details:');
+        print('  ID: ${job.id}');
+        print('  Job No: ${job.jobNo}');
+        print('  Client: ${job.clientName}');
+        print('  Due Date: ${job.dueDate.toString()}');
+        print('  Description: ${job.description}');
+        print('  Status: ${job.status.label}');
+        print('  Action: ${job.action}');
+        
+        // Print JSONB data if available
+        if (job.receptionistjsonb != null) {
+          print('\n  Receptionist Data:');
+          job.receptionistjsonb!.forEach((key, value) {
+            print('    $key: $value');
+          });
+        }
+        
+        if (job.salespersonjsonb != null) {
+          print('\n  Salesperson Data:');
+          job.salespersonjsonb!.forEach((key, value) {
+            print('    $key: $value');
+          });
+        }
+        
+        if (job.designjsonb != null) {
+          print('\n  Design Data:');
+          job.designjsonb!.forEach((key, value) {
+            print('    $key: $value');
+          });
+        }
+        
+        print('\n' + '-' * 50 + '\n');
+      }
+      
     } catch (e) {
       _errorMessage = e.toString();
       if (kDebugMode) {
@@ -33,14 +73,13 @@ class ProductionJobProvider with ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
-
-  Future<void> updateJobStatus(String jobId, JobStatus newStatus) async {
+  Future<void> updateJobStatus(String jobId, JobStatus newStatus, {String? feedback}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      await _productionService.updateProductionJobStatus(jobId, newStatus);
+      await _productionService.updateProductionJobStatus(jobId, newStatus, feedback: feedback);
       // Refresh the specific job or the whole list
       // For simplicity, let's refetch the specific job or update it locally
       final index = _jobs.indexWhere((job) => job.id == jobId);

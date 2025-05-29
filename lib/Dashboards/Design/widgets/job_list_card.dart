@@ -15,14 +15,12 @@ class JobListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 600;
-
-    return Card(
+    final isMobile = screenWidth < 600;    return Card(
       margin: EdgeInsets.zero,
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(20.0).copyWith(bottom: 23.0), // Added extra bottom padding to fix overflow
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -64,9 +62,10 @@ class JobListCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                  )
-                : SizedBox(
-                    height: jobs.length > 4 ? 400 : jobs.length * 80.0,
+                  )                : ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: jobs.length > 4 ? 400 : jobs.length * 80.0,
+                    ),
                     child: ListView.separated(
                       shrinkWrap: true,
                       physics: const BouncingScrollPhysics(),

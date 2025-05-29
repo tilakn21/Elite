@@ -1,9 +1,90 @@
 import 'package:flutter/material.dart';
 import '../widgets/sidebar.dart';
 import '../widgets/top_bar.dart';
+import '../providers/worker_provider.dart';
+import '../models/worker.dart';
+import '../models/production_job.dart';
+import 'package:provider/provider.dart';
 
-class AssignLabourScreen extends StatelessWidget {
+class AssignLabourScreen extends StatefulWidget {
   const AssignLabourScreen({Key? key}) : super(key: key);
+
+  @override
+  State<AssignLabourScreen> createState() => _AssignLabourScreenState();
+
+  static Route<void> route(Object? arguments) {
+    return MaterialPageRoute(
+      builder: (context) {
+        final job = arguments as ProductionJob?;
+        return AssignLabourScreen(key: ValueKey(job?.id));
+      },
+    );
+  }
+}
+
+class _AssignLabourScreenState extends State<AssignLabourScreen> {  final ScrollController _scrollController = ScrollController();
+  ProductionJob? selectedJob;
+  final Set<Worker> selectedWorkers = {};
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final job = ModalRoute.of(context)?.settings.arguments as ProductionJob?;
+      if (job != null) {
+        setState(() {
+          selectedJob = job;
+        });
+      }
+      
+      // Initialize workers list
+      final workerProvider = Provider.of<WorkerProvider>(context, listen: false);
+      workerProvider.fetchWorkers();
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+  Color _getStatusColor(JobStatus status) {
+    switch (status) {
+      case JobStatus.receiver:
+        return const Color(0xFFE3F2FD);
+      case JobStatus.assignedLabour:
+        return const Color(0xFFE8F5E8);
+      case JobStatus.completed:
+        return const Color(0xFFD5F5E3);
+      case JobStatus.pending:
+        return const Color(0xFFFFF4E5);
+      case JobStatus.onHold:
+        return const Color(0xFFFFECE9);
+      case JobStatus.inProgress:
+        return const Color(0xFFE8EAF6);
+      default:
+        return const Color(0xFFE8EAF6);
+    }
+  }
+
+  Color _getStatusTextColor(JobStatus status) {
+    switch (status) {
+      case JobStatus.receiver:
+        return const Color(0xFF1976D2);
+      case JobStatus.assignedLabour:
+        return const Color(0xFF2E7D32);
+      case JobStatus.completed:
+        return const Color(0xFF27AE60);
+      case JobStatus.pending:
+        return const Color(0xFFF39C12);
+      case JobStatus.onHold:
+        return const Color(0xFFE74C3C);
+      case JobStatus.inProgress:
+        return const Color(0xFF5C6BC0);
+      default:
+        return const Color(0xFF5C6BC0);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,16 +96,13 @@ class AssignLabourScreen extends StatelessWidget {
             selectedIndex: 1,
             onItemTapped: (index) {
               if (index == 0) {
-                Navigator.of(context)
-                    .pushReplacementNamed('/production/dashboard');
+                Navigator.of(context).pushReplacementNamed('/production/dashboard');
               } else if (index == 1) {
                 // Already on Assign Labour
               } else if (index == 2) {
-                Navigator.of(context)
-                    .pushReplacementNamed('/production/joblist');
+                Navigator.of(context).pushReplacementNamed('/production/joblist');
               } else if (index == 3) {
-                Navigator.of(context)
-                    .pushReplacementNamed('/production/updatejobstatus');
+                Navigator.of(context).pushReplacementNamed('/production/updatejobstatus');
               }
             },
           ),
@@ -34,8 +112,7 @@ class AssignLabourScreen extends StatelessWidget {
                 ProductionTopBar(),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 48, vertical: 32),
+                    padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 32),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -63,42 +140,47 @@ class AssignLabourScreen extends StatelessWidget {
                                         fontWeight: FontWeight.bold,
                                         fontSize: 20)),
                                 const SizedBox(height: 24),
-                                _jobDetail('Client Name', 'Jim Gorge'),
-                                const SizedBox(height: 8),
-                                _jobDetail('Phone no.', '+123 456-7890'),
-                                const SizedBox(height: 8),
-                                _jobDetail('Address', 'House no. 12 ,chicago'),
-                                const SizedBox(height: 8),
-                                _jobDetail(
-                                    'job discription', 'Custom the cabinetry'),
-                                const SizedBox(height: 8),
-                                _jobDetail('Assigned date', '24,april,2024'),
-                                const SizedBox(height: 8),
-                                const Text('Status',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 14,
-                                        color: Color(0xFF232B3E))),
-                                const SizedBox(height: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    border:
-                                        Border.all(color: Colors.grey.shade300),
-                                    borderRadius: BorderRadius.circular(6),
-                                    color: Colors.white,
+                                if (selectedJob != null) ...[
+                                  _jobDetail('Job No.', selectedJob!.jobNo),
+                                  const SizedBox(height: 8),
+                                  _jobDetail('Client Name', selectedJob!.clientName),
+                                  const SizedBox(height: 8),
+                                  _jobDetail('Description', selectedJob!.description),
+                                  const SizedBox(height: 8),
+                                  _jobDetail('Due Date', 
+                                    "${selectedJob!.dueDate.day.toString().padLeft(2, '0')}/${selectedJob!.dueDate.month.toString().padLeft(2, '0')}/${selectedJob!.dueDate.year}"),
+                                  const SizedBox(height: 16),
+                                  const Text('Status',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 14,
+                                          color: Color(0xFF232B3E))),
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: _getStatusColor(selectedJob!.status),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      selectedJob!.status.label,
+                                      style: TextStyle(
+                                        color: _getStatusTextColor(selectedJob!.status),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
                                   ),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: const [
-                                      Text('In progress',
-                                          style: TextStyle(fontSize: 15)),
-                                      Icon(Icons.arrow_drop_down, size: 22),
-                                    ],
+                                ] else
+                                  const Center(
+                                    child: Text('No job selected', 
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 16,
+                                      )
+                                    ),
                                   ),
-                                ),
                               ],
                             ),
                           ),
@@ -123,73 +205,108 @@ class AssignLabourScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Assign worker',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 20)),
-                                const SizedBox(height: 24),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF7F4FF),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: DropdownButtonHideUnderline(
-                                    child: DropdownButton<String>(
-                                      value: 'Cutting',
-                                      items: const [
-                                        DropdownMenuItem(
-                                            value: 'Cutting',
-                                            child: Text('Cutting')),
-                                        DropdownMenuItem(
-                                            value: 'Assembly',
-                                            child: Text('Assembly')),
-                                        DropdownMenuItem(
-                                            value: 'Finishing',
-                                            child: Text('Finishing')),
-                                      ],
-                                      onChanged: (value) {},
-                                    ),
-                                  ),
+                                const Text(
+                                  'Assign worker',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
                                 ),
                                 const SizedBox(height: 24),
                                 Expanded(
-                                  child: ListView(
-                                    children: [
-                                      _workerTile(
-                                          'Cody Fisher', 'Available', false),
-                                      _workerTile('Jacob Jones', 'Busy', false),
-                                      _workerTile('Brooklyn Simmons',
-                                          'Available', false),
-                                      _workerTile('Brooklyn Simmons',
-                                          'Available', false),
-                                      _workerTile(
-                                          'Brooklyn Simmons', 'Busy', false),
-                                      _workerTile(
-                                          'Kristin Watson', 'Busy', false),
-                                    ],
+                                  child: Consumer<WorkerProvider>(
+                                    builder: (context, workerProvider, child) {
+                                      if (workerProvider.isLoading) {
+                                        return const Center(child: CircularProgressIndicator());
+                                      }
+                                      
+                                      if (workerProvider.errorMessage != null) {
+                                        return Center(
+                                          child: Text(
+                                            'Error: ${workerProvider.errorMessage}',
+                                            style: const TextStyle(color: Colors.red),
+                                          ),
+                                        );
+                                      }
+                                      
+                                      if (workerProvider.workers.isEmpty) {
+                                        return const Center(child: Text('No production workers found'));
+                                      }
+
+                                      return Scrollbar(
+                                        controller: _scrollController,
+                                        thumbVisibility: true,
+                                        child: ListView.builder(
+                                          controller: _scrollController,
+                                          itemCount: workerProvider.workers.length,                                          itemBuilder: (context, index) {
+                                            final worker = workerProvider.workers[index];                                            return _workerTile(
+                                              worker,
+                                              worker.assignedJob != null ? 'Assigned to Job ${worker.assignedJob}' : (worker.isAvailable ? 'Available' : 'Unavailable'),
+                                              selectedWorkers.contains(worker),
+                                              onSelect: (!worker.assigned && worker.isAvailable) ? () {
+                                                setState(() {
+                                                  if (selectedWorkers.contains(worker)) {
+                                                    selectedWorkers.remove(worker);
+                                                  } else {
+                                                    selectedWorkers.add(worker);
+                                                  }
+                                                });
+                                              } : null,
+                                            );
+                                          },
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
                                 const SizedBox(height: 24),
-                                Align(
-                                  alignment: Alignment.bottomCenter,
-                                  child: SizedBox(
-                                    width: double.infinity,
-                                    height: 48,
-                                    child: ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            const Color(0xFF57B9C6),
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8)),
-                                      ),
-                                      onPressed: () {},
-                                      child: const Text('Assign',
-                                          style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w600)),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 48,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF57B9C6),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),                                    onPressed: (selectedJob != null && selectedWorkers.isNotEmpty) ? () async {
+                                      final workerProvider = Provider.of<WorkerProvider>(context, listen: false);                                      try {
+                                        // Assign all selected workers to the job
+                                        List<String> errors = [];
+                                        for (final worker in selectedWorkers) {
+                                          try {
+                                            await workerProvider.assignWorker(worker.id, selectedJob!.id);
+                                          } catch (workerError) {
+                                            errors.add('${worker.name}: ${workerError.toString()}');
+                                          }
+                                        }
+                                        
+                                        if (errors.isEmpty) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('${selectedWorkers.length} worker(s) assigned successfully'),
+                                              backgroundColor: const Color(0xFF57B9C6),
+                                            ),
+                                          );
+                                          Navigator.pushReplacementNamed(context, '/production/joblist');
+                                        } else {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Errors assigning workers:\n${errors.join('\n')}'),
+                                              backgroundColor: Colors.red,
+                                              duration: const Duration(seconds: 5),
+                                            ),
+                                          );
+                                          // Refresh the workers list to update availability status
+                                          await workerProvider.fetchWorkers();
+                                        }
+                                      } catch (e) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Failed to assign workers: ${e.toString()}'),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    } : null,
+                                    child: const Text(
+                                      'Assign',
+                                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                                     ),
                                   ),
                                 ),
@@ -223,32 +340,77 @@ class AssignLabourScreen extends StatelessWidget {
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
       ],
     );
-  }
+  }  Widget _workerTile(Worker worker, String status, bool selected, {VoidCallback? onSelect}) {
+    // Determine status color based on worker's actual status
+    Color statusColor;
+    if (worker.assigned) {
+      statusColor = Colors.orange; // Assigned workers
+    } else if (worker.isAvailable) {
+      statusColor = Colors.green; // Available workers
+    } else {
+      statusColor = Colors.red; // Unavailable workers
+    }
 
-  Widget _workerTile(String name, String status, bool selected) {
-    Color statusColor =
-        status == 'Available' ? const Color(0xFF57B9C6) : Colors.grey;
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(8),
-        color: Colors.white,
-      ),
-      child: Row(
-        children: [
-          Checkbox(value: selected, onChanged: (_) {}),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(name,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 15)),
-              Text(status, style: TextStyle(fontSize: 12, color: statusColor)),
-            ],
+    // Determine the actual status text
+    String statusText;
+    if (worker.assignedJob != null) {
+      statusText = 'Assigned to Job ${worker.assignedJob}';
+    } else if (worker.isAvailable) {
+      statusText = 'Available';
+    } else {
+      statusText = 'Unavailable';
+    }
+
+    return InkWell(
+      onTap: (worker.assigned || !worker.isAvailable) ? null : onSelect, // Disable tap if worker is assigned or unavailable
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFFE3F2FD) : Colors.white,
+          border: Border.all(
+            color: selected ? const Color(0xFF57B9C6) : const Color(0xFFE0E0E0),
           ),
-        ],
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundImage: AssetImage('assets/images/avatars/default_avatar.png'),
+              radius: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    worker.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    statusText,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: statusColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (!worker.assigned && worker.isAvailable && onSelect != null)
+              Icon(
+                selected ? Icons.check_circle : Icons.radio_button_unchecked,
+                color: selected ? const Color(0xFF57B9C6) : Colors.grey,
+              ),
+          ],
+        ),
       ),
     );
   }

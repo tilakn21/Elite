@@ -23,13 +23,28 @@ class PrintingDashboardScreen extends StatelessWidget {
             child: Column(
               children: [
                 // Top Bar
-                const PrintingTopBar(),
-                // Page Title & Tabs
+                const PrintingTopBar(),                // Page Title & Tabs
                 Padding(
                   padding: const EdgeInsets.only(left: 40, top: 32, right: 40, bottom: 0),
                   child: Row(
-                    children: const [
-                      Text('Print jobs', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28, color: Color(0xFF232B3E))),
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Print jobs', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28, color: Color(0xFF232B3E))),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          printingJobProvider.refreshPrintingJobs();
+                        },
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: const Text('Refresh'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF57B9C6),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -45,13 +60,32 @@ class PrintingDashboardScreen extends StatelessWidget {
                       _DashboardTab(label: 'Completed', selected: false),
                     ],
                   ),
-                ),
-                // Section Title
+                ),                // Section Title
                 Padding(
                   padding: const EdgeInsets.only(left: 40, top: 32, right: 40, bottom: 0),
                   child: Row(
-                    children: const [
-                      Text('Approved designs ready for print', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16, color: Color(0xFF888FA6))),
+                    children: [
+                      const Text('Jobs with approved designs ready for printing', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16, color: Color(0xFF888FA6))),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF57B9C6).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Consumer<PrintingJobProvider>(
+                          builder: (context, provider, child) {
+                            return Text(
+                              '${provider.printingJobs.length} jobs',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                                color: Color(0xFF57B9C6),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -73,23 +107,69 @@ class PrintingDashboardScreen extends StatelessWidget {
   Widget _buildJobContent(PrintingJobProvider provider) {
     if (provider.isLoading) {
       return const Center(child: CircularProgressIndicator());
-    }
-
-    if (provider.errorMessage != null) {
+    }    if (provider.errorMessage != null) {
       return Center(
-        child: Text(
-          'Error: ${provider.errorMessage}',
-          style: const TextStyle(color: Colors.red, fontSize: 16),
-          textAlign: TextAlign.center,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(
+              'Error loading printing jobs',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Error: ${provider.errorMessage}',
+              style: const TextStyle(color: Colors.red, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () {
+                provider.refreshPrintingJobs();
+              },
+              icon: const Icon(Icons.refresh),
+              label: const Text('Try Again'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF57B9C6),
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
         ),
       );
     }
 
     if (provider.printingJobs.isEmpty) {
-      return const Center(
-        child: Text(
-          'No printing jobs found.',
-          style: TextStyle(fontSize: 16, color: Colors.grey),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.print_disabled, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text(
+              'No printing jobs found',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Jobs with approved designs will appear here.',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () {
+                provider.refreshPrintingJobs();
+              },
+              icon: const Icon(Icons.refresh),
+              label: const Text('Refresh'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF57B9C6),
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
         ),
       );
     }

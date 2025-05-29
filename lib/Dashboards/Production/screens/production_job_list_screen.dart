@@ -143,35 +143,69 @@ class _CompletedCard extends StatelessWidget {
 class _CompletedListRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-            child: _CompletedCard(
-                worker: Worker(
-                    id: 'w1',
-                    name: 'Brooklyn Simmons',
-                    role: 'Dermatologists',
-                    image: 'https://randomuser.me/api/portraits/men/1.jpg'),
-                date: '21/12/2022')),
-        const SizedBox(width: 16),
-        Expanded(
-            child: _CompletedCard(
-                worker: Worker(
-                    id: 'w2',
-                    name: 'Kristin Watson',
-                    role: 'Infectious disease',
-                    image: 'https://randomuser.me/api/portraits/women/2.jpg'),
-                date: '21/12/2022')),
-        const SizedBox(width: 16),
-        Expanded(
-            child: _CompletedCard(
-                worker: Worker(
-                    id: 'w3',
-                    name: 'Jacob Jones',
-                    role: 'Ophthalmologists',
-                    image: 'https://randomuser.me/api/portraits/men/3.jpg'),
-                date: '')),
-      ],
+    return Consumer<ProductionJobProvider>(
+      builder: (context, provider, child) {
+        final completedJobs = provider.jobs
+            .where((job) => job.status == JobStatus.completed)
+            .take(3)
+            .toList();
+
+        if (completedJobs.isEmpty) {
+          return const Center(child: Text('No completed jobs yet'));
+        }
+
+        return Row(
+          children: [
+            ...completedJobs.asMap().entries.map((entry) {
+              final job = entry.value;
+              final assignedWorker = Worker(
+                id: job.id,
+                name: job.clientName,
+                phone: 'N/A', // Since this is just for display
+                role: 'Production Worker',
+                image: 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(job.clientName)}&background=random',
+                isAvailable: false // Worker is not available since they are assigned to a completed job
+              );
+              
+              return Expanded(
+                child: Row(
+                  children: [
+                    if (entry.key > 0) const SizedBox(width: 16),
+                    Expanded(
+                      child: _CompletedCard(
+                        worker: assignedWorker,
+                        date: "${job.dueDate.day.toString().padLeft(2, '0')}/${job.dueDate.month.toString().padLeft(2, '0')}/${job.dueDate.year}"
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+            ...List.generate(3 - completedJobs.length, (index) => 
+              Expanded(
+                child: Row(
+                  children: [
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _CompletedCard(
+                        worker: Worker(
+                          id: 'empty',
+                          name: 'No Worker Assigned',
+                          phone: 'N/A',
+                          role: 'Production Worker',
+                          image: 'https://ui-avatars.com/api/?name=NA&background=random',
+                          isAvailable: true // Empty slot is available
+                        ),
+                        date: ''
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -195,155 +229,205 @@ class _JobDataTable extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0xFFF5F6FA),
               borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16), topRight: Radius.circular(16)),
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
             ),
             child: Row(
               children: const [
                 Expanded(
-                    flex: 2,
+                    flex: 1,
                     child: Text('Job no.',
                         style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                             color: Colors.black54))),
+                SizedBox(width: 16),
                 Expanded(
-                    flex: 3,
+                    flex: 2,
                     child: Text('Client Name',
                         style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                             color: Colors.black54))),
+                SizedBox(width: 16),
                 Expanded(
-                    flex: 3,
+                    flex: 2,
                     child: Text('Due date',
                         style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                             color: Colors.black54))),
+                SizedBox(width: 16),
                 Expanded(
-                    flex: 4,
+                    flex: 3,
                     child: Text('Description',
                         style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                             color: Colors.black54))),
+                SizedBox(width: 16),
                 Expanded(
-                    flex: 2,
+                    flex: 1,
                     child: Text('STATUS',
                         style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                             color: Colors.black54))),
-                Expanded(flex: 3, child: SizedBox()),
+                SizedBox(width: 16),
+                Expanded(flex: 2, child: SizedBox()),
               ],
             ),
-          ),
-          ..._jobRows(),
-        ],
-      ),
-    );
-  }
+          ),          ...jobs.map((job) {
+            Color statusColor;
+            Color statusBg;
+            switch (job.status) {
+              case JobStatus.receiver:
+                statusColor = const Color(0xFF1976D2);
+                statusBg = const Color(0xFFE3F2FD);
+                break;
+              case JobStatus.assignedLabour:
+                statusColor = const Color(0xFF2E7D32);
+                statusBg = const Color(0xFFE8F5E8);
+                break;
+              case JobStatus.completed:
+                statusColor = const Color(0xFF27AE60);
+                statusBg = const Color(0xFFD5F5E3);
+                break;
+              case JobStatus.pending:
+                statusColor = const Color(0xFFF39C12);
+                statusBg = const Color(0xFFFFF4E5);
+                break;
+              case JobStatus.onHold:
+                statusColor = const Color(0xFFE74C3C);
+                statusBg = const Color(0xFFFFECE9);
+                break;
+              case JobStatus.inProgress:
+                statusColor = const Color(0xFF5C6BC0);
+                statusBg = const Color(0xFFE8EAF6);
+                break;
+              default:
+                statusColor = const Color(0xFF5C6BC0);
+                statusBg = const Color(0xFFE8EAF6);
+            }
 
-  List<Widget> _jobRows() {
-
-    return this.jobs.map((job) {
-      Color statusColor;
-      Color statusBg;
-      switch (job.status) {
-        case JobStatus.completed:
-          statusColor = const Color(0xFF27AE60);
-          statusBg = const Color(0xFFD5F5E3);
-          break;
-        case JobStatus.pending:
-          statusColor = const Color(0xFFF39C12);
-          statusBg = const Color(0xFFFFF4E5);
-          break;
-        default:
-          statusColor = const Color(0xFF5C6BC0);
-          statusBg = const Color(0xFFE8EAF6);
-      }
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-        decoration: const BoxDecoration(
-          border:
-              Border(bottom: BorderSide(color: Color(0xFFF0F1F6), width: 1)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-                flex: 2,
-                child: Text(job.jobNo, style: const TextStyle(fontSize: 15))),
-            Expanded(
-                flex: 3,
-                child:
-                    Text(job.clientName, style: const TextStyle(fontSize: 15))),
-            Expanded(
-                flex: 3,
-                child: Text(
-                    "${job.dueDate.day.toString().padLeft(2, '0')}/${job.dueDate.month.toString().padLeft(2, '0')}/${job.dueDate.year}",
-                    style: const TextStyle(fontSize: 15))),
-            Expanded(
-                flex: 4,
-                child: Text(job.description,
-                    style: const TextStyle(fontSize: 15))),
-            Expanded(
-              flex: 2,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: statusBg,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(job.status.label,
-                      style: TextStyle(
-                          color: statusColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13)),
-                ),
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+              decoration: const BoxDecoration(
+                border: Border(bottom: BorderSide(color: Color(0xFFF0F1F6), width: 1)),
               ),
-            ),
-            Expanded(
-              flex: 3,
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: job.action == 'Update status'
-                          ? const Color(0xFFD5F5E3)
-                          : job.action == 'View job details'
-                              ? const Color(0xFFFFF4E5)
-                              : const Color(0xFF26A6A2),
-                      foregroundColor: job.action == 'Update status'
-                          ? const Color(0xFF27AE60)
-                          : job.action == 'View job details'
-                              ? const Color(0xFFF39C12)
-                              : Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
+                  Expanded(
+                      flex: 1,
+                      child: Text(job.jobNo, 
+                          style: const TextStyle(fontSize: 15),
+                          overflow: TextOverflow.ellipsis)),
+                  const SizedBox(width: 16),
+                  Expanded(
+                      flex: 2,
+                      child: Text(job.clientName, 
+                          style: const TextStyle(fontSize: 15),
+                          overflow: TextOverflow.ellipsis)),
+                  const SizedBox(width: 16),
+                  Expanded(
+                      flex: 2,
+                      child: Text(
+                          "${job.dueDate.day.toString().padLeft(2, '0')}/${job.dueDate.month.toString().padLeft(2, '0')}/${job.dueDate.year}",
+                          style: const TextStyle(fontSize: 15))),
+                  const SizedBox(width: 16),
+                  Expanded(
+                      flex: 3,
+                      child: Text(job.description, 
+                          style: const TextStyle(fontSize: 15),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1)),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    flex: 1,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: statusBg,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(job.status.label,
+                          style: TextStyle(
+                              color: statusColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13),
+                          overflow: TextOverflow.ellipsis),
                     ),
-                    child: Text(job.action ?? 'N/A',
-                        style: const TextStyle(fontSize: 13)),
                   ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: () {},
-                    icon: const Icon(Icons.arrow_forward_ios_rounded,
-                        size: 20, color: Color(0xFFBFC9D9)),
+                  const SizedBox(width: 16),                  Expanded(
+                    flex: 2,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 36,
+                            child: ElevatedButton(                              onPressed: () {
+                                Navigator.pushReplacementNamed(
+                                  context,
+                                  '/production/assignlabour',
+                                  arguments: job,
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF26A6A2),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8)),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 0),
+                              ),
+                              child: const FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text('Assign Labour',
+                                    style: TextStyle(fontSize: 13)),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: SizedBox(
+                            height: 36,                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.pushReplacementNamed(
+                                  context,
+                                  '/production/updatejobstatus',
+                                  arguments: job,
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFD5F5E3),
+                                foregroundColor: const Color(0xFF27AE60),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8)),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 0),
+                              ),
+                              child: const FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text('Update Status',
+                                    style: TextStyle(fontSize: 13)),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
-      );
-    }).toList();
+            );
+          }).toList(),
+        ],
+      ),
+    );
   }
 }

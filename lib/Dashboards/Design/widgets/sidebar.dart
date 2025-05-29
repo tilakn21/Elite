@@ -52,12 +52,7 @@ class DesignSidebar extends StatelessWidget {
             selected: selectedIndex == 1,
             onTap: () => onItemTapped(1),
           ),
-          _SidebarButton(
-            icon: Icons.work,
-            label: 'Assigned\nJobs',
-            selected: selectedIndex == 2,
-            onTap: () => onItemTapped(2),
-          ),
+        
           _SidebarButton(
             icon: Icons.chat,
             label: 'Customer\nChats',
