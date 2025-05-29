@@ -148,6 +148,23 @@ class _SalespersonProfileScreenState extends State<SalespersonProfileScreen> {
                                           label: 'Created At',
                                           value: (employee!['created_at'] ?? '').toString().split('T').first,
                                         ),
+                                        const SizedBox(height: 24),
+                                        ElevatedButton.icon(
+                                          icon: const Icon(Icons.logout, color: Colors.white),
+                                          label: const Text('Log Out', style: TextStyle(color: Colors.white)),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.redAccent,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                          ),
+                                          onPressed: () async {
+                                            await Supabase.instance.client.auth.signOut();
+                                            if (!mounted) return;
+                                            Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                                          },
+                                        ),
                                       ],
                                     ),
                                   ),

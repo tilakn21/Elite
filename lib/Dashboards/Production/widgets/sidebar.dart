@@ -36,23 +36,19 @@ class ProductionSidebar extends StatelessWidget {
             onTap: () => onItemTapped(0),
           ),
           _SidebarButton(
-            icon: Icons.people_alt_outlined,
-            label: 'Assign labour',
-            selected: selectedIndex == 1,
-            onTap: () => onItemTapped(1),
-          ),
-          _SidebarButton(
             icon: Icons.list_alt,
             label: 'Job List',
             selected: selectedIndex == 2,
             onTap: () => onItemTapped(2),
           ),
           _SidebarButton(
-            icon: Icons.bar_chart,
-            label: 'Update job status',
-            selected: selectedIndex == 3,
-            onTap: () => onItemTapped(3),
+            icon: Icons.people_alt_outlined,
+            label: 'Assign labour',
+            selected: selectedIndex == 1,
+            onTap: () => onItemTapped(1),
           ),
+       
+  
           const Spacer(),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),

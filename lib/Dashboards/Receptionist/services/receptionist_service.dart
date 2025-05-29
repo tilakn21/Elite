@@ -180,6 +180,7 @@ class ReceptionistService {
     required String timeOfVisit,
     required String? assignedSalesperson,
     required String createdBy, // receptionist user id
+    void Function()? onJobAdded, // callback after job is added
   }) async {
     final supabase = Supabase.instance.client;
     final now = DateTime.now().toUtc().toIso8601String();
@@ -206,6 +207,11 @@ class ReceptionistService {
           })
           .select()
           .single();
+      if (onJobAdded != null) {
+        onJobAdded();
+      }
+      // Fetch jobs again after adding
+      await fetchJobRequestsFromSupabase();
     } on PostgrestException catch (e) {
       throw Exception('Failed to add job: ${e.message}');
     } catch (e) {

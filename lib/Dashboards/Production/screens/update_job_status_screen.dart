@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../widgets/sidebar.dart';
 import '../widgets/top_bar.dart';
-import '../widgets/progress_bar.dart';
+import '../widgets/dynamic_progress_bar.dart';
 import '../models/production_job.dart';
+import '../providers/production_job_provider.dart';
 
 class UpdateJobStatusScreen extends StatefulWidget {
   const UpdateJobStatusScreen({Key? key}) : super(key: key);
@@ -12,13 +14,35 @@ class UpdateJobStatusScreen extends StatefulWidget {
 }
 
 class _UpdateJobStatusScreenState extends State<UpdateJobStatusScreen> {
-  JobStatus selectedStatus = JobStatus.inProgress;
-  final List<JobStatus> statusOptions = [
+  ProductionJob? selectedJob;
+  JobStatus selectedStatus = JobStatus.receiver;  final List<JobStatus> statusOptions = [
+    JobStatus.receiver,
+    JobStatus.assignedLabour,
     JobStatus.inProgress,
-    JobStatus.processedForPrinting,
     JobStatus.completed,
-    JobStatus.onHold,
   ];
+  
+  final TextEditingController _feedbackController = TextEditingController();
+  
+  @override
+  void initState() {
+    super.initState();    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final job = ModalRoute.of(context)?.settings.arguments as ProductionJob?;
+      if (job != null) {
+        setState(() {
+          selectedJob = job;
+          // If the job's current status is not in our statusOptions, default to the first available option
+          selectedStatus = statusOptions.contains(job.status) ? job.status : statusOptions.first;
+        });
+      }
+    });
+  }
+  
+  @override
+  void dispose() {
+    _feedbackController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,10 +74,9 @@ class _UpdateJobStatusScreenState extends State<UpdateJobStatusScreen> {
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 48, vertical: 32),
-                    child: Column(
+                        horizontal: 48, vertical: 32),                    child: Column(
                       children: [
-                        const ProgressBar(),
+                        DynamicProgressBar(job: selectedJob),
                         const SizedBox(height: 24),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,22 +104,17 @@ class _UpdateJobStatusScreenState extends State<UpdateJobStatusScreen> {
                                         style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 20)),
-                                    const SizedBox(height: 24),
-                                    _jobDetail('Client Name', 'Jim Gorge'),
+                                    const SizedBox(height: 24),                                    _jobDetail('Job ID', selectedJob?.jobNo ?? 'N/A'),
                                     const SizedBox(height: 8),
-                                    _jobDetail('Phone no.', '+123 456-7890'),
+                                    _jobDetail('Client Name', selectedJob?.clientName ?? 'N/A'),
                                     const SizedBox(height: 8),
-                                    _jobDetail(
-                                        'Address', 'House no. 12 ,chicago'),
+                                    _jobDetail('Due Date', selectedJob != null 
+                                        ? "${selectedJob!.dueDate.day.toString().padLeft(2, '0')}/${selectedJob!.dueDate.month.toString().padLeft(2, '0')}/${selectedJob!.dueDate.year}"
+                                        : 'N/A'),
                                     const SizedBox(height: 8),
-                                    _jobDetail('Job description',
-                                        'Custom the cabinetry'),
+                                    _jobDetail('Job description', selectedJob?.description ?? 'N/A'),
                                     const SizedBox(height: 8),
-                                    _jobDetail(
-                                        'Assigned date', '24,april,2024'),
-                                    const SizedBox(height: 8),
-                                    _jobDetail(
-                                        'Current status', selectedStatus.label),
+                                    _jobDetail('Current status', selectedJob?.status.label ?? 'N/A'),
                                   ],
                                 ),
                               ),
@@ -125,16 +143,23 @@ class _UpdateJobStatusScreenState extends State<UpdateJobStatusScreen> {
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
-                                      children: [
-                                        const Text('Feedback',
+                                      children: [                                        const Text('Feedback',
                                             style: TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 20)),
-                                        const SizedBox(height: 16),
-                                        TextField(
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Add optional feedback that will be saved with the status update',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),TextField(
+                                          controller: _feedbackController,
                                           maxLines: 5,
                                           decoration: InputDecoration(
-                                            hintText: 'Enter your feedback...',
+                                            hintText: 'Enter optional feedback about this job status update...',
                                             border: OutlineInputBorder(
                                               borderRadius:
                                                   BorderRadius.circular(8),
@@ -157,11 +182,24 @@ class _UpdateJobStatusScreenState extends State<UpdateJobStatusScreen> {
                                               shape: RoundedRectangleBorder(
                                                   borderRadius:
                                                       BorderRadius.circular(8)),
-                                            ),
-                                            onPressed: () {
-                                              // Submit feedback logic here
+                                            ),                                            onPressed: () {
+                                              if (_feedbackController.text.trim().isNotEmpty) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text('Feedback saved. It will be included when you update the job status.'),
+                                                    backgroundColor: Color(0xFF57B9C6),
+                                                  ),
+                                                );
+                                              } else {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text('Please enter feedback before saving'),
+                                                    backgroundColor: Colors.orange,
+                                                  ),
+                                                );
+                                              }
                                             },
-                                            child: const Text('Submit Feedback',
+                                            child: const Text('Save Feedback',
                                                 style: TextStyle(
                                                     fontSize: 16,
                                                     fontWeight:
@@ -225,9 +263,77 @@ class _UpdateJobStatusScreenState extends State<UpdateJobStatusScreen> {
                                                     borderRadius:
                                                         BorderRadius.circular(
                                                             8)),
-                                              ),
-                                              onPressed: () {
-                                                // Save status logic here
+                                              ),                                              onPressed: () async {
+                                                if (selectedJob != null) {
+                                                  try {
+                                                    final jobProvider = Provider.of<ProductionJobProvider>(context, listen: false);
+                                                    final feedback = _feedbackController.text.trim();
+                                                      // Update job status with feedback if provided
+                                                    await jobProvider.updateJobStatus(
+                                                      selectedJob!.id, 
+                                                      selectedStatus,
+                                                      feedback: feedback.isNotEmpty ? feedback : null,
+                                                    );
+                                                    
+                                                    // Get updated job data to refresh the progress bar
+                                                    final updatedJobs = jobProvider.jobs;
+                                                    final updatedJob = updatedJobs.firstWhere(
+                                                      (job) => job.id == selectedJob!.id,
+                                                      orElse: () => selectedJob!,
+                                                    );
+                                                    
+                                                    setState(() {
+                                                      selectedJob = updatedJob;
+                                                    });
+                                                    
+                                                    // Clear feedback after successful update
+                                                    _feedbackController.clear();
+                                                    
+                                                    final successMessage = feedback.isNotEmpty 
+                                                        ? 'Job ${selectedJob!.jobNo} status updated to ${selectedStatus.label} with feedback'
+                                                        : 'Job ${selectedJob!.jobNo} status updated to ${selectedStatus.label}';
+                                                    
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(successMessage),
+                                                        backgroundColor: const Color(0xFF57B9C6),
+                                                      ),
+                                                    );
+                                                    
+                                                    // Show option to go back or continue updating
+                                                    Future.delayed(const Duration(seconds: 2), () {
+                                                      if (mounted) {
+                                                        ScaffoldMessenger.of(context).showSnackBar(
+                                                          SnackBar(
+                                                            content: const Text('Continue updating or go back to job list'),
+                                                            backgroundColor: Colors.blue.shade600,
+                                                            action: SnackBarAction(
+                                                              label: 'Go Back',
+                                                              textColor: Colors.white,
+                                                              onPressed: () {
+                                                                Navigator.pushReplacementNamed(context, '/production/joblist');
+                                                              },
+                                                            ),
+                                                          ),
+                                                        );
+                                                      }
+                                                    });
+                                                  } catch (e) {
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      SnackBar(
+                                                        content: Text('Failed to update job status: ${e.toString()}'),
+                                                        backgroundColor: Colors.red,
+                                                      ),
+                                                    );
+                                                  }
+                                                } else {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text('No job selected'),
+                                                      backgroundColor: Colors.red,
+                                                    ),
+                                                  );
+                                                }
                                               },
                                               child: const Text('Update',
                                                   style: TextStyle(

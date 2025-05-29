@@ -47,14 +47,7 @@ class PrintingSidebar extends StatelessWidget {
                     Navigator.of(context).pushReplacementNamed('/printing/assignlabour');
                   },
                 ),
-                _SidebarButton(
-                  icon: Icons.bar_chart,
-                  label: 'Quality check',
-                  selected: selectedIndex == 2,
-                  onTap: () {
-                    Navigator.of(context).pushReplacementNamed('/printing/qualitycheck');
-                  },
-                ),
+                
               ],
             ),
           ),

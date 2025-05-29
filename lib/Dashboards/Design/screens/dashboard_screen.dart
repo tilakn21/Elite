@@ -4,7 +4,6 @@ import '../providers/job_provider.dart';
 import '../providers/chat_provider.dart';
 import '../utils/app_theme.dart';
 import '../widgets/job_list_card.dart';
-import '../widgets/job_details_card.dart';
 import '../widgets/active_chats_card.dart';
 import '../widgets/calendar_card.dart';
 import '../widgets/sidebar.dart';
@@ -104,45 +103,11 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
               const SizedBox(height: 24),
 
-              // First row - Job List and Job Details
-              if (isMobile) ...[
-                // Mobile layout - Stack widgets vertically
-                SizedBox(
-                  width: constraints.maxWidth,
-                  child: JobListCard(jobs: jobProvider.jobs),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: constraints.maxWidth,
-                  child: JobDetailsCard(
-                    job: jobProvider.jobs.isNotEmpty
-                        ? jobProvider.jobs.first
-                        : null,
-                  ),
-                ),
-              ] else ...[
-                // Tablet/Desktop layout - Side by side
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Left column - Job List
-                    Expanded(
-                      flex: isDesktop ? 1 : 1,
-                      child: JobListCard(jobs: jobProvider.jobs),
-                    ),
-                    const SizedBox(width: 16),
-                    // Right column - Job Details
-                    Expanded(
-                      flex: isDesktop ? 1 : 1,
-                      child: JobDetailsCard(
-                        job: jobProvider.jobs.isNotEmpty
-                            ? jobProvider.jobs.first
-                            : null,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+              // First row - Job List only (remove JobDetailsCard and Upload Draft Design)
+              SizedBox(
+                width: constraints.maxWidth,
+                child: JobListCard(jobs: jobProvider.jobs),
+              ),
 
               const SizedBox(height: 24),
 

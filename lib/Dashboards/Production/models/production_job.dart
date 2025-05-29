@@ -1,84 +1,7 @@
-import 'package:flutter/foundation.dart'; // For kDebugMode if needed for print statements
-
-// Model for a production job (for job list, job table, job status, etc.)
-class ProductionJob {
-  final String id; // Added ID
-  final String jobNo;
-  final String clientName;
-  final DateTime dueDate; // Changed to DateTime
-  final String description;
-  final JobStatus status;
-  final String? action; // Assuming action can be nullable or clarify its purpose
-  // Consider adding fields like assignedWorkers (List<Worker>), materials (List<Material>), progress (double) etc. if relevant
-
-  ProductionJob({
-    required this.id,
-    required this.jobNo,
-    required this.clientName,
-    required this.dueDate,
-    required this.description,
-    required this.status,
-    this.action,
-  });
-
-  // Factory constructor to create a ProductionJob from JSON
-  factory ProductionJob.fromJson(Map<String, dynamic> json) {
-    return ProductionJob(
-      id: json['id'] as String,
-      jobNo: json['jobNo'] as String,
-      clientName: json['clientName'] as String,
-      dueDate: DateTime.parse(json['dueDate'] as String),
-      description: json['description'] as String,
-      status: JobStatus.values.firstWhere(
-        (e) => e.name == json['status'],
-        orElse: () {
-          // Fallback for unknown status, could log or throw error
-          if (kDebugMode) {
-            print('Warning: Unknown JobStatus "${json['status']}" received from API. Defaulting to pending.');
-          }
-          return JobStatus.pending; 
-        },
-      ),
-      action: json['action'] as String?,
-    );
-  }
-
-  // Method to convert a ProductionJob instance to JSON
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'jobNo': jobNo,
-      'clientName': clientName,
-      'dueDate': dueDate.toIso8601String(),
-      'description': description,
-      'status': status.name, // Convert enum to string (its name)
-      'action': action,
-    };
-  }
-
-  // Optional: copyWith method for easier updates
-  ProductionJob copyWith({
-    String? id,
-    String? jobNo,
-    String? clientName,
-    DateTime? dueDate,
-    String? description,
-    JobStatus? status,
-    String? action,
-  }) {
-    return ProductionJob(
-      id: id ?? this.id,
-      jobNo: jobNo ?? this.jobNo,
-      clientName: clientName ?? this.clientName,
-      dueDate: dueDate ?? this.dueDate,
-      description: description ?? this.description,
-      status: status ?? this.status,
-      action: action ?? this.action,
-    );
-  }
-}
 
 enum JobStatus {
+  receiver,
+  assignedLabour,
   inProgress,
   processedForPrinting,
   completed,
@@ -89,6 +12,10 @@ enum JobStatus {
 extension JobStatusExtension on JobStatus {
   String get label {
     switch (this) {
+      case JobStatus.receiver:
+        return 'Receiver';
+      case JobStatus.assignedLabour:
+        return 'Assigned Labour';
       case JobStatus.inProgress:
         return 'In progress';
       case JobStatus.processedForPrinting:
@@ -99,6 +26,171 @@ extension JobStatusExtension on JobStatus {
         return 'On hold';
       case JobStatus.pending:
         return 'Pending';
+    }
+  }
+}
+
+// Model for a production job (for job list, job table, job status, etc.)
+class ProductionJob {
+  final String id; // Added ID
+  final String jobNo;
+  final String clientName;
+  final DateTime dueDate; // Changed to DateTime
+  final String description;
+  final JobStatus status;
+  final String? action; // Assuming action can be nullable or clarify its purpose
+  final Map<String, dynamic>? receptionistjsonb;
+  final Map<String, dynamic>? salespersonjsonb;
+  final Map<String, dynamic>? designjsonb;
+  final Map<String, dynamic>? accountsjsonb;
+  final Map<String, dynamic>? productionjsonb;
+  ProductionJob({
+    required this.id,
+    required this.jobNo,
+    required this.clientName,
+    required this.dueDate,
+    required this.description,
+    required this.status,
+    this.action,
+    this.receptionistjsonb,
+    this.salespersonjsonb,
+    this.designjsonb,
+    this.accountsjsonb,
+    this.productionjsonb,
+  });
+  factory ProductionJob.fromJson(Map<String, dynamic> json) {
+    final receptionistData = (json['receptionist'] as Map<String, dynamic>?) ?? {};
+    final salespersonData = (json['salesperson'] as Map<String, dynamic>?) ?? {};
+    
+    // Handle design data which could be a List or Map
+    Map<String, dynamic> designData = {};
+    final rawDesignData = json['design'];
+    if (rawDesignData != null) {
+      if (rawDesignData is List) {
+        // Get the latest design if we have multiple design submissions
+        if (rawDesignData.isNotEmpty) {
+          final latestDesign = rawDesignData.last;
+          if (latestDesign is Map<String, dynamic>) {
+            designData = Map<String, dynamic>.from(latestDesign);
+          }
+        }
+      } else if (rawDesignData is Map<String, dynamic>) {
+        designData = Map<String, dynamic>.from(rawDesignData);
+      }
+    }
+
+    // Handle production data
+    final productionData = (json['production'] as Map<String, dynamic>?) ?? {};
+
+    // Get the customer name from receptionist data
+    final customerName = (receptionistData['customerName'] as String?) ?? 'N/A';
+
+    // Get due date with fallback to created_at
+    final dueDate = DateTime.tryParse(salespersonData['dateOfSubmission'] as String? ?? '') ?? 
+               DateTime.parse((json['created_at'] as String?) ?? DateTime.now().toIso8601String());
+
+    // Get status from production JSONB field instead of main status column
+    String statusString;
+    if (productionData.isNotEmpty && productionData['current_status'] != null) {
+      statusString = productionData['current_status'] as String;
+    } else {
+      // Fallback to main status column if production status is not available
+      statusString = (json['status'] as String?) ?? 'pending';
+    }
+
+    return ProductionJob(
+      id: (json['id'] as Object).toString(),
+      jobNo: (json['id'] as Object).toString(), // Using id as job number
+      clientName: customerName,
+      dueDate: dueDate,
+      description: (designData['comments'] as String?) ?? (designData['description'] as String?) ?? 'No description',
+      status: _getJobStatus(statusString),
+      action: _getActionForStatus(statusString),
+      receptionistjsonb: receptionistData,
+      salespersonjsonb: salespersonData,
+      designjsonb: designData,
+      accountsjsonb: json['accountant'] as Map<String, dynamic>?,
+      productionjsonb: productionData,
+    );
+  }
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'jobNo': jobNo,
+      'clientName': clientName,
+      'dueDate': dueDate.toIso8601String(),
+      'description': description,
+      'status': status.name, // Convert enum to string (its name)
+      'action': action,
+      'receptionistjsonb': receptionistjsonb,
+      'salespersonjsonb': salespersonjsonb,
+      'designjsonb': designjsonb,
+      'accountsjsonb': accountsjsonb,
+      'productionjsonb': productionjsonb,
+    };
+  }
+  ProductionJob copyWith({
+    String? id,
+    String? jobNo,
+    String? clientName,
+    DateTime? dueDate,
+    String? description,
+    JobStatus? status,
+    String? action,
+    Map<String, dynamic>? receptionistjsonb,
+    Map<String, dynamic>? salespersonjsonb,
+    Map<String, dynamic>? designjsonb,
+    Map<String, dynamic>? accountsjsonb,
+    Map<String, dynamic>? productionjsonb,
+  }) {
+    return ProductionJob(
+      id: id ?? this.id,
+      jobNo: jobNo ?? this.jobNo,
+      clientName: clientName ?? this.clientName,
+      dueDate: dueDate ?? this.dueDate,
+      description: description ?? this.description,
+      status: status ?? this.status,
+      action: action ?? this.action,
+      receptionistjsonb: receptionistjsonb ?? this.receptionistjsonb,
+      salespersonjsonb: salespersonjsonb ?? this.salespersonjsonb,
+      designjsonb: designjsonb ?? this.designjsonb,
+      accountsjsonb: accountsjsonb ?? this.accountsjsonb,
+      productionjsonb: productionjsonb ?? this.productionjsonb,
+    );
+  }
+  static JobStatus _getJobStatus(String status) {
+    switch (status.toLowerCase()) {
+      case 'receiver':
+        return JobStatus.receiver;
+      case 'assigned_labour':
+        return JobStatus.assignedLabour;
+      case 'in_progress':
+        return JobStatus.inProgress;
+      case 'processed_for_printing':
+        return JobStatus.processedForPrinting;
+      case 'completed':
+      case 'production_complete':
+        return JobStatus.completed;
+      case 'on_hold':
+        return JobStatus.onHold;
+      case 'pending':
+      default:
+        return JobStatus.pending;
+    }
+  }
+
+  static String _getActionForStatus(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'Assign Workers';
+      case 'in_progress':
+        return 'Update Progress';
+      case 'completed':
+        return 'View Report';
+      case 'on_hold':
+        return 'Resolve Issue';
+      default:
+        return 'View Details';
     }
   }
 }

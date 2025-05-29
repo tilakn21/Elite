@@ -9,10 +9,10 @@ enum ChatStatus {
 class ChatMessage {
   final String id;
   final String senderId;
-  final String senderName;
-  final String message;
+  final String senderName;  final String message;
   final DateTime timestamp;
   final bool isRead;
+  final List<String>? imageUrls;
 
   ChatMessage({
     String? id,
@@ -21,8 +21,8 @@ class ChatMessage {
     required this.message,
     required this.timestamp,
     this.isRead = false,
+    this.imageUrls,
   }) : id = id ?? const Uuid().v4();
-
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -31,6 +31,7 @@ class ChatMessage {
       'message': message,
       'timestamp': timestamp.toIso8601String(),
       'isRead': isRead,
+      'imageUrls': imageUrls,
     };
   }
 
@@ -42,6 +43,9 @@ class ChatMessage {
       message: json['message'],
       timestamp: DateTime.parse(json['timestamp']),
       isRead: json['isRead'] ?? false,
+      imageUrls: json['imageUrls'] != null 
+          ? List<String>.from(json['imageUrls'])
+          : null,
     );
   }
 }

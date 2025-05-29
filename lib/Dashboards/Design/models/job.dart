@@ -19,6 +19,7 @@ class Job {
   final String? measurements;
   final List<String>? uploadedImages;
   final String? notes;
+  final Map<String, dynamic>? salespersonData;
 
   Job({
     String? id,
@@ -33,6 +34,7 @@ class Job {
     this.measurements,
     this.uploadedImages,
     this.notes,
+    this.salespersonData,
   }) : id = id ?? const Uuid().v4();
 
   Job copyWith({
@@ -47,6 +49,7 @@ class Job {
     String? measurements,
     List<String>? uploadedImages,
     String? notes,
+    Map<String, dynamic>? salespersonData,
   }) {
     return Job(
       id: this.id,
@@ -61,6 +64,7 @@ class Job {
       measurements: measurements ?? this.measurements,
       uploadedImages: uploadedImages ?? this.uploadedImages,
       notes: notes ?? this.notes,
+      salespersonData: salespersonData ?? this.salespersonData,
     );
   }
 
@@ -78,28 +82,39 @@ class Job {
       'measurements': measurements,
       'uploadedImages': uploadedImages,
       'notes': notes,
+      'salesperson': salespersonData,
     };
   }
 
   factory Job.fromJson(Map<String, dynamic> json) {
+    final receptionist = json['receptionist'] ?? {};
+    final salesperson = json['salesperson'] ?? {};
+    // Extract imageUrl from salesperson JSONB as a list
+    List<String>? uploadedImages;
+    if (salesperson['imageUrl'] != null) {
+      if (salesperson['imageUrl'] is List) {
+        uploadedImages = List<String>.from(salesperson['imageUrl']);
+      } else if (salesperson['imageUrl'] is String) {
+        uploadedImages = [salesperson['imageUrl']];
+      }
+    }
     return Job(
       id: json['id'],
-      jobNo: json['jobNo'],
-      clientName: json['clientName'],
-      email: json['email'],
-      phoneNumber: json['phoneNumber'],
-      address: json['address'],
-      dateAdded: DateTime.parse(json['dateAdded']),
+      jobNo: receptionist['jobNo'] ?? '',
+      clientName: receptionist['customerName'] ?? '',
+      email: receptionist['email'] ?? '',
+      phoneNumber: receptionist['phone'] ?? '',
+      address: receptionist['address'] ?? '',
+      dateAdded: DateTime.parse(json['created_at']),
       status: JobStatus.values.firstWhere(
         (e) => e.toString().split('.').last == json['status'],
         orElse: () => JobStatus.pending,
       ),
-      assignedTo: json['assignedTo'],
-      measurements: json['measurements'],
-      uploadedImages: json['uploadedImages'] != null
-          ? List<String>.from(json['uploadedImages'])
-          : null,
-      notes: json['notes'],
+      assignedTo: null, // Update if needed
+      measurements: null, // Update if needed
+      uploadedImages: uploadedImages,
+      notes: null, // Update if needed
+      salespersonData: Map<String, dynamic>.from(salesperson),
     );
   }
 }

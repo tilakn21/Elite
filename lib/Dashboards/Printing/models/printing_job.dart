@@ -1,6 +1,6 @@
 import 'printing_specification.dart';
 
-enum PrintingStatus { queued, inProgress, completed, failed, onHold }
+enum PrintingStatus { queued, inProgress, completed, failed, onHold, review, printed }
 
 class PrintingJob {
   final String id;
@@ -17,7 +17,17 @@ class PrintingJob {
   final String? notes;
   final double progress;
   final List<String>? issues;
-
+  
+  // Additional fields for detailed view
+  final String? clientPhone;
+  final String? clientAddress;
+  final String? shopName;
+  final String? assignedSalesperson;
+  final String? designImageUrl;
+  final String? designStatus;
+  final String? designComments;
+  final DateTime? designSubmissionDate;
+  final DateTime? dueDate;
   const PrintingJob({
     required this.id,
     required this.jobNo,
@@ -33,8 +43,16 @@ class PrintingJob {
     this.completedAt,
     this.notes,
     this.issues,
+    this.clientPhone,
+    this.clientAddress,
+    this.shopName,
+    this.assignedSalesperson,
+    this.designImageUrl,
+    this.designStatus,
+    this.designComments,
+    this.designSubmissionDate,
+    this.dueDate,
   });
-
   Map<String, dynamic> toJson() => {
         'id': id,
         'jobNo': jobNo,
@@ -50,7 +68,15 @@ class PrintingJob {
         'notes': notes,
         'progress': progress,
         'issues': issues,
-      };
+        'clientPhone': clientPhone,
+        'clientAddress': clientAddress,
+        'shopName': shopName,
+        'assignedSalesperson': assignedSalesperson,
+        'designImageUrl': designImageUrl,
+        'designStatus': designStatus,
+        'designComments': designComments,
+        'designSubmissionDate': designSubmissionDate?.toIso8601String(),
+        'dueDate': dueDate?.toIso8601String(),      };
 
   factory PrintingJob.fromJson(Map<String, dynamic> json) => PrintingJob(
         id: json['id'] as String,
@@ -76,5 +102,18 @@ class PrintingJob {
         notes: json['notes'] as String?,
         progress: (json['progress'] as num).toDouble(),
         issues: (json['issues'] as List?)?.cast<String>(),
+        clientPhone: json['clientPhone'] as String?,
+        clientAddress: json['clientAddress'] as String?,
+        shopName: json['shopName'] as String?,
+        assignedSalesperson: json['assignedSalesperson'] as String?,
+        designImageUrl: json['designImageUrl'] as String?,
+        designStatus: json['designStatus'] as String?,
+        designComments: json['designComments'] as String?,
+        designSubmissionDate: json['designSubmissionDate'] == null
+            ? null
+            : DateTime.parse(json['designSubmissionDate'] as String),
+        dueDate: json['dueDate'] == null
+            ? null
+            : DateTime.parse(json['dueDate'] as String),
       );
 }

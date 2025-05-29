@@ -8,7 +8,6 @@ class PrintingJobTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Sample data list was here. It's now passed via constructor.
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -16,6 +15,7 @@ class PrintingJobTable extends StatelessWidget {
       ),
       child: Column(
         children: [
+          // Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             decoration: BoxDecoration(
@@ -26,17 +26,57 @@ class PrintingJobTable extends StatelessWidget {
               ),
             ),
             child: Row(
-              children: const [
-                _HeaderCell('Job no.', flex: 2),
-                _HeaderCell('Client Name', flex: 3),
-                _HeaderCell('Approved Date', flex: 3),
-                _HeaderCell('Design', flex: 3),
-                _HeaderCell('STATUS', flex: 2),
-                Spacer(),
+              children: [
+                SizedBox(
+                  width: 140,
+                  child: Text(
+                    'Job no.',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: Color(0xFFB1B5C9),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 200,
+                  child: Text(
+                    'Client Name',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: Color(0xFFB1B5C9),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 160,
+                  child: Text(
+                    'Approved Date',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: Color(0xFFB1B5C9),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 120,
+                  child: Text(
+                    'STATUS',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: Color(0xFFB1B5C9),
+                    ),
+                  ),
+                ),
+                const Spacer(),
               ],
             ),
           ),
           const Divider(height: 1, thickness: 1, color: Color(0xFFEDECF7)),
+          // Table Body
           Expanded(
             child: ListView.separated(
               itemCount: jobs.length,
@@ -46,39 +86,102 @@ class PrintingJobTable extends StatelessWidget {
                 final job = jobs[index];
                 return Container(
                   color: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
                   child: Row(
                     children: [
-                      _TableCell(job.jobNo, flex: 2),
-                      _TableCell(job.clientName, flex: 3),
-                      _TableCell(
-                        '${job.submittedAt.day}/${job.submittedAt.month}/${job.submittedAt.year}\n'
-                        '${job.submittedAt.hour}:${job.submittedAt.minute} ${job.submittedAt.hour >= 12 ? 'PM' : 'AM'}',
-                        flex: 3,
-                      ),
-                      _TableCell(job.title, flex: 3),
-                      _StatusCell(status: job.status.name),
-                      const Spacer(),
-                      Padding(
-                        padding: const EdgeInsets.only(right: 16.0),
-                        child: SizedBox(
-                          width: 130,
-                          height: 36,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF57B9C6),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8)),
-                            ),
-                            onPressed: () {},
-                            child: const Text('View print details',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w600, fontSize: 14)),
+                      // Job Number Column
+                      SizedBox(
+                        width: 140,
+                        child: Text(
+                          job.jobNo,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 15,
+                            color: Color(0xFF232B3E),
                           ),
                         ),
                       ),
+                      // Client Name Column
+                      SizedBox(
+                        width: 200,
+                        child: Text(
+                          job.clientName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 15,
+                            color: Color(0xFF232B3E),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      // Approved Date Column
+                      SizedBox(
+                        width: 160,
+                        child: Text(
+                          '${job.submittedAt.day.toString().padLeft(2, '0')}/${job.submittedAt.month.toString().padLeft(2, '0')}/${job.submittedAt.year}\n'
+                          '${job.submittedAt.hour.toString().padLeft(2, '0')}:${job.submittedAt.minute.toString().padLeft(2, '0')} ${job.submittedAt.hour >= 12 ? 'PM' : 'AM'}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 15,
+                            color: Color(0xFF232B3E),
+                          ),
+                        ),
+                      ),
+                      // Status Column
+                      SizedBox(
+                        width: 120,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),                          decoration: BoxDecoration(
+                            color: _getStatusBgColor(job.status.name),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Center(
+                            child: Text(
+                              _getStatusDisplayText(job.status.name),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                color: _getStatusTextColor(job.status.name),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const Spacer(),                      // Action Buttons
+                      SizedBox(
+                        width: 130,
+                        height: 36,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF57B9C6),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.pushNamed(
+                              context,
+                              '/printing/assignlabour',
+                              arguments: job,
+                            );
+                          },
+                          child: const Text(
+                            'View print details',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       IconButton(
-                        icon: const Icon(Icons.arrow_forward_ios,
-                            size: 18, color: Color(0xFF888FA6)),
+                        icon: const Icon(
+                          Icons.arrow_forward_ios,
+                          size: 18,
+                          color: Color(0xFF888FA6),
+                        ),
                         onPressed: () {},
                       ),
                     ],
@@ -90,101 +193,64 @@ class PrintingJobTable extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class _HeaderCell extends StatelessWidget {
-  final String label;
-  final int flex;
-  const _HeaderCell(this.label, {this.flex = 1, Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      flex: flex,
-      child: Text(
-        label,
-        style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-            color: Color(0xFFB1B5C9)),
-      ),
-    );
-  }
-}
-
-class _TableCell extends StatelessWidget {
-  final String value;
-  final int flex;
-  const _TableCell(this.value, {this.flex = 1, Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      flex: flex,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 18.0, horizontal: 4),
-        child: Text(
-          value,
-          style: const TextStyle(
-              fontWeight: FontWeight.w500,
-              fontSize: 15,
-              color: Color(0xFF232B3E)),
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusCell extends StatelessWidget {
-  final String status;
-  const _StatusCell({required this.status, Key? key}) : super(key: key);
-
-  Color get _bgColor {
-    switch (status) {
-      case 'inProgress':
-        return const Color(0xFFEEE6FF);
+  }  Color _getStatusBgColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'inprogress':
+        return const Color(0xFFF3EFFF);
       case 'completed':
-        return const Color(0xFFE6FFF5);
-      case 'pending':
-        return const Color(0xFFFFE6E6);
+        return const Color(0xFFE6F7EF);
+      case 'queued':
+        return const Color(0xFFEEF5FF);
+      case 'failed':
+        return const Color(0xFFFCE6E6);
+      case 'onhold':
+        return const Color(0xFFFFF8E6);
+      case 'review':
+        return const Color(0xFFE3F2FD);
+      case 'printed':
+        return const Color(0xFFE1F5FE);
       default:
-        return const Color(0xFFEDECF7);
+        return const Color(0xFFF3EFFF);
     }
   }
-
-  Color get _textColor {
-    switch (status) {
-      case 'inProgress':
+  Color _getStatusTextColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'inprogress':
         return const Color(0xFF9B6FF7);
       case 'completed':
         return const Color(0xFF1BC47D);
-      case 'pending':
-        return const Color(0xFFF57B7B);
+      case 'queued':
+        return const Color(0xFF5576BB);
+      case 'failed':
+        return const Color(0xFFE74C3C);
+      case 'onhold':
+        return const Color(0xFFF39C12);
+      case 'review':
+        return const Color(0xFF2196F3);
+      case 'printed':
+        return const Color(0xFF039BE5);
       default:
         return const Color(0xFF888FA6);
     }
   }
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      flex: 2,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        decoration: BoxDecoration(
-          color: _bgColor,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Center(
-          child: Text(
-            status,
-            style: TextStyle(
-                fontWeight: FontWeight.w600, fontSize: 13, color: _textColor),
-          ),
-        ),
-      ),
-    );
+  String _getStatusDisplayText(String status) {
+    switch (status.toLowerCase()) {
+      case 'inprogress':
+        return 'In Progress';
+      case 'completed':
+        return 'Completed';
+      case 'queued':
+        return 'Queued';
+      case 'failed':
+        return 'Failed';
+      case 'onhold':
+        return 'On Hold';
+      case 'review':
+        return 'Under Review';
+      case 'printed':
+        return 'Printed';
+      default:
+        return status;
+    }
   }
 }

@@ -4,6 +4,8 @@ import '../widgets/topbar.dart';
 import '../services/receptionist_service.dart';
 import 'package:provider/provider.dart';
 import '../providers/salesperson_provider.dart';
+import '../providers/job_request_provider.dart';
+import '../models/job_request.dart';
 
 class NewJobRequestScreen extends StatelessWidget {
   const NewJobRequestScreen({Key? key}) : super(key: key);
@@ -203,19 +205,20 @@ class _JobRequestFormState extends State<_JobRequestForm> {
     try {
       // TODO: Replace with actual logged-in user id
       const String createdBy = 'receptionist-uid';
-      await _receptionistService.addJobToSupabase(
-        customerName: nameController.text.trim(),
-        phone: phoneController.text.trim(),
-        shopName: shopNameController.text.trim(),
-        streetAddress: streetAddressController.text.trim(),
-        streetNumber: streetNumberController.text.trim(),
-        town: townController.text.trim(),
-        postcode: postcodeController.text.trim(),
-        dateOfAppointment: DateTime.now().toIso8601String(), // Use current date
-        dateOfVisit: dateOfVisitController.text.trim(),
-        timeOfVisit: timeController.text.trim(),
-        assignedSalesperson: selectedSalespersonId, // Pass the ID
-        createdBy: createdBy,
+      final jobRequestProvider = Provider.of<JobRequestProvider>(context, listen: false);
+      await jobRequestProvider.addJobRequest(
+        JobRequest(
+          id: '', // Will be set by backend
+          name: nameController.text.trim(),
+          phone: phoneController.text.trim(),
+          email: '', // Add email if available
+          status: JobRequestStatus.pending, // Or appropriate status
+          dateAdded: DateTime.now(),
+          subtitle: shopNameController.text.trim(),
+          avatar: null, // Set if available
+          time: timeController.text.trim(),
+          assigned: false,
+        ),
       );
       // Set salesperson as unavailable
       if (selectedSalespersonId != null) {
@@ -234,7 +237,6 @@ class _JobRequestFormState extends State<_JobRequestForm> {
       } catch (_) {
         // Provider not found, ignore
       }
-      // TODO: Optionally, notify dashboard/sales_allocation_card to refresh as well
     } catch (e) {
       setState(() {
         _submitMessage = 'Failed to submit job request: \\${e.toString()}';
