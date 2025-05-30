@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 class EmployeeFilterDropdown extends StatefulWidget {
-  final String initialValue;
+  final List<String> roles;
+  final String selectedRole;
   final ValueChanged<String>? onChanged;
-  const EmployeeFilterDropdown({Key? key, this.initialValue = 'Receptionist', this.onChanged}) : super(key: key);
+  const EmployeeFilterDropdown({Key? key, required this.roles, required this.selectedRole, this.onChanged}) : super(key: key);
 
   @override
   State<EmployeeFilterDropdown> createState() => _EmployeeFilterDropdownState();
@@ -11,12 +12,19 @@ class EmployeeFilterDropdown extends StatefulWidget {
 
 class _EmployeeFilterDropdownState extends State<EmployeeFilterDropdown> {
   late String selectedRole;
-  final List<String> roles = ['Receptionist', 'Designer', 'Sales Person'];
 
   @override
   void initState() {
     super.initState();
-    selectedRole = widget.initialValue;
+    selectedRole = widget.selectedRole;
+  }
+
+  @override
+  void didUpdateWidget(EmployeeFilterDropdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedRole != selectedRole) {
+      selectedRole = widget.selectedRole;
+    }
   }
 
   @override
@@ -26,7 +34,7 @@ class _EmployeeFilterDropdownState extends State<EmployeeFilterDropdown> {
         value: selectedRole,
         borderRadius: BorderRadius.circular(8),
         style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF232B3E)),
-        items: roles.map((role) => DropdownMenuItem(value: role, child: Text(role))).toList(),
+        items: widget.roles.map((role) => DropdownMenuItem(value: role, child: Text(role))).toList(),
         onChanged: (value) {
           if (value != null) {
             setState(() => selectedRole = value);

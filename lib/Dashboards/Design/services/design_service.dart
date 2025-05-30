@@ -70,8 +70,8 @@ class DesignService {
             timestamp: now.subtract(const Duration(minutes: 15)),
           ),
           ChatMessage(
-            senderId: 'designer_007',
-            senderName: 'James Bond (Designer)',
+            senderId: 'design_007',
+            senderName: 'James Bond (design)',
             message: 'Hello Alice, I am here to help. What is your question?',
             timestamp: now.subtract(const Duration(minutes: 10)),
           ),
@@ -186,7 +186,7 @@ class DesignService {
     return [
       app.User(id: '1', name: 'John Doe', email: 'john@elitesigns.com', role: 'Admin', avatar: 'assets/images/avatar1.png'),
       app.User(id: '2', name: 'Jane Smith', email: 'jane@elitesigns.com', role: 'Salesperson', avatar: 'assets/images/avatar2.png'),
-      app.User(id: '3', name: 'Mike Johnson', email: 'mike@elitesigns.com', role: 'Designer', avatar: 'assets/images/avatar3.png'),
+      app.User(id: '3', name: 'Mike Johnson', email: 'mike@elitesigns.com', role: 'design', avatar: 'assets/images/avatar3.png'),
     ];
   }
 
