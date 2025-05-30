@@ -1,3 +1,4 @@
+import 'package:elite_signboard_app/Dashboards/Admin/screens/job_listing_screen_new.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'Dashboards/Admin/screens/employee_management_screen.dart';
@@ -122,6 +123,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/admin/dashboard': (context) => AdminDashboardScreen(),
         '/admin/employees': (context) => const EmployeeManagementScreen(),
+        '/admin/jobs': (context) => const JobListingScreen(),
         '/login': (context) => const LoginScreen(),
         '/receptionist/dashboard': (context) => const DashboardPage(),
         '/receptionist/new-job-request': (context) =>

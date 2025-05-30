@@ -4,17 +4,16 @@ import 'package:fl_chart/fl_chart.dart';
 class SalesPerformanceChart extends StatelessWidget {
   final List<FlSpot> data;
   const SalesPerformanceChart({Key? key, required this.data}) : super(key: key);
-
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF232B3E),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.18),
-            blurRadius: 16,
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 20,
             offset: const Offset(0, 4),
           ),
         ],
@@ -23,8 +22,69 @@ class SalesPerformanceChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            height: 180,
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.trending_up_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Sales Performance',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      'Monthly revenue tracking',
+                      style: TextStyle(
+                        color: Color(0xFFB0B3C7),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.circle, color: Colors.greenAccent, size: 8),
+                    SizedBox(width: 6),
+                    Text(
+                      'Live',
+                      style: TextStyle(
+                        color: Colors.greenAccent,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),          SizedBox(
+            height: 160,
             child: LineChart(
               LineChartData(
                 gridData: FlGridData(show: false),
@@ -38,8 +98,15 @@ class SalesPerformanceChart extends StatelessWidget {
                       getTitlesWidget: (value, meta) {
                         const months = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                         return Padding(
-                          padding: EdgeInsets.only(top: 6),
-                          child: Text(months[value.toInt() % months.length], style: TextStyle(color: Colors.white, fontSize: 12)),
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(
+                            months[value.toInt() % months.length], 
+                            style: const TextStyle(
+                              color: Color(0xFFB0B3C7), 
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                         );
                       },
                       interval: 1,
@@ -55,24 +122,63 @@ class SalesPerformanceChart extends StatelessWidget {
                   LineChartBarData(
                     spots: data,
                     isCurved: true,
-                    color: Colors.white,
+                    gradient: const LinearGradient(
+                      colors: [Colors.white, Colors.white70],
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                    ),
                     barWidth: 3,
-                    dotData: FlDotData(show: false),
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.white.withOpacity(0.2),
+                          Colors.white.withOpacity(0.05),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 18),
-          const Text('Sales performance', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-          const SizedBox(height: 4),
-          const Text('Revenue', style: TextStyle(color: Color(0xFFB0B3C7), fontWeight: FontWeight.w400, fontSize: 13)),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
           Row(
-            children: const [
-              Icon(Icons.fiber_manual_record, color: Colors.white, size: 10),
-              SizedBox(width: 6),
-              Text('just updated', style: TextStyle(color: Color(0xFFB0B3C7), fontSize: 12)),
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.fiber_manual_record, color: Colors.white, size: 8),
+                    SizedBox(width: 6),
+                    Text(
+                      'Revenue Trend',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              Text(
+                'Updated now',
+                style: TextStyle(
+                  color: const Color(0xFFB0B3C7).withOpacity(0.8),
+                  fontSize: 10,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
             ],
           ),
         ],

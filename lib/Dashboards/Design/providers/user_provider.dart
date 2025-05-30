@@ -74,7 +74,7 @@ class UserProvider with ChangeNotifier {
         id: '3',
         name: 'Mike Johnson',
         email: 'mike@elitesigns.com',
-        role: 'Designer',
+        role: 'design',
         avatar: 'assets/images/avatar3.png',
       ),
     ];

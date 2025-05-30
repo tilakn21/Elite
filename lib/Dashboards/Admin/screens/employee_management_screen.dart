@@ -3,9 +3,43 @@ import '../widgets/employee_table.dart';
 import '../widgets/employee_filter_dropdown.dart';
 import '../widgets/admin_sidebar.dart';
 import '../widgets/admin_top_bar.dart';
+import '../services/admin_service.dart';
+import '../models/employee.dart';
+import 'add_employee_screen.dart';
 
-class EmployeeManagementScreen extends StatelessWidget {
+class EmployeeManagementScreen extends StatefulWidget {
   const EmployeeManagementScreen({Key? key}) : super(key: key);
+
+  @override
+  State<EmployeeManagementScreen> createState() => _EmployeeManagementScreenState();
+}
+
+class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
+  String selectedRole = 'All';
+  late Future<List<Employee>> _employeesFuture;
+  final AdminService _adminService = AdminService();
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshEmployees();
+  }
+
+  void _refreshEmployees() {
+    setState(() {
+      _employeesFuture = _adminService.getAllEmployees();
+    });
+  }
+
+  void _navigateToAddEmployee() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => AddEmployeeScreen(
+          onEmployeeAdded: _refreshEmployees,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,15 +107,24 @@ class EmployeeManagementScreen extends StatelessWidget {
                                     children: [
                                       SizedBox(
                                         width: 200,
-                                        child: EmployeeFilterDropdown(
-                                          // TODO: Pass onChanged callback to filter the table by role
-                                          onChanged: (role) {
-                                            // Implement table filtering by role here if needed
+                                        child: FutureBuilder<List<Employee>>(
+                                          future: _employeesFuture,
+                                          builder: (context, snapshot) {
+                                            final employees = snapshot.data ?? [];
+                                            final roles = ['All', ...{...employees.map((e) => e.role)}.toList()..sort()];
+                                            return EmployeeFilterDropdown(
+                                              roles: roles,
+                                              selectedRole: selectedRole,
+                                              onChanged: (role) {
+                                                setState(() {
+                                                  selectedRole = role;
+                                                });
+                                              },
+                                            );
                                           },
                                         ),
-                                      ),
-                                      ElevatedButton(
-                                        onPressed: () {},
+                                      ),                                      ElevatedButton(
+                                        onPressed: _navigateToAddEmployee,
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: const Color(0xFF9EE2EA),
                                           foregroundColor: Colors.white,
@@ -96,7 +139,22 @@ class EmployeeManagementScreen extends StatelessWidget {
                                     ],
                                   ),
                                   const SizedBox(height: 18),
-                                  EmployeeTable(),
+                                  FutureBuilder<List<Employee>>(
+                                    future: _employeesFuture,
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState == ConnectionState.waiting) {
+                                        return const Center(child: CircularProgressIndicator());
+                                      } else if (snapshot.hasError) {
+                                        return Center(child: Text('Error: \\${snapshot.error}'));
+                                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                                        return const Center(child: Text('No employees found.'));
+                                      }
+                                      final employees = selectedRole == 'All'
+                                          ? snapshot.data!
+                                          : snapshot.data!.where((e) => e.role == selectedRole).toList();
+                                      return EmployeeTable(employees: employees);
+                                    },
+                                  ),
                                 ],
                               ),
                             ),

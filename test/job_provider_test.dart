@@ -48,7 +48,7 @@ void main() {
       dateAdded: DateTime.now(),
       status: status,
       // Optional fields from Job model
-      assignedTo: 'designer_id_1',
+      assignedTo: 'design_id_1',
       measurements: '10x20',
       uploadedImages: ['image1.png'],
       notes: 'Sample job notes',

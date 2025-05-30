@@ -62,26 +62,42 @@ class AdminSidebar extends StatelessWidget {
               onItemTapped(1);
             },
           ),
-          _SidebarButton(
-            icon: Icons.person_add_alt_1,
-            label: 'Assign salesperson',
-            selected: selectedIndex == 2,
-            onTap: () {
-              if (ModalRoute.of(context)?.settings.name != '/admin/assign-salesperson') {
-                Navigator.pushReplacementNamed(context, '/admin/assign-salesperson');
-              }
-              onItemTapped(2);
-            },
-          ),
+          // _SidebarButton(
+          //   icon: Icons.person_add_alt_1,
+          //   label: 'Assign salesperson',
+          //   selected: selectedIndex == 2,
+          //   onTap: () {
+          //     if (ModalRoute.of(context)?.settings.name != '/admin/assign-salesperson') {
+          //       Navigator.pushReplacementNamed(context, '/admin/assign-salesperson');
+          //     }
+          //     onItemTapped(2);
+          //   },
+          // ),
+          // _SidebarButton(
+          //   icon: Icons.track_changes,
+          //   label: 'Job progress',
+          //   selected: selectedIndex == 3,
+          //   onTap: () {
+          //     if (ModalRoute.of(context)?.settings.name != '/admin/job-progress') {
+          //       Navigator.pushReplacementNamed(context, '/admin/job-progress');
+          //     }
+          //     onItemTapped(3);
+          //   },
+          // ),
           _SidebarButton(
             icon: Icons.track_changes,
-            label: 'Job progress',
+            label: 'Jobs',
             selected: selectedIndex == 3,
             onTap: () {
-              if (ModalRoute.of(context)?.settings.name != '/admin/job-progress') {
-                Navigator.pushReplacementNamed(context, '/admin/job-progress');
+              if (ModalRoute.of(context)?.settings.name != '/admin/jobs') {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/admin/jobs',
+                  (route) => false,
+                );
+              } else {
+                // If already on /admin/jobs, still call onItemTapped to update selection
+                onItemTapped(3);
               }
-              onItemTapped(3);
             },
           ),
           _SidebarButton(
