@@ -5,6 +5,7 @@ import '../widgets/sidebar.dart';
 import '../widgets/topbar.dart';
 import '../providers/job_request_provider.dart';
 import '../models/job_request.dart';
+import '../providers/salesperson_provider.dart';
 
 class NewJobRequestScreen extends StatelessWidget {
   const NewJobRequestScreen({Key? key}) : super(key: key);
@@ -27,12 +28,13 @@ class NewJobRequestScreen extends StatelessWidget {
                 selectedIndex: 1,
                 isDrawer: true,
                 onClose: () => Navigator.of(context).pop(),
+                onItemSelected: (index) {}, // Dummy callback
               ),
             )
           : null,
       body: Row(
         children: [
-          if (!isMobile) Sidebar(selectedIndex: 1),
+          if (!isMobile) Sidebar(selectedIndex: 1, onItemSelected: (index) {}), // Dummy callback
           Expanded(
             child: Column(
               children: [
@@ -178,7 +180,18 @@ class _JobRequestContentState extends State<JobRequestContent> {
                 onPressed: () async {
                   await showDialog(
                     context: context,
-                    builder: (context) => _AddJobDialog(onJobAdded: _loadJobs),
+                    builder: (context) => Dialog(
+                      insetPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 32),
+                      backgroundColor: Colors.transparent,
+                      child: Container(
+                        constraints: const BoxConstraints(maxWidth: 600),
+                        child: Material(
+                          borderRadius: BorderRadius.circular(12),
+                          child: _JobRequestFormDialog(onJobAdded: _loadJobs),
+                        ),
+                      ),
+                    ),
                   );
                 },
                 icon: const Icon(Icons.add),
@@ -550,106 +563,438 @@ class _JobRequestContentState extends State<JobRequestContent> {
   }
 }
 
-class _AddJobDialog extends StatefulWidget {
+class _JobRequestFormDialog extends StatelessWidget {
   final VoidCallback onJobAdded;
-  const _AddJobDialog({required this.onJobAdded});
-
-  @override
-  State<_AddJobDialog> createState() => _AddJobDialogState();
-}
-
-class _AddJobDialogState extends State<_AddJobDialog> {
-  final _formKey = GlobalKey<FormState>();
-  String name = '';
-  String phone = '';
-  String email = '';
-  String subtitle = '';
-  String priority = 'Medium';
-  bool isLoading = false;
-
+  const _JobRequestFormDialog({required this.onJobAdded, Key? key}) : super(key: key);
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Add New Job Request'),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+    return SizedBox(
+      width: 500,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Customer Name'),
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-                onSaved: (v) => name = v ?? '',
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text('Add New Job Request', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
               ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Phone'),
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-                onSaved: (v) => phone = v ?? '',
-              ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-                onSaved: (v) => email = v ?? '',
-              ),
-              TextFormField(
-                decoration:
-                    const InputDecoration(labelText: 'Subtitle (Shop/Note)'),
-                onSaved: (v) => subtitle = v ?? '',
-              ),
-              DropdownButtonFormField<String>(
-                value: priority,
-                items: ['High', 'Medium', 'Low']
-                    .map((p) => DropdownMenuItem(value: p, child: Text(p)))
-                    .toList(),
-                onChanged: (v) => setState(() => priority = v ?? 'Medium'),
-                decoration: const InputDecoration(labelText: 'Priority'),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.of(context).pop(),
               ),
             ],
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: _JobRequestForm(
+              isMobile: MediaQuery.of(context).size.width < 600,
+              onSuccess: () {
+                Navigator.of(context).pop();
+                onJobAdded();
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Update _JobRequestForm to accept onSuccess and call it after successful submission
+class _JobRequestForm extends StatefulWidget {
+  final bool isMobile;
+  final VoidCallback? onSuccess;
+  const _JobRequestForm({this.isMobile = false, this.onSuccess, Key? key}) : super(key: key);
+  @override
+  State<_JobRequestForm> createState() => _JobRequestFormState();
+}
+
+class _JobRequestFormState extends State<_JobRequestForm> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  String? _selectedStatus;
+  String? _selectedPriority;
+  DateTime? _date;
+  TimeOfDay? _time;
+  bool _isSubmitting = false;
+  String? _submitMessage;
+  String? _validationError;
+  final List<String> _statuses = ['New', 'In Progress', 'Completed', 'Cancelled'];
+  final List<String> _priorities = ['High', 'Medium', 'Low'];
+  final List<String> _salespersons = [];
+
+  String _formatTimeOfDay(TimeOfDay? time) {
+    if (time == null) return '';
+    final now = DateTime.now();
+    final dt = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+    return TimeOfDay(hour: dt.hour, minute: dt.minute).format(context);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSalespersons();
+  }
+
+  Future<void> _fetchSalespersons() async {
+    try {
+      final salespersonProvider = Provider.of<SalespersonProvider>(context, listen: false);
+      await salespersonProvider.fetchSalespersons();
+      setState(() {
+        _salespersons.addAll(salespersonProvider.salespersons.map((s) => s.name));
+      });
+    } catch (e) {
+      // Handle error
+    }
+  }
+
+  void _clearForm() {
+    setState(() {
+      _nameController.clear();
+      _emailController.clear();
+      _phoneController.clear();
+      _selectedStatus = null;
+      _selectedPriority = null;
+      _date = null;
+      _time = null;
+      _validationError = null;
+      _submitMessage = null;
+    });
+  }
+
+  bool _validateForm() {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
+    final date = _date;
+    final time = _time;
+
+    if (name.isEmpty || email.isEmpty || phone.isEmpty || date == null || time == null) {
+      setState(() {
+        _validationError = 'Please fill in all fields.';
+      });
+      return false;
+    }
+
+    if (!RegExp(r'^[a-zA-Z ]+$').hasMatch(name)) {
+      setState(() {
+        _validationError = 'Name can only contain letters and spaces.';
+      });
+      return false;
+    }
+
+    if (!RegExp(r'^[0-9]+$').hasMatch(phone)) {
+      setState(() {
+        _validationError = 'Phone number can only contain digits.';
+      });
+      return false;
+    }
+
+    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
+      setState(() {
+        _validationError = 'Please enter a valid email address.';
+      });
+      return false;
+    }
+
+    return true;
+  }
+
+  Future<void> _submitJobRequest() async {
+    setState(() {
+      _validationError = null;
+    });
+    if (!_validateForm()) {
+      return;
+    }
+    setState(() {
+      _isSubmitting = true;
+      _submitMessage = null;
+    });
+    try {
+      final jobRequestProvider = Provider.of<JobRequestProvider>(context, listen: false);
+      await jobRequestProvider.addJobRequest(
+        JobRequest(
+          id: '',
+          name: _nameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          email: _emailController.text.trim(),
+          status: JobRequestStatus.pending,
+          dateAdded: _date,
+          subtitle: _nameController.text.trim(),
+          avatar: null,
+          time: _formatTimeOfDay(_time),
+          assigned: false,
+          priority: _selectedPriority,
+        ),
+      );
+      setState(() {
+        _submitMessage = 'Job request submitted successfully!';
+      });
+      _clearForm();
+      await _fetchSalespersons();
+      try {
+        final salespersonProvider = Provider.of<SalespersonProvider>(context, listen: false);
+        await salespersonProvider.fetchSalespersons();
+      } catch (_) {}
+      if (widget.onSuccess != null) widget.onSuccess!();
+    } catch (e) {
+      setState(() {
+        _submitMessage = 'Failed to submit job request: \\${e.toString()}';
+      });
+    } finally {
+      setState(() {
+        _isSubmitting = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Job Request Form',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1B2330),
+                  ),
+            ),
+            const SizedBox(height: 16),
+            if (_submitMessage != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: Text(
+                  _submitMessage!,
+                  style: const TextStyle(color: Colors.green, fontSize: 14),
+                ),
+              ),
+            if (_validationError != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: Text(
+                  _validationError!,
+                  style: const TextStyle(color: Colors.red, fontSize: 14),
+                ),
+              ),
+            TextField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                labelText: 'Full Name',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _emailController,
+              decoration: InputDecoration(
+                labelText: 'Email Address',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _phoneController,
+              decoration: InputDecoration(
+                labelText: 'Phone Number',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedStatus,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedStatus = value;
+                      });
+                    },
+                    items: _statuses
+                        .map((status) => DropdownMenuItem<String>(
+                              value: status,
+                              child: Text(status),
+                            ))
+                        .toList(),
+                    decoration: InputDecoration(
+                      labelText: 'Status',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedPriority,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedPriority = value;
+                      });
+                    },
+                    items: _priorities
+                        .map((priority) => DropdownMenuItem<String>(
+                              value: priority,
+                              child: Text(priority),
+                            ))
+                        .toList(),
+                    decoration: InputDecoration(
+                      labelText: 'Priority',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () async {
+                      final selectedDate = await showDatePicker(
+                        context: context,
+                        initialDate: _date ?? DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2101),
+                      );
+                      if (selectedDate != null) {
+                        setState(() {
+                          _date = selectedDate;
+                        });
+                      }
+                    },
+                    child: AbsorbPointer(
+                      child: TextField(
+                        decoration: InputDecoration(
+                          labelText: 'Date',
+                          hintText: _date != null
+                              ? DateFormat('dd/MM/yyyy').format(_date!)
+                              : 'Select a date',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: InkWell(
+                    onTap: () async {
+                      final selectedTime = await showTimePicker(
+                        context: context,
+                        initialTime: _time ?? TimeOfDay.now(),
+                      );
+                      if (selectedTime != null) {
+                        setState(() {
+                          _time = selectedTime;
+                        });
+                      }
+                    },
+                    child: AbsorbPointer(
+                      child: TextField(
+                        decoration: InputDecoration(
+                          labelText: 'Time',
+                          hintText: _formatTimeOfDay(_time).isNotEmpty
+                              ? _formatTimeOfDay(_time)
+                              : 'Select a time',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEF5350),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton(
+                  onPressed: _isSubmitting ? null : _submitJobRequest,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7DE2D1),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Submit'),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: isLoading
-              ? null
-              : () async {
-                  if (!_formKey.currentState!.validate()) return;
-                  _formKey.currentState!.save();
-                  setState(() => isLoading = true);
-                  final provider =
-                      Provider.of<JobRequestProvider>(context, listen: false);
-                  await provider.addJobRequest(
-                    JobRequest(
-                      id: DateTime.now().millisecondsSinceEpoch.toString(),
-                      name: name,
-                      phone: phone,
-                      email: email,
-                      status: JobRequestStatus.pending,
-                      dateAdded: DateTime.now(),
-                      subtitle: subtitle,
-                      avatar: '',
-                      time: '',
-                      assigned: false,
-                      priority: priority,
-                    ),
-                  );
-                  setState(() => isLoading = false);
-                  widget.onJobAdded();
-                  Navigator.pop(context);
-                },
-          child: isLoading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Add'),
-        ),
-      ],
     );
   }
 }

@@ -117,13 +117,14 @@ class _AssignSalespersonScreenState extends State<AssignSalespersonScreen> {
                 selectedIndex: 2,
                 isDrawer: true,
                 onClose: () => Navigator.of(context).pop(),
+                onItemSelected: (index) {}, // Dummy callback
               ),
             )
           : null,
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!isMobile) Sidebar(selectedIndex: 2),
+          if (!isMobile) Sidebar(selectedIndex: 2, onItemSelected: (index) {}), // Dummy callback
           Expanded(
             child: Column(
               children: [

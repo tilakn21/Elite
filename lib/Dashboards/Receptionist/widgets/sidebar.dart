@@ -4,7 +4,15 @@ class Sidebar extends StatelessWidget {
   final int selectedIndex;
   final bool isDrawer;
   final VoidCallback? onClose;
-  const Sidebar({super.key, this.selectedIndex = 0, this.isDrawer = false, this.onClose});
+  final Function(int) onItemSelected;
+
+  const Sidebar({
+    super.key,
+    this.selectedIndex = 0,
+    this.isDrawer = false,
+    this.onClose,
+    required this.onItemSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +41,7 @@ class Sidebar extends StatelessWidget {
           label: 'Dashboard',
           selected: selectedIndex == 0,
           onTap: () {
-            Navigator.of(context).pushReplacementNamed('/receptionist/dashboard');
+            onItemSelected(0);
             if (isDrawer && onClose != null) onClose!();
           },
         ),
@@ -42,7 +50,7 @@ class Sidebar extends StatelessWidget {
           label: 'New Request',
           selected: selectedIndex == 1,
           onTap: () {
-            Navigator.of(context).pushReplacementNamed('/receptionist/new-job-request');
+            onItemSelected(1);
             if (isDrawer && onClose != null) onClose!();
           },
         ),
