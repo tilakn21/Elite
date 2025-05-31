@@ -1,0 +1,65 @@
+import 'package:flutter/material.dart';
+import '../models/invoice.dart';
+
+class AccountsInvoiceDetail extends StatelessWidget {
+  final Invoice? invoice;
+  final VoidCallback onConfirmPayment;
+  const AccountsInvoiceDetail({super.key, this.invoice, required this.onConfirmPayment});
+
+  @override
+  Widget build(BuildContext context) {
+    if (invoice == null) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE5E5E5)),
+        ),
+        padding: const EdgeInsets.all(32),
+        child: const Center(
+          child: Text('Select an invoice to view details', style: TextStyle(fontSize: 16, color: Color(0xFF888FA6))),
+        ),
+      );
+    }
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E5E5)),
+      ),
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(invoice!.invoiceNo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+          const SizedBox(height: 16),
+          Text(invoice!.clientName, style: const TextStyle(fontSize: 18)),
+          const SizedBox(height: 16),
+          Text('Date- ${invoice!.issueDate.day}/${invoice!.issueDate.month}/${invoice!.issueDate.year}', 
+               style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              const Text('Amount-', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
+              Text('\$${invoice!.totalAmount.toStringAsFixed(2)}', 
+                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+            ],
+          ),
+          const SizedBox(height: 32),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF47B3CE),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: onConfirmPayment,
+              child: const Text('Confirm payment', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

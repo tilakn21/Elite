@@ -1,32 +1,118 @@
+import 'package:elite_signboard_app/Dashboards/Admin/screens/job_listing_screen_new.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'Dashboards/Admin/screens/employee_management_screen.dart';
+import 'Dashboards/Admin/screens/admin_dashboard_screen.dart';
 import 'package:provider/provider.dart';
 
 // Providers
-import 'dashboards/design/providers/job_provider.dart';
-import 'dashboards/design/providers/chat_provider.dart';
-import 'dashboards/design/providers/user_provider.dart';
+import 'Dashboards/Design/providers/job_provider.dart';
+import 'Dashboards/Design/providers/chat_provider.dart';
+import 'Dashboards/Design/providers/user_provider.dart';
+import 'Dashboards/Accounts/providers/invoice_provider.dart'; // Added InvoiceProvider
+import 'Dashboards/Admin/providers/admin_provider.dart'; // Added AdminProvider
+import 'Dashboards/Production/providers/worker_provider.dart'; // Added WorkerProvider
+import 'Dashboards/Admin/services/admin_service.dart'; // Added AdminService for AdminProvider
+import 'Dashboards/Design/services/design_service.dart'; // Added DesignService for JobProvider
+import 'Dashboards/Printing/providers/printing_job_provider.dart'; // Added PrintingJobProvider
+import 'Dashboards/Printing/services/printing_service.dart'; // Added PrintingService for PrintingJobProvider
+import 'Dashboards/Production/providers/production_job_provider.dart'; // Added ProductionJobProvider
+import 'Dashboards/Production/services/production_service.dart'; // Added ProductionService for ProductionJobProvider
+import 'Dashboards/Receptionist/services/receptionist_service.dart'; // Added ReceptionistService
+import 'Dashboards/Receptionist/providers/job_request_provider.dart'; // Added JobRequestProvider
+import 'Dashboards/Receptionist/providers/salesperson_provider.dart'; // Added SalespersonProvider
 
 // Screens
-import 'dashboards/design/screens/dashboard_screen.dart';
-import 'dashboards/design/screens/job_list_screen.dart';
-import 'dashboards/design/screens/job_details_screen.dart';
-import 'dashboards/design/screens/active_chats_screen.dart';
-import 'dashboards/design/screens/chat_screen.dart';
+import 'Dashboards/Design/screens/dashboard_screen.dart';
+import 'Dashboards/Design/screens/job_list_screen.dart';
+import 'Dashboards/Design/screens/active_chats_screen.dart';
 
 // Receptionist Dashboard
 import 'Dashboards/Receptionist/screens/dashboard_screen.dart';
+import 'Dashboards/Receptionist/screens/new_job_request_screen.dart';
+import 'Dashboards/Receptionist/screens/assign_salesperson_screen.dart';
+
+// Design Dashboard
+import 'Dashboards/Design/screens/dashboard_screen.dart' as design;
+
+// Salesperson Dashboard
+import 'Dashboards/Salesperson/screens/home_screen.dart';
+import 'Dashboards/Salesperson/screens/profile_screen.dart';
+
+// Production Dashboard
+import 'Dashboards/Production/screens/production_dashboard.dart';
+import 'Dashboards/Production/screens/production_job_list_screen.dart';
+import 'Dashboards/Production/screens/assign_labour_screen.dart';
+import 'Dashboards/Production/screens/update_job_status_screen.dart';
+
+// Printing Dashboard
+import 'Dashboards/Printing/screens/printing_dashboard_screen.dart';
+import 'Dashboards/Printing/screens/assign_labour_screen.dart';
+import 'Dashboards/Printing/screens/quality_check_screen.dart';
+
+// Accounts Dashboard
+import 'Dashboards/Accounts/screens/accounts_dashboard_screen.dart';
+import 'Dashboards/Accounts/screens/accounts_invoice_screen.dart';
+import 'Dashboards/Accounts/screens/accounts_employee_screen.dart';
 
 // Utils
-import 'dashboards/design/utils/app_theme.dart';
+import 'Dashboards/Design/utils/app_theme.dart';
 
 // Widgets
-import 'dashboards/design/widgets/upload_draft_widget.dart';
-import 'dashboards/design/widgets/job_details_card.dart';
-import 'dashboards/design/widgets/active_chats_card.dart';
-import 'dashboards/design/widgets/calendar_card.dart';
+import 'Dashboards/Design/widgets/upload_draft_widget.dart';
 
-void main() {
-  runApp(const MyApp());
+// Login Screen
+import 'screens/login_screen.dart';
+import 'utils/supabase_keys.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Supabase.initialize(
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
+  );
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.dumpErrorToConsole(details);
+    // ignore: avoid_print
+    print('CAUGHT FLUTTER ERROR:');
+    print(details.exceptionAsString());
+    print(details.stack);
+  };
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => UserProvider(DesignService())),
+        ChangeNotifierProvider(create: (_) => JobProvider(DesignService())),
+        ChangeNotifierProvider(create: (_) => ChatProvider(DesignService())),
+        ChangeNotifierProvider(
+            create: (_) => InvoiceProvider()), // Registered InvoiceProvider
+        ChangeNotifierProvider(
+            create: (_) => AdminProvider(
+                AdminService())), // Registered AdminProvider with AdminService
+        ChangeNotifierProvider(
+            create: (_) => PrintingJobProvider(
+                PrintingService())), // Registered PrintingJobProvider
+        Provider(
+            create: (_) =>
+                ProductionService()), // Provide ProductionService so other providers can read it
+        ChangeNotifierProvider(
+            create: (context) =>
+                ProductionJobProvider(context.read<ProductionService>())),
+        ChangeNotifierProvider(
+            create: (context) =>
+                WorkerProvider(context.read<ProductionService>())),
+        // Provide ReceptionistService so other providers can read it.
+        Provider(create: (_) => ReceptionistService()),
+        ChangeNotifierProvider(
+            create: (context) =>
+                JobRequestProvider(context.read<ReceptionistService>())),
+        ChangeNotifierProvider(
+            create: (context) =>
+                SalespersonProvider(context.read<ReceptionistService>())),
+      ],
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -34,28 +120,52 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => UserProvider()),
-        ChangeNotifierProvider(create: (_) => JobProvider()),
-        ChangeNotifierProvider(create: (_) => ChatProvider()),
-      ],
-      child: MaterialApp(
-        title: 'Elite Signboard Management',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          primaryColor: const Color(0xFF1A237E),
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF1A237E),
-            primary: const Color(0xFF1A237E),
-            secondary: const Color(0xFF536DFE),
+    return FocusTraversalGroup(
+        policy: OrderedTraversalPolicy(),
+        child: MaterialApp(
+          title: 'Elite Signboard Management',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            primaryColor: const Color(0xFF1A237E),
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF1A237E),
+              primary: const Color(0xFF1A237E),
+              secondary: const Color(0xFF536DFE),
+            ),
+            fontFamily: 'Poppins',
           ),
-          fontFamily: 'Poppins',
-        ),
-        // For testing, we'll show the receptionist dashboard
-        home: const DashboardPage(),
-      ),
-    );
+          home: const LoginScreen(),
+          //home: const SalespersonHomeScreen(),
+          routes: {
+            '/admin/dashboard': (context) => AdminDashboardScreen(),
+            '/admin/employees': (context) => const EmployeeManagementScreen(),
+            '/admin/jobs': (context) => const JobListingScreen(),
+            '/login': (context) => const LoginScreen(),
+            '/receptionist/dashboard': (context) => const DashboardPage(),
+            '/receptionist/new-job-request': (context) =>
+                const NewJobRequestScreen(),
+            '/receptionist/assign-salesperson': (context) =>
+                const AssignSalespersonScreen(),
+            '/salesperson/dashboard': (context) =>
+                const SalespersonHomeScreen(),
+            '/salesperson/profile': (context) =>
+                const SalespersonProfileScreen(),
+            '/design/dashboard': (context) => const design.DashboardScreen(),
+            '/accounts/dashboard': (context) => const AccountsDashboardScreen(),
+            '/accounts/invoice': (context) => const AccountsInvoiceScreen(),
+            '/accounts/employee': (context) => const AccountsEmployeeScreen(),
+            '/production/dashboard': (context) => const ProductionDashboard(),
+            '/production/joblist': (context) => const ProductionJobListScreen(),
+            '/production/assignlabour': (context) => const AssignLabourScreen(),
+            '/production/updatejobstatus': (context) =>
+                const UpdateJobStatusScreen(),
+            '/printing/dashboard': (context) => const PrintingDashboardScreen(),
+            '/printing/assignlabour': (context) =>
+                const PrintingAssignLabourScreen(),
+            '/printing/qualitycheck': (context) =>
+                const PrintingQualityCheckScreen(),
+          },
+        ));
   }
 }
 
@@ -201,7 +311,7 @@ class _MainLayoutState extends State<MainLayout> {
                       color: Colors.white,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withAlpha(13),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -213,14 +323,16 @@ class _MainLayoutState extends State<MainLayout> {
                           child: TextField(
                             decoration: InputDecoration(
                               hintText: 'Search data for this page',
-                              prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                              prefixIcon:
+                                  const Icon(Icons.search, color: Colors.grey),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(30),
                                 borderSide: BorderSide.none,
                               ),
                               filled: true,
                               fillColor: Colors.grey[100],
-                              contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                              contentPadding:
+                                  const EdgeInsets.symmetric(vertical: 0),
                             ),
                           ),
                         ),
@@ -309,7 +421,8 @@ class _MainLayoutState extends State<MainLayout> {
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(48),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: TextField(
                 decoration: InputDecoration(
                   hintText: 'Search data for this page',
@@ -363,13 +476,13 @@ class _MainLayoutState extends State<MainLayout> {
     required int index,
   }) {
     final isSelected = _selectedIndex == index;
-    
+
     return InkWell(
       onTap: () => _onItemTapped(index),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white.withOpacity(0.1) : Colors.transparent,
+          color: isSelected ? Colors.white.withAlpha(26) : Colors.transparent,
           border: isSelected
               ? const Border(
                   left: BorderSide(color: AppTheme.accentColor, width: 4),

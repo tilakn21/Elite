@@ -1,0 +1,3 @@
+// Add your Supabase credentials here
+const String supabaseUrl = 'https://yqpnubpdfimbvqrdyrpa.supabase.co';
+const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxcG51YnBkZmltYnZxcmR5cnBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgwODQ2NTYsImV4cCI6MjA2MzY2MDY1Nn0.gOAgxKmLxW4Gl24tMsmplfH51NkXKka_ADQ7D_BrN-Q';

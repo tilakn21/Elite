@@ -6,7 +6,7 @@ import 'upload_draft_widget.dart';
 
 class JobDetailsCard extends StatelessWidget {
   final Job? job;
-  
+
   const JobDetailsCard({
     Key? key,
     required this.job,
@@ -16,7 +16,7 @@ class JobDetailsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
-    
+
     if (job == null) {
       return Card(
         margin: EdgeInsets.zero,
@@ -30,9 +30,9 @@ class JobDetailsCard extends StatelessWidget {
               Text(
                 'Job Details',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18,
-                ),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 18,
+                    ),
               ),
               const SizedBox(height: 24),
               Center(
@@ -49,10 +49,11 @@ class JobDetailsCard extends StatelessWidget {
                       const SizedBox(height: 16),
                       Text(
                         'Select a job to view details',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppTheme.textSecondaryColor,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: AppTheme.textSecondaryColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -64,7 +65,7 @@ class JobDetailsCard extends StatelessWidget {
         ),
       );
     }
-    
+
     return Card(
       margin: EdgeInsets.zero,
       elevation: 0,
@@ -77,9 +78,9 @@ class JobDetailsCard extends StatelessWidget {
             Text(
               'Job Details',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 18,
-              ),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                  ),
             ),
             const SizedBox(height: 20),
             _buildClientInfo(context, isMobile),
@@ -94,7 +95,8 @@ class JobDetailsCard extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => JobDetailsScreen(jobId: job!.id),
+                          builder: (context) =>
+                              JobDetailsScreen(jobId: job!.id),
                         ),
                       );
                     },
@@ -102,7 +104,8 @@ class JobDetailsCard extends StatelessWidget {
                       backgroundColor: AppTheme.accentColor,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                       elevation: 0,
                     ),
                     child: Row(
@@ -112,10 +115,11 @@ class JobDetailsCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Text(
                           'View Full Details',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
                         ),
                       ],
                     ),
@@ -143,9 +147,9 @@ class JobDetailsCard extends StatelessWidget {
           Text(
             'Customer information',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-            ),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
           ),
           const SizedBox(height: 16),
           _buildInfoRow(context, 'Client Name', job!.clientName, isMobile),
@@ -153,16 +157,15 @@ class JobDetailsCard extends StatelessWidget {
           _buildInfoRow(context, 'Phone no.', job!.phoneNumber, isMobile),
           const SizedBox(height: 12),
           _buildInfoRow(context, 'Address', job!.address, isMobile),
-          if (job!.status != null) ...[  
-            const SizedBox(height: 12),
-            _buildStatusRow(context, job!.status),
-          ],
+          const SizedBox(height: 12),
+          _buildStatusRow(context, job!.status),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(BuildContext context, String label, String value, bool isMobile) {
+  Widget _buildInfoRow(
+      BuildContext context, String label, String value, bool isMobile) {
     if (isMobile) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,16 +175,16 @@ class JobDetailsCard extends StatelessWidget {
               Text(
                 label,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textSecondaryColor,
-                  fontWeight: FontWeight.w500,
-                ),
+                      color: AppTheme.textSecondaryColor,
+                      fontWeight: FontWeight.w500,
+                    ),
               ),
               const SizedBox(width: 8),
               Text(
                 '-',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textSecondaryColor,
-                ),
+                      color: AppTheme.textSecondaryColor,
+                    ),
               ),
             ],
           ),
@@ -189,8 +192,8 @@ class JobDetailsCard extends StatelessWidget {
           Text(
             value,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w500,
-            ),
+                  fontWeight: FontWeight.w500,
+                ),
             overflow: TextOverflow.ellipsis,
             maxLines: 2,
           ),
@@ -205,25 +208,25 @@ class JobDetailsCard extends StatelessWidget {
             child: Text(
               label,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondaryColor,
-                fontWeight: FontWeight.w500,
-              ),
+                    color: AppTheme.textSecondaryColor,
+                    fontWeight: FontWeight.w500,
+                  ),
             ),
           ),
           const SizedBox(width: 8),
           Text(
             '-',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondaryColor,
-            ),
+                  color: AppTheme.textSecondaryColor,
+                ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               value,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
+                    fontWeight: FontWeight.w500,
+                  ),
               overflow: TextOverflow.ellipsis,
               maxLines: 2,
             ),
@@ -232,11 +235,11 @@ class JobDetailsCard extends StatelessWidget {
       );
     }
   }
-  
+
   Widget _buildStatusRow(BuildContext context, JobStatus status) {
     Color statusColor;
     String statusText;
-    
+
     switch (status) {
       case JobStatus.approved:
         statusColor = AppTheme.approvedColor;
@@ -251,7 +254,7 @@ class JobDetailsCard extends StatelessWidget {
         statusText = 'In progress';
         break;
     }
-    
+
     return Row(
       children: [
         SizedBox(
@@ -259,38 +262,38 @@ class JobDetailsCard extends StatelessWidget {
           child: Text(
             'Status',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondaryColor,
-              fontWeight: FontWeight.w500,
-            ),
+                  color: AppTheme.textSecondaryColor,
+                  fontWeight: FontWeight.w500,
+                ),
           ),
         ),
         const SizedBox(width: 8),
         Text(
           '-',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: AppTheme.textSecondaryColor,
-          ),
+                color: AppTheme.textSecondaryColor,
+              ),
         ),
         const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: statusColor.withOpacity(0.1),
+            color: statusColor.withAlpha(26),
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
             statusText,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: statusColor,
-              fontWeight: FontWeight.w500,
-              fontSize: 12,
-            ),
+                  color: statusColor,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                ),
           ),
         ),
       ],
     );
   }
-  
+
   Widget _buildUploadDraft(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -305,9 +308,9 @@ class JobDetailsCard extends StatelessWidget {
           Text(
             'Upload Draft Design',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-            ),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
           ),
           const SizedBox(height: 16),
           Container(
@@ -333,8 +336,8 @@ class JobDetailsCard extends StatelessWidget {
                 Text(
                   'Comments',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
                 const SizedBox(height: 8),
                 TextField(
@@ -357,7 +360,8 @@ class JobDetailsCard extends StatelessWidget {
               backgroundColor: AppTheme.accentColor,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
               elevation: 0,
             ),
             child: Row(
@@ -368,9 +372,9 @@ class JobDetailsCard extends StatelessWidget {
                 Text(
                   'Submit for Approval',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                 ),
               ],
             ),
@@ -381,19 +385,21 @@ class JobDetailsCard extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 12),
               side: const BorderSide(color: AppTheme.accentColor),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.chat_bubble_outline, size: 18, color: AppTheme.accentColor),
+                const Icon(Icons.chat_bubble_outline,
+                    size: 18, color: AppTheme.accentColor),
                 const SizedBox(width: 8),
                 Text(
                   'Open Chat with customer',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.accentColor,
-                  ),
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.accentColor,
+                      ),
                 ),
               ],
             ),

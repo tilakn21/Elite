@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../models/chat.dart';
 import '../utils/app_theme.dart';
 import '../screens/chat_screen.dart';
 
 class ActiveChatsCard extends StatelessWidget {
   final List<Chat> chats;
-  
+
   const ActiveChatsCard({
     Key? key,
     required this.chats,
@@ -51,9 +50,12 @@ class ActiveChatsCard extends StatelessWidget {
                           const SizedBox(height: 16),
                           Text(
                             'No active chats',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: AppTheme.textSecondaryColor,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  color: AppTheme.textSecondaryColor,
+                                ),
                           ),
                         ],
                       ),
@@ -63,7 +65,8 @@ class ActiveChatsCard extends StatelessWidget {
                     height: 300, // Fixed height instead of Expanded
                     child: ListView.separated(
                       itemCount: chats.length,
-                      separatorBuilder: (context, index) => const Divider(height: 1),
+                      separatorBuilder: (context, index) =>
+                          const Divider(height: 1),
                       itemBuilder: (context, index) {
                         final chat = chats[index];
                         return _buildChatItem(context, chat);
@@ -78,7 +81,7 @@ class ActiveChatsCard extends StatelessWidget {
 
   Widget _buildChatItem(BuildContext context, Chat chat) {
     Color statusColor;
-    
+
     switch (chat.status) {
       case ChatStatus.approved:
         statusColor = AppTheme.approvedColor;
@@ -137,14 +140,14 @@ class ActiveChatsCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
+                color: statusColor.withAlpha(26),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
                 chat.status.toString().split('.').last,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: statusColor,
-                ),
+                      color: statusColor,
+                    ),
               ),
             ),
           ],

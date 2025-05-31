@@ -1,49 +1,55 @@
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import '../models/job.dart';
+import '../services/design_service.dart';
+// import 'package:shared_preferences/shared_preferences.dart'; // No longer used directly
+// import 'dart:convert'; // No longer used directly
 
 class JobProvider with ChangeNotifier {
+  final DesignService _designService;
   List<Job> _jobs = [];
-  
-  List<Job> get jobs => _jobs;
-  
-  List<Job> get approvedJobs => _jobs.where((job) => job.status == JobStatus.approved).toList();
-  
-  List<Job> get pendingJobs => _jobs.where((job) => job.status == JobStatus.pending).toList();
-  
-  List<Job> get inProgressJobs => _jobs.where((job) => job.status == JobStatus.inProgress).toList();
+  bool _isLoading = false;
+  String? _errorMessage;
 
-  JobProvider() {
-    _loadJobs();
+  List<Job> get jobs => _jobs;
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+
+  List<Job> get approvedJobs =>
+      _jobs.where((job) => job.status == JobStatus.approved).toList();
+  List<Job> get pendingJobs =>
+      _jobs.where((job) => job.status == JobStatus.pending).toList();
+  List<Job> get inProgressJobs =>
+      _jobs.where((job) => job.status == JobStatus.inProgress).toList();
+
+  JobProvider(this._designService) {
+    _fetchJobs(); // Renamed from _loadJobs for clarity
   }
 
-  Future<void> _loadJobs() async {
+  Future<void> _fetchJobs() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jobsJson = prefs.getString('jobs');
-      
-      if (jobsJson != null) {
-        final List<dynamic> decodedJobs = json.decode(jobsJson);
-        _jobs = decodedJobs.map((job) => Job.fromJson(job)).toList();
-      } else {
-        // Load sample data if no jobs are found
-        _loadSampleJobs();
+      _jobs = await _designService.getJobs();
+      if (_jobs.isEmpty) {
+        _errorMessage = 'No jobs found';
       }
-      notifyListeners();
     } catch (e) {
+      _errorMessage = e.toString();
       if (kDebugMode) {
-        print('Error loading jobs: $e');
+        print('Error fetching jobs from service: $e');
       }
-      // Load sample data if there's an error
-      _loadSampleJobs();
+      // Don't fallback to sample data in production
+      _jobs = [];
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }
 
   void _loadSampleJobs() {
     final now = DateTime.now();
-    
+
     _jobs = [
       Job(
         jobNo: '#1001',
@@ -120,31 +126,86 @@ class JobProvider with ChangeNotifier {
     ];
   }
 
-  Future<void> _saveJobs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jobsJson = json.encode(_jobs.map((job) => job.toJson()).toList());
-    await prefs.setString('jobs', jobsJson);
-  }
-
   Future<void> addJob(Job job) async {
-    _jobs.add(job);
-    await _saveJobs();
+    _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
+    try {
+      final newJob = await _designService.createJob(job);
+      _jobs.add(
+          newJob); // Assuming service returns the created job with potential updates (e.g., ID)
+    } catch (e) {
+      _errorMessage = e.toString();
+      if (kDebugMode) {
+        print('Error adding job via service: $e');
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> updateJob(Job updatedJob) async {
-    final index = _jobs.indexWhere((job) => job.id == updatedJob.id);
-    if (index != -1) {
-      _jobs[index] = updatedJob;
-      await _saveJobs();
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final returnedJob = await _designService.updateJob(updatedJob);
+      final index = _jobs.indexWhere((job) => job.id == returnedJob.id);
+      if (index != -1) {
+        _jobs[index] = returnedJob;
+      } else {
+        // If the job wasn't in the list, perhaps add it or log an error
+        print(
+            'JobProvider: Updated job ID ${returnedJob.id} not found in local list.');
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+      if (kDebugMode) {
+        print('Error updating job via service: $e');
+      }
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }
 
   Future<void> deleteJob(String id) async {
-    _jobs.removeWhere((job) => job.id == id);
-    await _saveJobs();
+    _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
+    try {
+      await _designService.deleteJob(id);
+      _jobs.removeWhere((job) => job.id == id);
+    } catch (e) {
+      _errorMessage = e.toString();
+      if (kDebugMode) {
+        print('Error deleting job via service: $e');
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> refreshJobs() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      _jobs = await _designService.getJobs();
+      if (_jobs.isEmpty) {
+        _errorMessage = 'No jobs found';
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+      if (kDebugMode) {
+        print('Error refreshing jobs: $e');
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   Job? getJobById(String id) {

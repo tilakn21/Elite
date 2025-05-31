@@ -1,17 +1,33 @@
 import 'package:flutter/material.dart';
-
-enum SalespersonStatus {
-  available,
-  onVisit,
-  busy,
-  away
-}
+import '../models/salesperson.dart' as model;
 
 class SalesAllocationCard extends StatelessWidget {
-  const SalesAllocationCard({super.key});
+  final List<model.Salesperson> salesPeople;
+  const SalesAllocationCard({super.key, required this.salesPeople});
 
   @override
   Widget build(BuildContext context) {
+    if (salesPeople.isEmpty) {
+      return Card(
+        elevation: 8,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        color: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(32, 28, 32, 28),
+          child: Center(
+            child: Text(
+              'No salespersons found.',
+              style: TextStyle(
+                color: Colors.red.shade400,
+                fontWeight: FontWeight.w500,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Card(
       elevation: 8,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
@@ -35,11 +51,10 @@ class SalesAllocationCard extends StatelessWidget {
                 children: const [
                   Expanded(flex: 2, child: _Header('Name')),
                   Expanded(child: _Header('Status')),
-                  SizedBox(width: 80, child: _Header('Assign')),
                 ],
               ),
               const Divider(height: 18, thickness: 1, color: Color(0xFFF2F2F2)),
-              ..._salesPeople.map((person) => _SalesRow(person)).toList(),
+              ...salesPeople.map((person) => _SalesRow(person)).toList(),
             ],
           ),
         ),
@@ -51,7 +66,7 @@ class SalesAllocationCard extends StatelessWidget {
 class _Header extends StatelessWidget {
   final String title;
   const _Header(this.title);
-  
+
   @override
   Widget build(BuildContext context) {
     return Text(
@@ -66,7 +81,7 @@ class _Header extends StatelessWidget {
 }
 
 class _SalesRow extends StatelessWidget {
-  final Map<String, dynamic> person;
+  final model.Salesperson person;
   const _SalesRow(this.person);
 
   @override
@@ -90,7 +105,7 @@ class _SalesRow extends StatelessWidget {
                       ),
                       alignment: Alignment.center,
                       child: Text(
-                        person['name'].toString()[0],
+                        person.name.isNotEmpty ? person.name[0] : '',
                         style: const TextStyle(
                           color: Color(0xFF1A237E),
                           fontWeight: FontWeight.w600,
@@ -99,7 +114,7 @@ class _SalesRow extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      person['name'],
+                      person.name,
                       style: const TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 14,
@@ -109,24 +124,7 @@ class _SalesRow extends StatelessWidget {
                 ),
               ),
               Expanded(
-                child: _StatusPill(person['status']),
-              ),
-              SizedBox(
-                width: 80,
-                child: TextButton(
-                  onPressed: () {},
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    minimumSize: const Size(0, 32),
-                  ),
-                  child: const Text(
-                    'Assign',
-                    style: TextStyle(
-                      color: Color(0xFF1A237E),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
+                child: _StatusPill(isAvailable: person.status == model.SalespersonStatus.available),
               ),
             ],
           ),
@@ -138,20 +136,21 @@ class _SalesRow extends StatelessWidget {
 }
 
 class _StatusPill extends StatelessWidget {
-  final String status;
-  const _StatusPill(this.status);
+  final bool isAvailable;
+  const _StatusPill({required this.isAvailable});
 
   @override
   Widget build(BuildContext context) {
-    final statusInfo = _getStatusInfo(status);
-    
+    final statusLabel = isAvailable ? 'Available' : 'Unavailable';
+    final statusColor = isAvailable ? const Color(0xFF4CAF50) : const Color(0xFFE53935);
+    final bgColor = isAvailable ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE);
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: 12,
         vertical: 6,
       ),
       decoration: BoxDecoration(
-        color: statusInfo.backgroundColor,
+        color: bgColor,
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
@@ -161,15 +160,15 @@ class _StatusPill extends StatelessWidget {
             width: 6,
             height: 6,
             decoration: BoxDecoration(
-              color: statusInfo.color,
+              color: statusColor,
               shape: BoxShape.circle,
             ),
           ),
           const SizedBox(width: 8),
           Text(
-            status,
+            statusLabel,
             style: TextStyle(
-              color: statusInfo.color,
+              color: statusColor,
               fontWeight: FontWeight.w500,
               fontSize: 13,
             ),
@@ -178,41 +177,4 @@ class _StatusPill extends StatelessWidget {
       ),
     );
   }
-
-  ({Color color, Color backgroundColor}) _getStatusInfo(String status) {
-    switch (status) {
-      case 'Available':
-        return (
-          color: const Color(0xFF4CAF50),
-          backgroundColor: const Color(0xFFE8F5E9),
-        );
-      case 'On Visit':
-        return (
-          color: const Color(0xFF2196F3),
-          backgroundColor: const Color(0xFFE3F2FD),
-        );
-      case 'Busy':
-        return (
-          color: const Color(0xFFE53935),
-          backgroundColor: const Color(0xFFFFEBEE),
-        );
-      case 'Away':
-        return (
-          color: const Color(0xFFFFA000),
-          backgroundColor: const Color(0xFFFFF3E0),
-        );
-      default:
-        return (
-          color: Colors.grey,
-          backgroundColor: Colors.grey.shade100,
-        );
-    }
-  }
 }
-
-const List<Map<String, dynamic>> _salesPeople = [
-  {'name': 'Jane Cooper', 'status': 'Available'},
-  {'name': 'Jane Cooper', 'status': 'On Visit'},
-  {'name': 'Jane Cooper', 'status': 'Busy'},
-  {'name': 'Jane Cooper', 'status': 'Away'},
-];
