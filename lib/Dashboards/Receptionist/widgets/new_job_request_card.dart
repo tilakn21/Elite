@@ -9,7 +9,7 @@ class NewJobRequestCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        Navigator.of(context).pushNamed('/receptionist/view-all-jobs');
+        Navigator.of(context).pushNamed('/receptionist/new-job-request');
       },
       child: Card(
         elevation: 8,

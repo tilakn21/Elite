@@ -13,6 +13,8 @@ class JobRequest {
   final String? avatar;
   final String? time;
   final bool? assigned;
+  final String? priority; // Added priority field
+  final String? salespersonId;
 
   JobRequest({
     String? id,
@@ -25,6 +27,8 @@ class JobRequest {
     this.avatar,
     this.time,
     this.assigned,
+    this.priority, // Added priority parameter
+    this.salespersonId,
   }) : id = id ?? const Uuid().v4();
 
   factory JobRequest.fromJson(Map<String, dynamic> json) {
@@ -35,7 +39,8 @@ class JobRequest {
       email: json['email'],
       status: JobRequestStatus.values.firstWhere(
         (e) =>
-            e.name.toLowerCase() == (json['status']?.toLowerCase() ?? 'pending'),
+            e.name.toLowerCase() ==
+            (json['status']?.toLowerCase() ?? 'pending'),
         orElse: () => JobRequestStatus.pending,
       ),
       dateAdded: json['date'] != null ? DateTime.tryParse(json['date']) : null,
@@ -43,6 +48,8 @@ class JobRequest {
       avatar: json['avatar'],
       time: json['time'],
       assigned: json['assigned'],
+      priority: json['priority'], // Added priority field
+      salespersonId: json['salespersonId'],
     );
   }
 
@@ -57,6 +64,8 @@ class JobRequest {
         'avatar': avatar,
         'time': time,
         'assigned': assigned,
+        'priority': priority, // Added priority field
+        'salespersonId': salespersonId,
       };
 }
 

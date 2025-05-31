@@ -31,7 +31,6 @@ import 'Dashboards/Design/screens/active_chats_screen.dart';
 import 'Dashboards/Receptionist/screens/dashboard_screen.dart';
 import 'Dashboards/Receptionist/screens/new_job_request_screen.dart';
 import 'Dashboards/Receptionist/screens/assign_salesperson_screen.dart';
-import 'Dashboards/Receptionist/screens/view_all_jobs_screen.dart';
 
 // Design Dashboard
 import 'Dashboards/Design/screens/dashboard_screen.dart' as design;
@@ -80,20 +79,36 @@ void main() async {
     print(details.stack);
   };
   runApp(
-    MultiProvider(      providers: [
+    MultiProvider(
+      providers: [
         ChangeNotifierProvider(create: (_) => UserProvider(DesignService())),
         ChangeNotifierProvider(create: (_) => JobProvider(DesignService())),
         ChangeNotifierProvider(create: (_) => ChatProvider(DesignService())),
-        ChangeNotifierProvider(create: (_) => InvoiceProvider()), // Registered InvoiceProvider
-        ChangeNotifierProvider(create: (_) => AdminProvider(AdminService())),   // Registered AdminProvider with AdminService
-        ChangeNotifierProvider(create: (_) => PrintingJobProvider(PrintingService())), // Registered PrintingJobProvider        
-        Provider(create: (_) => ProductionService()), // Provide ProductionService so other providers can read it
-        ChangeNotifierProvider(create: (context) => ProductionJobProvider(context.read<ProductionService>())),
-        ChangeNotifierProvider(create: (context) => WorkerProvider(context.read<ProductionService>())),
+        ChangeNotifierProvider(
+            create: (_) => InvoiceProvider()), // Registered InvoiceProvider
+        ChangeNotifierProvider(
+            create: (_) => AdminProvider(
+                AdminService())), // Registered AdminProvider with AdminService
+        ChangeNotifierProvider(
+            create: (_) => PrintingJobProvider(
+                PrintingService())), // Registered PrintingJobProvider
+        Provider(
+            create: (_) =>
+                ProductionService()), // Provide ProductionService so other providers can read it
+        ChangeNotifierProvider(
+            create: (context) =>
+                ProductionJobProvider(context.read<ProductionService>())),
+        ChangeNotifierProvider(
+            create: (context) =>
+                WorkerProvider(context.read<ProductionService>())),
         // Provide ReceptionistService so other providers can read it.
-        Provider(create: (_) => ReceptionistService()), 
-        ChangeNotifierProvider(create: (context) => JobRequestProvider(context.read<ReceptionistService>())),
-        ChangeNotifierProvider(create: (context) => SalespersonProvider(context.read<ReceptionistService>())),
+        Provider(create: (_) => ReceptionistService()),
+        ChangeNotifierProvider(
+            create: (context) =>
+                JobRequestProvider(context.read<ReceptionistService>())),
+        ChangeNotifierProvider(
+            create: (context) =>
+                SalespersonProvider(context.read<ReceptionistService>())),
       ],
       child: MyApp(),
     ),
@@ -104,52 +119,53 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {    return FocusTraversalGroup(
-      policy: OrderedTraversalPolicy(),
-      child: MaterialApp(
-        title: 'Elite Signboard Management',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          primaryColor: const Color(0xFF1A237E),
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF1A237E),
-            primary: const Color(0xFF1A237E),
-            secondary: const Color(0xFF536DFE),
+  Widget build(BuildContext context) {
+    return FocusTraversalGroup(
+        policy: OrderedTraversalPolicy(),
+        child: MaterialApp(
+          title: 'Elite Signboard Management',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            primaryColor: const Color(0xFF1A237E),
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF1A237E),
+              primary: const Color(0xFF1A237E),
+              secondary: const Color(0xFF536DFE),
+            ),
+            fontFamily: 'Poppins',
           ),
-          fontFamily: 'Poppins',
-        ),
-      home: const LoginScreen(),
-      //home: const SalespersonHomeScreen(),
-      routes: {
-        '/admin/dashboard': (context) => AdminDashboardScreen(),
-        '/admin/employees': (context) => const EmployeeManagementScreen(),
-        '/admin/jobs': (context) => const JobListingScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/receptionist/dashboard': (context) => const DashboardPage(),
-        '/receptionist/new-job-request': (context) =>
-            const NewJobRequestScreen(),
-        '/receptionist/assign-salesperson': (context) =>
-            const AssignSalespersonScreen(),
-        '/receptionist/view-all-jobs': (context) => const ViewAllJobsScreen(),
-        '/salesperson/dashboard': (context) => const SalespersonHomeScreen(),
-        '/salesperson/profile': (context) => const SalespersonProfileScreen(),
-        '/design/dashboard': (context) => const design.DashboardScreen(),
-        '/accounts/dashboard': (context) => const AccountsDashboardScreen(),
-        '/accounts/invoice': (context) => const AccountsInvoiceScreen(),
-        '/accounts/employee': (context) => const AccountsEmployeeScreen(),
-        '/production/dashboard': (context) => const ProductionDashboard(),
-        '/production/joblist': (context) => const ProductionJobListScreen(),
-        '/production/assignlabour': (context) => const AssignLabourScreen(),
-        '/production/updatejobstatus': (context) =>
-            const UpdateJobStatusScreen(),
-        '/printing/dashboard': (context) => const PrintingDashboardScreen(),
-        '/printing/assignlabour': (context) =>
-            const PrintingAssignLabourScreen(),
-        '/printing/qualitycheck': (context) =>
-            const PrintingQualityCheckScreen(),
-      },
-      )
-    );
+          home: const LoginScreen(),
+          //home: const SalespersonHomeScreen(),
+          routes: {
+            '/admin/dashboard': (context) => AdminDashboardScreen(),
+            '/admin/employees': (context) => const EmployeeManagementScreen(),
+            '/admin/jobs': (context) => const JobListingScreen(),
+            '/login': (context) => const LoginScreen(),
+            '/receptionist/dashboard': (context) => const DashboardPage(),
+            '/receptionist/new-job-request': (context) =>
+                const NewJobRequestScreen(),
+            '/receptionist/assign-salesperson': (context) =>
+                const AssignSalespersonScreen(),
+            '/salesperson/dashboard': (context) =>
+                const SalespersonHomeScreen(),
+            '/salesperson/profile': (context) =>
+                const SalespersonProfileScreen(),
+            '/design/dashboard': (context) => const design.DashboardScreen(),
+            '/accounts/dashboard': (context) => const AccountsDashboardScreen(),
+            '/accounts/invoice': (context) => const AccountsInvoiceScreen(),
+            '/accounts/employee': (context) => const AccountsEmployeeScreen(),
+            '/production/dashboard': (context) => const ProductionDashboard(),
+            '/production/joblist': (context) => const ProductionJobListScreen(),
+            '/production/assignlabour': (context) => const AssignLabourScreen(),
+            '/production/updatejobstatus': (context) =>
+                const UpdateJobStatusScreen(),
+            '/printing/dashboard': (context) => const PrintingDashboardScreen(),
+            '/printing/assignlabour': (context) =>
+                const PrintingAssignLabourScreen(),
+            '/printing/qualitycheck': (context) =>
+                const PrintingQualityCheckScreen(),
+          },
+        ));
   }
 }
 

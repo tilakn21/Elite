@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -8,7 +9,6 @@ import '../models/chat.dart';
 import '../utils/app_theme.dart';
 import '../services/design_service.dart';
 import 'chat_screen.dart';
-import 'dart:io';
 
 class ActiveChatsScreen extends StatefulWidget {
   const ActiveChatsScreen({super.key});
@@ -21,14 +21,23 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
     with AutomaticKeepAliveClientMixin {
   Chat? _selectedChat;
   final TextEditingController _messageController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  Timer? _searchDebounceTimer;
   List<File> _selectedImages = [];
   bool _showImagePreview = false;
   bool _isUploading = false;
+  bool _isRefreshing = false;
+  String _searchQuery = '';
+  List<String> _searchSuggestions = [];
+  ChatStatus? _selectedStatusFilter;
+  List<String> _recentSearches = [];
+  bool _sortByRecent = true; // true = most recent first
 
   @override
   void dispose() {
     _messageController.dispose();
+    _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -53,8 +62,10 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
       );
     }
   }
+
   Future<void> _sendMessage() async {
-    if ((_messageController.text.trim().isEmpty && _selectedImages.isEmpty) || _selectedChat == null) return;
+    if ((_messageController.text.trim().isEmpty && _selectedImages.isEmpty) ||
+        _selectedChat == null) return;
 
     setState(() {
       _isUploading = true;
@@ -145,7 +156,9 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
       if (result != null && result.files.isNotEmpty) {
         setState(() {
           _selectedImages.addAll(
-            result.files.where((file) => file.path != null).map((file) => File(file.path!)),
+            result.files
+                .where((file) => file.path != null)
+                .map((file) => File(file.path!)),
           );
           _showImagePreview = true;
         });
@@ -169,6 +182,78 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
     });
   }
 
+  List<Chat> _getFilteredAndSortedChats(List<Chat> chats) {
+    var filteredChats = chats;
+
+    // Apply status filter
+    if (_selectedStatusFilter != null) {
+      filteredChats = filteredChats
+          .where((chat) => chat.status == _selectedStatusFilter)
+          .toList();
+    }
+
+    // Apply search
+    if (_searchQuery.isNotEmpty) {
+      filteredChats = filteredChats.where((chat) {
+        // Search in customer name
+        if (chat.customerName
+            .toLowerCase()
+            .contains(_searchQuery.toLowerCase())) {
+          return true;
+        }
+        // Search in messages
+        return chat.messages.any((msg) =>
+            msg.message.toLowerCase().contains(_searchQuery.toLowerCase()));
+      }).toList();
+    }
+
+    // Sort by timestamp
+    filteredChats.sort((a, b) {
+      if (_sortByRecent) {
+        return b.lastUpdated.compareTo(a.lastUpdated);
+      } else {
+        return a.lastUpdated.compareTo(b.lastUpdated);
+      }
+    });
+
+    return filteredChats;
+  }
+
+  void _handleSearch(String value) {
+    setState(() {
+      _searchQuery = value;
+      if (value.isNotEmpty && !_recentSearches.contains(value)) {
+        _recentSearches.insert(0, value);
+        if (_recentSearches.length > 5) {
+          _recentSearches.removeLast();
+        }
+      }
+    });
+  }
+
+  Future<void> _refreshChats() async {
+    if (_isRefreshing) return;
+
+    setState(() {
+      _isRefreshing = true;
+    });
+
+    try {
+      final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+      await chatProvider.refreshChats();
+    } finally {
+      setState(() {
+        _isRefreshing = false;
+      });
+    }
+  }
+
+  void _toggleSort() {
+    setState(() {
+      _sortByRecent = !_sortByRecent;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
@@ -186,79 +271,290 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
   }
 
   // Layout methods
-  Widget _buildMobileLayout(List<Chat> activeChats) {
+  Widget _buildMobileLayout(List<Chat> chats) {
+    final filteredChats = _getFilteredAndSortedChats(chats);
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('Active Chats'),
+        actions: [
+          IconButton(
+            icon:
+                Icon(_sortByRecent ? Icons.arrow_downward : Icons.arrow_upward),
+            onPressed: _toggleSort,
+            tooltip: _sortByRecent ? 'Most recent first' : 'Oldest first',
+          ),
+          IconButton(
+            icon: _isRefreshing
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.refresh),
+            onPressed: _isRefreshing ? null : _refreshChats,
+            tooltip: 'Refresh chats',
+          ),
+        ],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: activeChats.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 64,
-                          color: AppTheme.textSecondaryColor.withAlpha(128),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No active chats',
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    color: AppTheme.textSecondaryColor,
-                                  ),
-                        ),
-                      ],
+          // Search bar
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search chats...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 0,
+                ),
+              ),
+              onChanged: _handleSearch,
+            ),
+          ),
+          // Filter chips
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              children: [
+                FilterChip(
+                  label: const Text('All'),
+                  selected: _selectedStatusFilter == null,
+                  onSelected: (bool selected) {
+                    setState(() {
+                      _selectedStatusFilter = null;
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                FilterChip(
+                  label: const Text('Active'),
+                  selected: _selectedStatusFilter == ChatStatus.inProgress,
+                  onSelected: (bool selected) {
+                    setState(() {
+                      _selectedStatusFilter =
+                          selected ? ChatStatus.inProgress : null;
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                FilterChip(
+                  label: const Text('Pending'),
+                  selected: _selectedStatusFilter == ChatStatus.pending,
+                  onSelected: (bool selected) {
+                    setState(() {
+                      _selectedStatusFilter =
+                          selected ? ChatStatus.pending : null;
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                FilterChip(
+                  label: const Text('Resolved'),
+                  selected: _selectedStatusFilter == ChatStatus.approved,
+                  onSelected: (bool selected) {
+                    setState(() {
+                      _selectedStatusFilter =
+                          selected ? ChatStatus.approved : null;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+          // Recent searches
+          if (_recentSearches.isNotEmpty && _searchController.text.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Recent searches:'),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _recentSearches
+                          .map((search) => Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: ActionChip(
+                                  label: Text(search),
+                                  onPressed: () {
+                                    _searchController.text = search;
+                                    _handleSearch(search);
+                                  },
+                                ),
+                              ))
+                          .toList(),
                     ),
-                  )
-                : ListView.separated(
-                    itemCount: activeChats.length,
-                    separatorBuilder: (context, index) =>
-                        const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final chat = activeChats[index];
-                      return _buildChatListItem(
-                        context,
-                        chat,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ChatScreen(
-                                customerId: chat.customerId,
-                                customerName: chat.customerName,
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
                   ),
+                ],
+              ),
+            ),
+          Expanded(
+            child: _buildChatList(filteredChats, (chat) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ChatScreen(
+                    customerId: chat.customerId,
+                    customerName: chat.customerName,
+                  ),
+                ),
+              );
+            }),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDesktopLayout(List<Chat> activeChats, bool isDesktop) {
+  Widget _buildDesktopLayout(List<Chat> chats, bool isDesktop) {
+    final filteredChats = _getFilteredAndSortedChats(chats);
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header and search bar
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Active chats',
-              style: Theme.of(context).textTheme.displayMedium,
+            child: Row(
+              children: [
+                Text(
+                  'Active chats',
+                  style: Theme.of(context).textTheme.displayMedium,
+                ),
+                const SizedBox(width: 24),
+                // Search bar
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search chats...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 0,
+                      ),
+                    ),
+                    onChanged: _handleSearch,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Sort toggle
+                IconButton(
+                  icon: Icon(_sortByRecent
+                      ? Icons.arrow_downward
+                      : Icons.arrow_upward),
+                  onPressed: _toggleSort,
+                  tooltip: _sortByRecent ? 'Most recent first' : 'Oldest first',
+                ),
+                const SizedBox(width: 16),
+                // Refresh button
+                IconButton(
+                  icon: _isRefreshing
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.refresh),
+                  onPressed: _isRefreshing ? null : _refreshChats,
+                  tooltip: 'Refresh chats',
+                ),
+              ],
             ),
           ),
+          // Filter chips
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              children: [
+                FilterChip(
+                  label: const Text('All'),
+                  selected: _selectedStatusFilter == null,
+                  onSelected: (bool selected) {
+                    setState(() {
+                      _selectedStatusFilter = null;
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                FilterChip(
+                  label: const Text('Active'),
+                  selected: _selectedStatusFilter == ChatStatus.inProgress,
+                  onSelected: (bool selected) {
+                    setState(() {
+                      _selectedStatusFilter =
+                          selected ? ChatStatus.inProgress : null;
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                FilterChip(
+                  label: const Text('Pending'),
+                  selected: _selectedStatusFilter == ChatStatus.pending,
+                  onSelected: (bool selected) {
+                    setState(() {
+                      _selectedStatusFilter =
+                          selected ? ChatStatus.pending : null;
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                FilterChip(
+                  label: const Text('Resolved'),
+                  selected: _selectedStatusFilter == ChatStatus.approved,
+                  onSelected: (bool selected) {
+                    setState(() {
+                      _selectedStatusFilter =
+                          selected ? ChatStatus.approved : null;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+          // Recent searches
+          if (_recentSearches.isNotEmpty && _searchController.text.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Recent searches:'),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: _recentSearches
+                        .map((search) => ActionChip(
+                              label: Text(search),
+                              onPressed: () {
+                                _searchController.text = search;
+                                _handleSearch(search);
+                              },
+                            ))
+                        .toList(),
+                  ),
+                ],
+              ),
+            ),
           Expanded(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -272,26 +568,8 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
                       right: BorderSide(color: AppTheme.dividerColor),
                     ),
                   ),
-                  child: activeChats.isEmpty
-                      ? Center(
-                          child: Text(
-                            'No active chats',
-                            style:
-                                Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                      color: AppTheme.textSecondaryColor,
-                                    ),
-                          ),
-                        )
-                      : ListView.separated(
-                          itemCount: activeChats.length,
-                          separatorBuilder: (context, index) =>
-                              const Divider(height: 1),
-                          itemBuilder: (context, index) {
-                            final chat = activeChats[index];
-                            return _buildChatListItem(context, chat,
-                                onTap: () => _selectChat(chat));
-                          },
-                        ),
+                  child: _buildChatList(
+                      filteredChats, (chat) => _selectChat(chat)),
                 ),
 
                 // Right side - Chat content
@@ -337,18 +615,39 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
                               ),
                               child: Row(
                                 children: [
-                                  CircleAvatar(
-                                    radius: 20,
-                                    backgroundColor:
-                                        Colors.grey[200]?.withAlpha(255),
-                                    child: Text(
-                                      _selectedChat!.customerName
-                                          .substring(0, 1),
-                                      style: const TextStyle(
-                                        color: AppTheme.primaryColor,
-                                        fontWeight: FontWeight.bold,
+                                  Stack(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 20,
+                                        backgroundColor:
+                                            Colors.grey[200]?.withAlpha(255),
+                                        child: Text(
+                                          _selectedChat!.customerName
+                                              .substring(0, 1),
+                                          style: const TextStyle(
+                                            color: AppTheme.primaryColor,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
                                       ),
-                                    ),
+                                      if (_selectedChat!.isOnline)
+                                        Positioned(
+                                          right: 0,
+                                          bottom: 0,
+                                          child: Container(
+                                            width: 12,
+                                            height: 12,
+                                            decoration: BoxDecoration(
+                                              color: Colors.green,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: Colors.white,
+                                                width: 2,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
@@ -356,12 +655,27 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          _selectedChat!.customerName,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              _selectedChat!.customerName,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              width: 8,
+                                              height: 8,
+                                              decoration: BoxDecoration(
+                                                color: _selectedChat!.isOnline
+                                                    ? Colors.green
+                                                    : Colors.grey[400],
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                         Text(
                                           _selectedChat!.customerSpecialty,
@@ -418,8 +732,10 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
                                         final message =
                                             _selectedChat!.messages[index];
                                         final isAdmin =
-                                            message.senderId == 'admin';                                        return Padding(
-                                          padding: const EdgeInsets.only(bottom: 12.0),
+                                            message.senderId == 'admin';
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                              bottom: 12.0),
                                           child: Row(
                                             mainAxisAlignment: isAdmin
                                                 ? MainAxisAlignment.end
@@ -428,31 +744,41 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
                                               if (!isAdmin) ...[
                                                 CircleAvatar(
                                                   radius: 16,
-                                                  backgroundColor: Colors.grey[200],
+                                                  backgroundColor:
+                                                      Colors.grey[200],
                                                   child: Text(
-                                                    _selectedChat!.customerName.substring(0, 1),
+                                                    _selectedChat!.customerName
+                                                        .substring(0, 1),
                                                     style: const TextStyle(
-                                                      color: AppTheme.primaryColor,
-                                                      fontWeight: FontWeight.bold,
+                                                      color:
+                                                          AppTheme.primaryColor,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                     ),
                                                   ),
                                                 ),
                                                 const SizedBox(width: 8),
                                               ],
                                               Container(
-                                                constraints: BoxConstraints(maxWidth: 400),
+                                                constraints: BoxConstraints(
+                                                    maxWidth: 400),
                                                 decoration: BoxDecoration(
                                                   color: isAdmin
                                                       ? AppTheme.accentColor
                                                       : Colors.grey[100],
-                                                  borderRadius: BorderRadius.circular(16),
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
                                                 ),
                                                 child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
                                                   children: [
-                                                    if (message.message.isNotEmpty) ...[
+                                                    if (message.message
+                                                        .isNotEmpty) ...[
                                                       Padding(
-                                                        padding: const EdgeInsets.all(12),
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(12),
                                                         child: Text(
                                                           message.message,
                                                           style: TextStyle(
@@ -463,71 +789,97 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
                                                         ),
                                                       ),
                                                     ],
-                                                    if (message.imageUrls != null &&
-                                                        message.imageUrls!.isNotEmpty) ...[
+                                                    if (message.imageUrls !=
+                                                            null &&
+                                                        message.imageUrls!
+                                                            .isNotEmpty) ...[
                                                       Container(
-                                                        padding: const EdgeInsets.symmetric(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
                                                           horizontal: 12,
                                                           vertical: 8,
                                                         ),
                                                         child: Wrap(
                                                           spacing: 8,
                                                           runSpacing: 8,
-                                                          children:
-                                                              message.imageUrls!.map((url) {
+                                                          children: message
+                                                              .imageUrls!
+                                                              .map((url) {
                                                             return Container(
-                                                              decoration: BoxDecoration(
-                                                                border: Border.all(
-                                                                  color: Colors.grey[300]!,
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                border:
+                                                                    Border.all(
+                                                                  color: Colors
+                                                                          .grey[
+                                                                      300]!,
                                                                   width: 1,
                                                                 ),
                                                                 borderRadius:
-                                                                    BorderRadius.circular(8),
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            8),
                                                               ),
                                                               child: ClipRRect(
                                                                 borderRadius:
-                                                                    BorderRadius.circular(8),
-                                                                child: Image.network(
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            8),
+                                                                child: Image
+                                                                    .network(
                                                                   url,
                                                                   height: 150,
                                                                   width: 150,
-                                                                  fit: BoxFit.cover,
-                                                                  loadingBuilder: (context,
-                                                                      child,
-                                                                      loadingProgress) {
+                                                                  fit: BoxFit
+                                                                      .cover,
+                                                                  loadingBuilder:
+                                                                      (context,
+                                                                          child,
+                                                                          loadingProgress) {
                                                                     if (loadingProgress ==
                                                                         null) {
                                                                       return child;
                                                                     }
                                                                     return Container(
-                                                                      height: 150,
-                                                                      width: 150,
-                                                                      color: Colors.grey[200],
-                                                                      child: Center(
+                                                                      height:
+                                                                          150,
+                                                                      width:
+                                                                          150,
+                                                                      color: Colors
+                                                                              .grey[
+                                                                          200],
+                                                                      child:
+                                                                          Center(
                                                                         child:
                                                                             CircularProgressIndicator(
-                                                                          value: loadingProgress
-                                                                                      .expectedTotalBytes !=
-                                                                                  null
-                                                                              ? loadingProgress
-                                                                                      .cumulativeBytesLoaded /
-                                                                                  loadingProgress
-                                                                                      .expectedTotalBytes!
+                                                                          value: loadingProgress.expectedTotalBytes != null
+                                                                              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
                                                                               : null,
                                                                         ),
                                                                       ),
                                                                     );
                                                                   },
-                                                                  errorBuilder: (context,
-                                                                      error, stackTrace) {
+                                                                  errorBuilder:
+                                                                      (context,
+                                                                          error,
+                                                                          stackTrace) {
                                                                     return Container(
-                                                                      height: 150,
-                                                                      width: 150,
-                                                                      color: Colors.grey[200],
-                                                                      child: const Center(
-                                                                        child: Icon(
-                                                                          Icons.error_outline,
-                                                                          color: Colors.red,
+                                                                      height:
+                                                                          150,
+                                                                      width:
+                                                                          150,
+                                                                      color: Colors
+                                                                              .grey[
+                                                                          200],
+                                                                      child:
+                                                                          const Center(
+                                                                        child:
+                                                                            Icon(
+                                                                          Icons
+                                                                              .error_outline,
+                                                                          color:
+                                                                              Colors.red,
                                                                         ),
                                                                       ),
                                                                     );
@@ -540,18 +892,22 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
                                                       ),
                                                     ],
                                                     Padding(
-                                                      padding: const EdgeInsets.only(
+                                                      padding:
+                                                          const EdgeInsets.only(
                                                         left: 12,
                                                         right: 12,
                                                         bottom: 8,
                                                       ),
                                                       child: Text(
                                                         DateFormat('h:mm a')
-                                                            .format(message.timestamp),
+                                                            .format(message
+                                                                .timestamp),
                                                         style: TextStyle(
                                                           fontSize: 10,
                                                           color: isAdmin
-                                                              ? Colors.white.withAlpha(179)
+                                                              ? Colors.white
+                                                                  .withAlpha(
+                                                                      179)
                                                               : Colors.grey,
                                                         ),
                                                       ),
@@ -563,12 +919,14 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
                                                 const SizedBox(width: 8),
                                                 CircleAvatar(
                                                   radius: 16,
-                                                  backgroundColor: AppTheme.accentColor,
+                                                  backgroundColor:
+                                                      AppTheme.accentColor,
                                                   child: const Text(
                                                     'A',
                                                     style: TextStyle(
                                                       color: Colors.white,
-                                                      fontWeight: FontWeight.bold,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                     ),
                                                   ),
                                                 ),
@@ -578,64 +936,70 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
                                         );
                                       },
                                     ),
-                            ),                            // Image preview
-                            if (_showImagePreview) Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[100],
-                                border: Border(
-                                  top: BorderSide(color: Colors.grey[300]!),
+                            ), // Image preview
+                            if (_showImagePreview)
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[100],
+                                  border: Border(
+                                    top: BorderSide(color: Colors.grey[300]!),
+                                  ),
+                                ),
+                                height: 100,
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: _selectedImages.length,
+                                  itemBuilder: (context, index) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(right: 8),
+                                      child: Stack(
+                                        children: [
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              border: Border.all(
+                                                  color: Colors.grey[300]!),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              child: Image.file(
+                                                _selectedImages[index],
+                                                height: 80,
+                                                width: 80,
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            top: 4,
+                                            right: 4,
+                                            child: GestureDetector(
+                                              onTap: () => _removeImage(index),
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.all(4),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black
+                                                      .withOpacity(0.5),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: const Icon(
+                                                  Icons.close,
+                                                  size: 16,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
-                              height: 100,
-                              child: ListView.builder(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: _selectedImages.length,
-                                itemBuilder: (context, index) {
-                                  return Padding(
-                                    padding: const EdgeInsets.only(right: 8),
-                                    child: Stack(
-                                      children: [
-                                        Container(
-                                          decoration: BoxDecoration(
-                                            border: Border.all(color: Colors.grey[300]!),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(8),
-                                            child: Image.file(
-                                              _selectedImages[index],
-                                              height: 80,
-                                              width: 80,
-                                              fit: BoxFit.cover,
-                                            ),
-                                          ),
-                                        ),
-                                        Positioned(
-                                          top: 4,
-                                          right: 4,
-                                          child: GestureDetector(
-                                            onTap: () => _removeImage(index),
-                                            child: Container(
-                                              padding: const EdgeInsets.all(4),
-                                              decoration: BoxDecoration(
-                                                color: Colors.black.withOpacity(0.5),
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: const Icon(
-                                                Icons.close,
-                                                size: 16,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
 
                             // Message input
                             Container(
@@ -651,7 +1015,8 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
                                   // Attachment button
                                   IconButton(
                                     icon: const Icon(Icons.attach_file),
-                                    onPressed: _isUploading ? null : _pickImages,
+                                    onPressed:
+                                        _isUploading ? null : _pickImages,
                                     color: AppTheme.primaryColor,
                                     tooltip: 'Attach images',
                                   ),
@@ -666,24 +1031,30 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
                                       decoration: InputDecoration(
                                         hintText: 'Type a message...',
                                         border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(24),
+                                          borderRadius:
+                                              BorderRadius.circular(24),
                                           borderSide: BorderSide.none,
                                         ),
                                         filled: true,
                                         fillColor: Colors.grey[100],
-                                        contentPadding: const EdgeInsets.symmetric(
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
                                           horizontal: 16,
                                           vertical: 10,
                                         ),
                                         suffixIcon: _isUploading
                                             ? Padding(
-                                                padding: const EdgeInsets.all(8.0),
+                                                padding:
+                                                    const EdgeInsets.all(8.0),
                                                 child: SizedBox(
                                                   width: 20,
                                                   height: 20,
-                                                  child: CircularProgressIndicator(
+                                                  child:
+                                                      CircularProgressIndicator(
                                                     strokeWidth: 2,
-                                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                                    valueColor:
+                                                        AlwaysStoppedAnimation<
+                                                            Color>(
                                                       AppTheme.primaryColor,
                                                     ),
                                                   ),
@@ -707,7 +1078,8 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
                                         color: Colors.white,
                                         size: 20,
                                       ),
-                                      onPressed: _isUploading ? null : _sendMessage,
+                                      onPressed:
+                                          _isUploading ? null : _sendMessage,
                                     ),
                                   ),
                                 ],
@@ -790,19 +1162,40 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            CircleAvatar(
-              radius: isMobile ? 16 : 20,
-              backgroundColor: Colors.grey[200]?.withAlpha(255),
-              child: Text(
-                chat.customerName.isNotEmpty
-                    ? chat.customerName.substring(0, 1)
-                    : '?',
-                style: TextStyle(
-                  color: AppTheme.primaryColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: isMobile ? 12 : 14,
+            Stack(
+              children: [
+                CircleAvatar(
+                  radius: isMobile ? 16 : 20,
+                  backgroundColor: Colors.grey[200]?.withAlpha(255),
+                  child: Text(
+                    chat.customerName.isNotEmpty
+                        ? chat.customerName.substring(0, 1)
+                        : '?',
+                    style: TextStyle(
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: isMobile ? 12 : 14,
+                    ),
+                  ),
                 ),
-              ),
+                if (chat.isOnline)
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             SizedBox(width: isMobile ? 8 : 12),
             Expanded(
@@ -887,6 +1280,50 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildChatList(List<Chat> filteredChats, Function(Chat) onChatTap) {
+    return RefreshIndicator(
+      onRefresh: _refreshChats,
+      child: filteredChats.isEmpty
+          ? ListView(
+              children: [
+                SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.4,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.chat_bubble_outline,
+                          size: 64,
+                          color: AppTheme.textSecondaryColor.withAlpha(128),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No chats found',
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    color: AppTheme.textSecondaryColor,
+                                  ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: filteredChats.length,
+              separatorBuilder: (context, index) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final chat = filteredChats[index];
+                return _buildChatListItem(context, chat,
+                    onTap: () => onChatTap(chat));
+              },
+            ),
     );
   }
 }

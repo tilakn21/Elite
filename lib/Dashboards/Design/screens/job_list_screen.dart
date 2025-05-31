@@ -17,8 +17,13 @@ class _JobListScreenState extends State<JobListScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+      GlobalKey<RefreshIndicatorState>();
+
   String _searchQuery = '';
   String _selectedFilter = 'All';
+  bool _isRefreshing = false;
+  bool _isSearching = false;
 
   @override
   void initState() {
@@ -33,16 +38,47 @@ class _JobListScreenState extends State<JobListScreen>
     super.dispose();
   }
 
+  Future<void> _refreshJobs(JobProvider jobProvider) async {
+    setState(() => _isRefreshing = true);
+    await jobProvider.refreshJobs();
+    setState(() => _isRefreshing = false);
+  }
+
+  void _clearSearch() {
+    setState(() {
+      _searchQuery = '';
+      _searchController.clear();
+      _isSearching = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final jobProvider = Provider.of<JobProvider>(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+
     final filteredJobs = jobProvider.jobs.where((job) {
-      final matchesSearch = job.clientName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          job.jobNo.toLowerCase().contains(_searchQuery.toLowerCase());
-      
-      if (_selectedFilter == 'All') return matchesSearch;
-      return matchesSearch && job.status.toString().split('.').last == _selectedFilter.toLowerCase();
+      if (_searchQuery.isEmpty && _selectedFilter == 'All') return true;
+
+      final matchesSearch = _searchQuery.isEmpty ||
+          job.clientName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          job.phoneNumber.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          job.jobNo.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          job.status
+              .toString()
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase());
+
+      final matchesFilter = _selectedFilter == 'All' ||
+          job.status.toString().split('.').last.toLowerCase() ==
+              _selectedFilter.toLowerCase();
+
+      return matchesSearch && matchesFilter;
     }).toList();
+
+    final displayedJobCount = filteredJobs.length;
+    final totalJobCount = jobProvider.jobs.length;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
@@ -65,13 +101,27 @@ class _JobListScreenState extends State<JobListScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Job list',
-                  style: Theme.of(context).textTheme.displayMedium,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Job list',
+                      style: Theme.of(context).textTheme.displayMedium,
+                    ),
+                    if (totalJobCount > 0)
+                      Text(
+                        'Showing $displayedJobCount of $totalJobCount jobs',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 24),
                 Row(
                   children: [
+                    // Search field
                     Expanded(
                       child: Container(
                         height: 40,
@@ -81,44 +131,116 @@ class _JobListScreenState extends State<JobListScreen>
                         ),
                         child: TextField(
                           controller: _searchController,
-                          onChanged: (value) => setState(() => _searchQuery = value),
+                          onChanged: (value) => setState(() {
+                            _searchQuery = value;
+                            _isSearching = value.isNotEmpty;
+                          }),
                           decoration: InputDecoration(
-                            hintText: 'Search jobs...',
-                            prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                            hintText:
+                                'Search jobs by client name, phone, or job ID...',
+                            prefixIcon:
+                                const Icon(Icons.search, color: Colors.grey),
+                            suffixIcon: _isSearching
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: _clearSearch,
+                                    color: Colors.grey,
+                                  )
+                                : null,
                             border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 16),
+                    // Refresh button
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      height: 40,
                       decoration: BoxDecoration(
                         color: Colors.grey[100],
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _selectedFilter,
-                          items: ['All', 'Pending', 'InProgress', 'Approved']
-                              .map((filter) => DropdownMenuItem(
-                                    value: filter,
-                                    child: Text(filter),
-                                  ))
-                              .toList(),
-                          onChanged: (value) => setState(() => _selectedFilter = value!),
+                      child: IconButton(
+                        icon: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: _isRefreshing
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.grey),
+                                  ),
+                                )
+                              : const Icon(Icons.refresh, color: Colors.grey),
                         ),
+                        onPressed: _isRefreshing
+                            ? null
+                            : () => _refreshJobs(jobProvider),
+                        tooltip: 'Refresh jobs',
                       ),
                     ),
+                    if (!isMobile) ...[
+                      const SizedBox(width: 16),
+                      // Status filter
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedFilter,
+                            items: ['All', 'Pending', 'InProgress', 'Approved']
+                                .map((filter) => DropdownMenuItem(
+                                      value: filter,
+                                      child: Text(filter),
+                                    ))
+                                .toList(),
+                            onChanged: (value) =>
+                                setState(() => _selectedFilter = value!),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
+                if (isMobile) ...[
+                  const SizedBox(height: 16),
+                  // Status filter for mobile
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _selectedFilter,
+                        isExpanded: true,
+                        items: ['All', 'Pending', 'InProgress', 'Approved']
+                            .map((filter) => DropdownMenuItem(
+                                  value: filter,
+                                  child: Text(filter),
+                                ))
+                            .toList(),
+                        onChanged: (value) =>
+                            setState(() => _selectedFilter = value!),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
 
           // Approved jobs section
-          if (jobProvider.approvedJobs.isNotEmpty) ...[
+          if (!isMobile && jobProvider.approvedJobs.isNotEmpty) ...[
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -133,7 +255,7 @@ class _JobListScreenState extends State<JobListScreen>
                       const Spacer(),
                       TextButton(
                         onPressed: () {
-                          // Handle view all
+                          setState(() => _selectedFilter = 'Approved');
                         },
                         child: const Text('View all'),
                       ),
@@ -145,7 +267,8 @@ class _JobListScreenState extends State<JobListScreen>
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: jobProvider.approvedJobs.length,
-                      separatorBuilder: (context, index) => const SizedBox(width: 16),
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(width: 16),
                       itemBuilder: (context, index) {
                         final job = jobProvider.approvedJobs[index];
                         return _buildApprovedJobCard(context, job);
@@ -158,116 +281,54 @@ class _JobListScreenState extends State<JobListScreen>
             const Divider(height: 1),
           ],
 
-          // Table header
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              border: Border(
-                bottom: BorderSide(color: Colors.grey[200]!),
-              ),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-            child: Row(
-              children: [
-                // Job ID column
-                Expanded(
-                  flex: 3,
-                  child: Text(
-                    'Job ID',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppTheme.textSecondaryColor,
-                          fontWeight: FontWeight.w500,
-                        ),
-                  ),
-                ),
-                // Client Name column
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'Client Name',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppTheme.textSecondaryColor,
-                          fontWeight: FontWeight.w500,
-                        ),
-                  ),
-                ),
-                // Phone column
-                Expanded(
-                  flex: 2,
-                  child: Row(
-                    children: [
-                      Icon(Icons.phone_outlined, size: 16, color: AppTheme.textSecondaryColor),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Phone',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppTheme.textSecondaryColor,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Date column
-                Expanded(
-                  flex: 2,
-                  child: Row(
-                    children: [
-                      Icon(Icons.calendar_today_outlined, size: 16, color: AppTheme.textSecondaryColor),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Date added',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppTheme.textSecondaryColor,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Status column
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'STATUS',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: AppTheme.textSecondaryColor,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 48), // Space for arrow
-              ],
-            ),
-          ),
-
           // Job list
           Expanded(
-            child: filteredJobs.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.search_off, size: 48, color: Colors.grey[400]),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No jobs found',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+            child: RefreshIndicator(
+              key: _refreshIndicatorKey,
+              onRefresh: () => _refreshJobs(jobProvider),
+              child: filteredJobs.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(_isSearching ? Icons.search_off : Icons.work_off,
+                              size: 48, color: Colors.grey[400]),
+                          const SizedBox(height: 16),
+                          Text(
+                            _isSearching
+                                ? 'No jobs match your search'
+                                : jobProvider.jobs.isEmpty
+                                    ? 'No jobs available'
+                                    : 'No jobs match the selected filter',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  color: Colors.grey[600],
+                                ),
+                          ),
+                          if (_isSearching) ...[
+                            const SizedBox(height: 16),
+                            TextButton.icon(
+                              onPressed: _clearSearch,
+                              icon: const Icon(Icons.clear),
+                              label: const Text('Clear search'),
+                            ),
+                          ],
+                        ],
                       ),
-                    ],
-                  ),
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  itemCount: filteredJobs.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final job = filteredJobs[index];
-                    return _buildJobListItem(context, job);
-                  },
-                ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      itemCount: filteredJobs.length,
+                      separatorBuilder: (context, index) =>
+                          const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final job = filteredJobs[index];
+                        return _buildJobListItem(context, job);
+                      },
+                    ),
+            ),
           ),
         ],
       ),
@@ -302,7 +363,8 @@ class _JobListScreenState extends State<JobListScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.grey[100],
                       borderRadius: BorderRadius.circular(4),
@@ -310,17 +372,19 @@ class _JobListScreenState extends State<JobListScreen>
                     child: Text(
                       '#${job.jobNo}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey[700],
-                      ),
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey[700],
+                          ),
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: AppTheme.approvedColor.withAlpha(26),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.approvedColor.withAlpha(100)),
+                      border: Border.all(
+                          color: AppTheme.approvedColor.withAlpha(100)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -336,10 +400,11 @@ class _JobListScreenState extends State<JobListScreen>
                         const SizedBox(width: 4),
                         Text(
                           'Approved',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.approvedColor,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.approvedColor,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                         ),
                       ],
                     ),
@@ -347,15 +412,18 @@ class _JobListScreenState extends State<JobListScreen>
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               // Client info
               Row(
                 children: [
                   CircleAvatar(
                     radius: 20,
-                    backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                    backgroundColor:
+                        Theme.of(context).primaryColor.withOpacity(0.1),
                     child: Text(
-                      job.clientName.isNotEmpty ? job.clientName[0].toUpperCase() : '?',
+                      job.clientName.isNotEmpty
+                          ? job.clientName[0].toUpperCase()
+                          : '?',
                       style: TextStyle(
                         color: Theme.of(context).primaryColor,
                         fontWeight: FontWeight.bold,
@@ -370,17 +438,19 @@ class _JobListScreenState extends State<JobListScreen>
                       children: [
                         Text(
                           job.clientName,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
                         Text(
                           job.address.split(',').first,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.grey[600],
-                          ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey[600],
+                                  ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
@@ -389,33 +459,35 @@ class _JobListScreenState extends State<JobListScreen>
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               // Footer with date and contact
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.calendar_today_outlined, size: 14, color: Colors.grey[600]),
+                      Icon(Icons.calendar_today_outlined,
+                          size: 14, color: Colors.grey[600]),
                       const SizedBox(width: 4),
                       Text(
                         DateFormat('dd MMM yyyy').format(job.dateAdded),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                              color: Colors.grey[600],
+                            ),
                       ),
                     ],
                   ),
                   Row(
                     children: [
-                      Icon(Icons.phone_outlined, size: 14, color: Theme.of(context).primaryColor),
+                      Icon(Icons.phone_outlined,
+                          size: 14, color: Theme.of(context).primaryColor),
                       const SizedBox(width: 4),
                       Text(
                         'Contact',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).primaryColor,
-                          fontWeight: FontWeight.w500,
-                        ),
+                              color: Theme.of(context).primaryColor,
+                              fontWeight: FontWeight.w500,
+                            ),
                       ),
                     ],
                   ),
@@ -426,7 +498,9 @@ class _JobListScreenState extends State<JobListScreen>
         ),
       ),
     );
-  }  Widget _buildJobListItem(BuildContext context, Job job) {
+  }
+
+  Widget _buildJobListItem(BuildContext context, Job job) {
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
 
     Color statusColor;
@@ -473,9 +547,9 @@ class _JobListScreenState extends State<JobListScreen>
                 child: Text(
                   job.id,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: Theme.of(context).primaryColor,
-                  ),
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).primaryColor,
+                      ),
                 ),
               ),
               // Client Name column
@@ -485,9 +559,12 @@ class _JobListScreenState extends State<JobListScreen>
                   children: [
                     CircleAvatar(
                       radius: 14,
-                      backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                      backgroundColor:
+                          Theme.of(context).primaryColor.withOpacity(0.1),
                       child: Text(
-                        job.clientName.isNotEmpty ? job.clientName[0].toUpperCase() : '?',
+                        job.clientName.isNotEmpty
+                            ? job.clientName[0].toUpperCase()
+                            : '?',
                         style: TextStyle(
                           color: Theme.of(context).primaryColor,
                           fontWeight: FontWeight.bold,
@@ -500,8 +577,8 @@ class _JobListScreenState extends State<JobListScreen>
                       child: Text(
                         job.clientName,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
+                              fontWeight: FontWeight.w500,
+                            ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -522,15 +599,16 @@ class _JobListScreenState extends State<JobListScreen>
                 child: Text(
                   dateFormat.format(job.dateAdded),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+                        color: Colors.grey[600],
+                      ),
                 ),
               ),
               // Status column
               Expanded(
                 flex: 2,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: statusColor.withAlpha(26),
                     borderRadius: BorderRadius.circular(16),
@@ -551,9 +629,9 @@ class _JobListScreenState extends State<JobListScreen>
                       Text(
                         statusText,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: statusColor,
-                          fontWeight: FontWeight.w500,
-                        ),
+                              color: statusColor,
+                              fontWeight: FontWeight.w500,
+                            ),
                       ),
                     ],
                   ),
@@ -562,7 +640,8 @@ class _JobListScreenState extends State<JobListScreen>
               // Arrow
               SizedBox(
                 width: 48,
-                child: Icon(Icons.chevron_right, color: Colors.grey[400], size: 20),
+                child: Icon(Icons.chevron_right,
+                    color: Colors.grey[400], size: 20),
               ),
             ],
           ),

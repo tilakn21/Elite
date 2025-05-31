@@ -54,6 +54,10 @@ class ReceptionistService {
       status: SalespersonStatus.available,
       avatar: 'assets/images/sales/sales1.png', // Placeholder path
       subtitle: 'Ready for new assignments',
+      department: 'Residential Sales',
+      expertise: ['Kitchens', 'Bathrooms'],
+      skills: ['CAD Design', 'Negotiation'],
+      currentWorkload: 2,
     ),
     Salesperson(
       id: 'sp2',
@@ -61,6 +65,10 @@ class ReceptionistService {
       status: SalespersonStatus.onVisit,
       avatar: 'assets/images/sales/sales2.png', // Placeholder path
       subtitle: 'Currently on a client visit',
+      department: 'Commercial Sales',
+      expertise: ['Office Spaces', 'Retail Fitouts'],
+      skills: ['Project Management', 'Client Relations'],
+      currentWorkload: 5,
     ),
     Salesperson(
       id: 'sp3',
@@ -68,6 +76,10 @@ class ReceptionistService {
       status: SalespersonStatus.busy,
       avatar: 'assets/images/sales/sales3.png', // Placeholder path
       subtitle: 'Wrapping up previous task',
+      department: 'Residential Sales',
+      expertise: ['Living Rooms', 'Outdoor Spaces'],
+      skills: ['Interior Design', 'Sales Presentations'],
+      currentWorkload: 3,
     ),
   ];
 
@@ -107,8 +119,14 @@ class ReceptionistService {
     return newJobRequest;
   }
 
-  // Update an existing job request (e.g., status, assignment)
-  Future<JobRequest?> updateJobRequest(String id, {JobRequestStatus? status, bool? assigned, String? salespersonId}) async {
+  // Update an existing job request
+  Future<JobRequest?> updateJobRequest(
+    String id, {
+    JobRequestStatus? status,
+    bool? assigned,
+    String? priority,
+    String? salespersonId,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 500));
     int index = _mockJobRequests.indexWhere((job) => job.id == id);
     if (index != -1) {
@@ -120,13 +138,13 @@ class ReceptionistService {
         email: currentJob.email,
         status: status ?? currentJob.status,
         dateAdded: currentJob.dateAdded,
-        subtitle: currentJob.subtitle, 
+        subtitle: currentJob.subtitle,
         avatar: currentJob.avatar,
         time: currentJob.time,
         assigned: assigned ?? currentJob.assigned,
+        priority: priority ?? currentJob.priority,
+        salespersonId: salespersonId ?? currentJob.salespersonId,
       );
-      // If assigning a salesperson, you might want to update the subtitle or link them.
-      // For now, this is a basic update.
       return _mockJobRequests[index];
     }
     return null;
@@ -149,18 +167,23 @@ class ReceptionistService {
   }
 
   // Update salesperson status
-  Future<Salesperson?> updateSalespersonStatus(String id, SalespersonStatus status) async {
+  Future<Salesperson?> updateSalespersonStatus(
+      String id, SalespersonStatus status) async {
     await Future.delayed(const Duration(milliseconds: 500));
     int index = _mockSalespersons.indexWhere((sp) => sp.id == id);
     if (index != -1) {
       var currentSp = _mockSalespersons[index];
-       _mockSalespersons[index] = Salesperson(
-         id: currentSp.id,
-         name: currentSp.name,
-         status: status,
-         avatar: currentSp.avatar,
-         subtitle: currentSp.subtitle, // Subtitle could be updated based on new status
-       );
+      _mockSalespersons[index] = Salesperson(
+        id: currentSp.id,
+        name: currentSp.name,
+        status: status,
+        avatar: currentSp.avatar,
+        subtitle: currentSp.subtitle, // Subtitle could be updated based on new status
+        department: currentSp.department,
+        expertise: currentSp.expertise,
+        skills: currentSp.skills,
+        currentWorkload: currentSp.currentWorkload, // Workload might change based on status or other logic
+      );
       return _mockSalespersons[index];
     }
     return null;
@@ -233,10 +256,10 @@ class ReceptionistService {
               status: (e['is_available'] == true)
                   ? SalespersonStatus.available
                   : SalespersonStatus.busy,
+              department: e['department']?.toString() ?? 'Default Department',
             ))
         .toList();
   }
-  
 
   // Fetch all jobs from Supabase (jobs table, receptionist field)
   Future<List<JobRequest>> fetchJobRequestsFromSupabase() async {
@@ -252,7 +275,8 @@ class ReceptionistService {
         phone: receptionist?['phone'] ?? '',
         email: receptionist?['createdBy'] ?? '',
         status: _parseJobStatus(e['status']),
-        dateAdded: e['created_at'] != null ? DateTime.tryParse(e['created_at']) : null,
+        dateAdded:
+            e['created_at'] != null ? DateTime.tryParse(e['created_at']) : null,
         subtitle: receptionist?['shopName'] ?? '',
         avatar: '',
         time: receptionist?['timeOfVisit'] ?? '',
@@ -281,10 +305,10 @@ class ReceptionistService {
     try {
       await supabase
           .from('employee')
-          .update({'is_available': false})
-          .eq('id', salespersonId);
+          .update({'is_available': false}).eq('id', salespersonId);
     } on PostgrestException catch (e) {
-      throw Exception('Failed to update salesperson availability: \\${e.message}');
+      throw Exception(
+          'Failed to update salesperson availability: \\${e.message}');
     } catch (e) {
       throw Exception('Failed to update salesperson availability: $e');
     }

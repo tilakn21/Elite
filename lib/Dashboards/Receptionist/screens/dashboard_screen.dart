@@ -6,7 +6,6 @@ import '../widgets/sales_allocation_card.dart';
 import '../widgets/job_requests_overview_card.dart';
 import '../widgets/calendar_card.dart';
 import '../widgets/topbar.dart';
-import 'new_job_request_screen.dart';
 import '../models/job_request.dart';
 import '../models/salesperson.dart';
 import '../providers/job_request_provider.dart';

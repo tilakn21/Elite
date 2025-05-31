@@ -39,7 +39,7 @@ class JobRequestProvider with ChangeNotifier {
     try {
       await _receptionistService.addJobRequest(jobRequest);
       // Refresh the list after adding
-      await fetchJobRequests(); 
+      await fetchJobRequests();
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -48,26 +48,43 @@ class JobRequestProvider with ChangeNotifier {
     }
   }
 
-  Future<void> updateJobRequestStatus(String jobRequestId, JobRequestStatus status, {bool? assigned}) async {
+  Future<void> updateJobRequestStatus(
+      String jobRequestId, JobRequestStatus status,
+      {bool? assigned, String? salespersonId}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
     try {
-      final updatedJob = await _receptionistService.updateJobRequest(
-        jobRequestId, 
-        status: status, 
+      await _receptionistService.updateJobRequest(
+        jobRequestId,
+        status: status,
         assigned: assigned,
+        salespersonId: salespersonId,
       );
+      await fetchJobRequests();
+    } catch (e) {
+      _errorMessage = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateJobRequestPriority(
+      String jobRequestId, String priority) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final updatedJob = await _receptionistService
+          .updateJobRequest(jobRequestId, priority: priority);
       if (updatedJob != null) {
-        // Update the local list
-        int index = _jobRequests.indexWhere((job) => job.id == jobRequestId);
+        final index = _jobRequests.indexWhere((job) => job.id == jobRequestId);
         if (index != -1) {
           _jobRequests[index] = updatedJob;
         }
-      } else {
-        // Handle case where job to update is not found or error occurs
-        _errorMessage = 'Failed to update job request or job not found.';
       }
+      notifyListeners();
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
