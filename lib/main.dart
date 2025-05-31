@@ -142,7 +142,8 @@ class MyApp extends StatelessWidget {
             '/admin/jobs': (context) => const JobListingScreen(),
             '/login': (context) => const LoginScreen(),
             '/receptionist/dashboard': (context) => const DashboardPage(),
-            '/receptionist/new-job-request': (context) => const NewJobRequestScreen(),
+            '/receptionist/new-job-request': (context) =>
+                const NewJobRequestScreen(),
             '/receptionist/assign-salesperson': (context) =>
                 const AssignSalespersonScreen(),
             '/salesperson/dashboard': (context) =>
