@@ -34,7 +34,9 @@ class NewJobRequestScreen extends StatelessWidget {
           : null,
       body: Row(
         children: [
-          if (!isMobile) Sidebar(selectedIndex: 1, onItemSelected: (index) {}), // Dummy callback
+          if (!isMobile)
+            Sidebar(
+                selectedIndex: 1, onItemSelected: (index) {}), // Dummy callback
           Expanded(
             child: Column(
               children: [
@@ -99,8 +101,7 @@ class _JobRequestContentState extends State<JobRequestContent> {
   }
 
   Future<void> _loadJobs() async {
-    final jobProvider =
-        Provider.of<JobRequestProvider>(context, listen: false);
+    final jobProvider = Provider.of<JobRequestProvider>(context, listen: false);
     await jobProvider.fetchJobRequests();
     _filterJobs();
   }
@@ -565,7 +566,8 @@ class _JobRequestContentState extends State<JobRequestContent> {
 
 class _JobRequestFormDialog extends StatelessWidget {
   final VoidCallback onJobAdded;
-  const _JobRequestFormDialog({required this.onJobAdded, Key? key}) : super(key: key);
+  const _JobRequestFormDialog({required this.onJobAdded, Key? key})
+      : super(key: key);
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -578,7 +580,11 @@ class _JobRequestFormDialog extends StatelessWidget {
             children: [
               Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Text('Add New Job Request', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                child: Text('Add New Job Request',
+                    style: Theme.of(context)
+                        .textTheme
+                        .headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.bold)),
               ),
               IconButton(
                 icon: const Icon(Icons.close),
@@ -587,7 +593,8 @@ class _JobRequestFormDialog extends StatelessWidget {
             ],
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: _JobRequestForm(
               isMobile: MediaQuery.of(context).size.width < 600,
               onSuccess: () {
@@ -606,7 +613,8 @@ class _JobRequestFormDialog extends StatelessWidget {
 class _JobRequestForm extends StatefulWidget {
   final bool isMobile;
   final VoidCallback? onSuccess;
-  const _JobRequestForm({this.isMobile = false, this.onSuccess, Key? key}) : super(key: key);
+  const _JobRequestForm({this.isMobile = false, this.onSuccess, Key? key})
+      : super(key: key);
   @override
   State<_JobRequestForm> createState() => _JobRequestFormState();
 }
@@ -622,7 +630,12 @@ class _JobRequestFormState extends State<_JobRequestForm> {
   bool _isSubmitting = false;
   String? _submitMessage;
   String? _validationError;
-  final List<String> _statuses = ['New', 'In Progress', 'Completed', 'Cancelled'];
+  final List<String> _statuses = [
+    'New',
+    'In Progress',
+    'Completed',
+    'Cancelled'
+  ];
   final List<String> _priorities = ['High', 'Medium', 'Low'];
   final List<String> _salespersons = [];
 
@@ -641,10 +654,12 @@ class _JobRequestFormState extends State<_JobRequestForm> {
 
   Future<void> _fetchSalespersons() async {
     try {
-      final salespersonProvider = Provider.of<SalespersonProvider>(context, listen: false);
+      final salespersonProvider =
+          Provider.of<SalespersonProvider>(context, listen: false);
       await salespersonProvider.fetchSalespersons();
       setState(() {
-        _salespersons.addAll(salespersonProvider.salespersons.map((s) => s.name));
+        _salespersons
+            .addAll(salespersonProvider.salespersons.map((s) => s.name));
       });
     } catch (e) {
       // Handle error
@@ -672,7 +687,11 @@ class _JobRequestFormState extends State<_JobRequestForm> {
     final date = _date;
     final time = _time;
 
-    if (name.isEmpty || email.isEmpty || phone.isEmpty || date == null || time == null) {
+    if (name.isEmpty ||
+        email.isEmpty ||
+        phone.isEmpty ||
+        date == null ||
+        time == null) {
       setState(() {
         _validationError = 'Please fill in all fields.';
       });
@@ -715,7 +734,8 @@ class _JobRequestFormState extends State<_JobRequestForm> {
       _submitMessage = null;
     });
     try {
-      final jobRequestProvider = Provider.of<JobRequestProvider>(context, listen: false);
+      final jobRequestProvider =
+          Provider.of<JobRequestProvider>(context, listen: false);
       await jobRequestProvider.addJobRequest(
         JobRequest(
           id: '',
@@ -737,7 +757,8 @@ class _JobRequestFormState extends State<_JobRequestForm> {
       _clearForm();
       await _fetchSalespersons();
       try {
-        final salespersonProvider = Provider.of<SalespersonProvider>(context, listen: false);
+        final salespersonProvider =
+            Provider.of<SalespersonProvider>(context, listen: false);
         await salespersonProvider.fetchSalespersons();
       } catch (_) {}
       if (widget.onSuccess != null) widget.onSuccess!();
@@ -847,8 +868,8 @@ class _JobRequestFormState extends State<_JobRequestForm> {
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(color: Colors.grey.shade300),
                       ),
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
                     ),
                   ),
                 ),
@@ -873,8 +894,8 @@ class _JobRequestFormState extends State<_JobRequestForm> {
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(color: Colors.grey.shade300),
                       ),
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
                     ),
                   ),
                 ),
@@ -909,8 +930,8 @@ class _JobRequestFormState extends State<_JobRequestForm> {
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(color: Colors.grey.shade300),
                           ),
-                          contentPadding:
-                              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
                         ),
                       ),
                     ),
@@ -941,8 +962,8 @@ class _JobRequestFormState extends State<_JobRequestForm> {
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(color: Colors.grey.shade300),
                           ),
-                          contentPadding:
-                              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
                         ),
                       ),
                     ),
@@ -961,7 +982,8 @@ class _JobRequestFormState extends State<_JobRequestForm> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFEF5350),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -974,7 +996,8 @@ class _JobRequestFormState extends State<_JobRequestForm> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF7DE2D1),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -985,7 +1008,8 @@ class _JobRequestFormState extends State<_JobRequestForm> {
                           height: 16,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
                       : const Text('Submit'),
