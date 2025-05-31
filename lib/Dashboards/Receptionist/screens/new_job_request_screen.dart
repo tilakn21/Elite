@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../widgets/sidebar.dart';
 import '../widgets/topbar.dart';
-import '../services/receptionist_service.dart';
-import 'package:provider/provider.dart';
-import '../providers/salesperson_provider.dart';
 import '../providers/job_request_provider.dart';
 import '../models/job_request.dart';
 
@@ -15,8 +14,10 @@ class NewJobRequestScreen extends StatelessWidget {
     final width = MediaQuery.of(context).size.width;
     final isMobile = width < 600;
     final isTablet = width >= 600 && width < 900;
-    final double formWidth = isMobile ? double.infinity : (isTablet ? 500 : 800);
+    final double formWidth =
+        isMobile ? double.infinity : (isTablet ? 500 : 800);
     final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+
     return Scaffold(
       key: scaffoldKey,
       backgroundColor: const Color(0xFFF6F3FE),
@@ -41,34 +42,8 @@ class NewJobRequestScreen extends StatelessWidget {
                   onMenuTap: () => scaffoldKey.currentState?.openDrawer(),
                 ),
                 Expanded(
-                  child: Center(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.symmetric(
-                        vertical: isMobile ? 8 : 24,
-                        horizontal: isMobile ? 0 : 8,
-                      ),
-                      child: Container(
-                        width: formWidth,
-                        padding: EdgeInsets.symmetric(
-                          vertical: isMobile ? 16 : 32,
-                          horizontal: isMobile ? 8 : 16,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(isMobile ? 0 : 12),
-                          boxShadow: [
-                            if (!isMobile)
-                              BoxShadow(
-                                color: Colors.black.withAlpha(10),
-                                blurRadius: 24,
-                                offset: const Offset(0, 8),
-                              ),
-                          ],
-                        ),
-                        child: _JobRequestForm(isMobile: isMobile),
-                      ),
-                    ),
-                  ),
+                  child: JobRequestContent(
+                      isMobile: isMobile, formWidth: formWidth),
                 ),
               ],
             ),
@@ -79,642 +54,600 @@ class NewJobRequestScreen extends StatelessWidget {
   }
 }
 
-class _JobRequestForm extends StatefulWidget {
+class JobRequestContent extends StatefulWidget {
   final bool isMobile;
-  const _JobRequestForm({this.isMobile = false});
+  final double formWidth;
+
+  const JobRequestContent({
+    Key? key,
+    required this.isMobile,
+    required this.formWidth,
+  }) : super(key: key);
+
   @override
-  State<_JobRequestForm> createState() => _JobRequestFormState();
+  State<JobRequestContent> createState() => _JobRequestContentState();
 }
 
-class _JobRequestFormState extends State<_JobRequestForm> {
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController phoneController = TextEditingController();
-  final TextEditingController shopNameController = TextEditingController();
-  final TextEditingController streetAddressController = TextEditingController();
-  final TextEditingController streetNumberController = TextEditingController();
-  final TextEditingController townController = TextEditingController();
-  final TextEditingController postcodeController = TextEditingController();
-  final TextEditingController dateController = TextEditingController();
-  final TextEditingController timeController = TextEditingController();
-  final TextEditingController dateOfVisitController = TextEditingController();
-  final TextEditingController dateOfAppointmentController = TextEditingController();
+class _JobRequestContentState extends State<JobRequestContent> {
+  final TextEditingController _searchController = TextEditingController();
+  DateTime? _startDate;
+  DateTime? _endDate;
+  String? _selectedStatus;
+  String? _selectedPriority;
+  List<JobRequest> _filteredJobs = [];
 
-  String? selectedSalespersonId;
-  String? selectedSalespersonName;
-  List<Map<String, String>> availableSalespersons = [];
-  bool _isLoadingSalespersons = false;
-
-  bool _isSubmitting = false;
-  String? _submitMessage;
-  final ReceptionistService _receptionistService = ReceptionistService();
-  final _formKey = GlobalKey<FormState>();
-  String? _validationError;
-  // Track invalid fields for highlighting
-  Set<String> _invalidFields = {};
+  final List<String> _statuses = [
+    'New',
+    'In Progress',
+    'Completed',
+    'Cancelled'
+  ];
+  final List<String> _priorities = ['High', 'Medium', 'Low'];
 
   @override
   void initState() {
     super.initState();
-    // Set date of appointment to today (read-only)
-    final now = DateTime.now();
-    dateOfAppointmentController.text = "${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}";
-    _fetchSalespersons();
-  }
-
-  Future<void> _fetchSalespersons() async {
-    setState(() { _isLoadingSalespersons = true; });
-    final salespersons = await _receptionistService.fetchSalespersonsFromSupabase();
-    // Only include available salespersons in the dropdown
-    setState(() {
-      availableSalespersons = salespersons
-        .where((sp) => sp.status.name.toLowerCase() == 'available')
-        .map((sp) => {'id': sp.id, 'name': sp.name})
-        .toList();
-      _isLoadingSalespersons = false;
-    });
+    _loadJobs();
   }
 
   @override
   void dispose() {
-    nameController.dispose();
-    phoneController.dispose();
-    shopNameController.dispose();
-    streetAddressController.dispose();
-    streetNumberController.dispose();
-    townController.dispose();
-    postcodeController.dispose();
-    dateController.dispose();
-    timeController.dispose();
-    dateOfVisitController.dispose();
-    dateOfAppointmentController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) {
-      setState(() {
-        dateController.text = "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
-      });
-    }
+  Future<void> _loadJobs() async {
+    final jobProvider =
+        Provider.of<JobRequestProvider>(context, listen: false);
+    await jobProvider.fetchJobRequests();
+    _filterJobs();
   }
 
-  Future<void> _pickTime(BuildContext context) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-    if (picked != null) {
-      setState(() {
-        timeController.text = picked.format(context);
-      });
+  void _filterJobs() {
+    final allJobs =
+        Provider.of<JobRequestProvider>(context, listen: false).jobRequests;
+    var filteredList = List<JobRequest>.from(allJobs);
+
+    // Apply search filter
+    if (_searchController.text.isNotEmpty) {
+      final searchTerm = _searchController.text.toLowerCase();
+      filteredList = filteredList.where((job) {
+        return job.name.toLowerCase().contains(searchTerm) ||
+            job.phone.toLowerCase().contains(searchTerm) ||
+            job.email.toLowerCase().contains(searchTerm) ||
+            (job.subtitle?.toLowerCase().contains(searchTerm) ?? false);
+      }).toList();
     }
+
+    // Apply date filter
+    if (_startDate != null && _endDate != null) {
+      filteredList = filteredList.where((job) {
+        final jobDate = job.dateAdded;
+        if (jobDate == null) return false;
+        return jobDate.isAfter(_startDate!) &&
+            jobDate.isBefore(_endDate!.add(const Duration(days: 1)));
+      }).toList();
+    }
+
+    // Apply status filter
+    if (_selectedStatus != null) {
+      filteredList = filteredList
+          .where((job) => job.status.name == _selectedStatus)
+          .toList();
+    }
+
+    // Apply priority filter
+    if (_selectedPriority != null) {
+      filteredList = filteredList
+          .where((job) => job.priority == _selectedPriority)
+          .toList();
+    }
+
+    setState(() => _filteredJobs = filteredList);
   }
 
-  Future<void> _pickDateOfVisit(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) {
-      setState(() {
-        dateOfVisitController.text = "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
-      });
-    }
-  }
-
-  Future<void> _submitJobRequest() async {
+  void _clearFilters() {
     setState(() {
-      _validationError = null;
-      _invalidFields.clear();
+      _searchController.clear();
+      _startDate = null;
+      _endDate = null;
+      _selectedStatus = null;
+      _selectedPriority = null;
     });
-    if (!_validateForm()) {
-      return;
-    }
-    setState(() {
-      _isSubmitting = true;
-      _submitMessage = null;
-    });
-    try {
-      // TODO: Replace with actual logged-in user id
-      const String createdBy = 'receptionist-uid';
-      final jobRequestProvider = Provider.of<JobRequestProvider>(context, listen: false);
-      await jobRequestProvider.addJobRequest(
-        JobRequest(
-          id: '', // Will be set by backend
-          name: nameController.text.trim(),
-          phone: phoneController.text.trim(),
-          email: '', // Add email if available
-          status: JobRequestStatus.pending, // Or appropriate status
-          dateAdded: DateTime.now(),
-          subtitle: shopNameController.text.trim(),
-          avatar: null, // Set if available
-          time: timeController.text.trim(),
-          assigned: false,
-        ),
-      );
-      // Set salesperson as unavailable
-      if (selectedSalespersonId != null) {
-        await _receptionistService.setSalespersonUnavailable(selectedSalespersonId!);
-      }
-      setState(() {
-        _submitMessage = 'Job request submitted successfully!';
-      });
-      _clearForm();
-      // Refresh available salespersons after submission
-      await _fetchSalespersons();
-      // Refresh provider for dashboard card if available
-      try {
-        final salespersonProvider = Provider.of<SalespersonProvider>(context, listen: false);
-        await salespersonProvider.fetchSalespersons();
-      } catch (_) {
-        // Provider not found, ignore
-      }
-    } catch (e) {
-      setState(() {
-        _submitMessage = 'Failed to submit job request: \\${e.toString()}';
-      });
-    } finally {
-      setState(() {
-        _isSubmitting = false;
-      });
-    }
-  }
-
-  bool _validateForm() {
-    final phone = phoneController.text.trim();
-    final postcode = postcodeController.text.trim();
-    final phoneRegExp = RegExp(r'^[0-9]{8,}$');
-    final postcodeRegExp = RegExp(r'^[0-9]{4,8}$');
-    List<String> missingFields = [];
-    _invalidFields.clear();
-    if (nameController.text.trim().isEmpty) {
-      missingFields.add('Name');
-      _invalidFields.add('name');
-    }
-    if (phone.isEmpty) {
-      missingFields.add('Phone number');
-      _invalidFields.add('phone');
-    } else if (!phoneRegExp.hasMatch(phone)) {
-      missingFields.add('Valid phone number (8+ digits, numbers only)');
-      _invalidFields.add('phone');
-    }
-    if (shopNameController.text.trim().isEmpty) {
-      missingFields.add('Shop name');
-      _invalidFields.add('shopName');
-    }
-    if (streetAddressController.text.trim().isEmpty) {
-      missingFields.add('Street address');
-      _invalidFields.add('streetAddress');
-    }
-    if (streetNumberController.text.trim().isEmpty) {
-      missingFields.add('Street number');
-      _invalidFields.add('streetNumber');
-    }
-    if (townController.text.trim().isEmpty) {
-      missingFields.add('Town');
-      _invalidFields.add('town');
-    }
-    if (postcode.isEmpty) {
-      missingFields.add('Postcode');
-      _invalidFields.add('postcode');
-    } else if (!postcodeRegExp.hasMatch(postcode)) {
-      missingFields.add('Valid postcode (4-8 digits, numbers only)');
-      _invalidFields.add('postcode');
-    }
-    // Remove dateController (date of appointment) from validation
-    if (dateOfVisitController.text.trim().isEmpty) {
-      missingFields.add('Date of visit');
-      _invalidFields.add('dateOfVisit');
-    }
-    if (timeController.text.trim().isEmpty) {
-      missingFields.add('Time of visit');
-      _invalidFields.add('timeOfVisit');
-    }
-    if (selectedSalespersonId == null) {
-      missingFields.add('Salesperson');
-      _invalidFields.add('salesperson');
-    }
-    if (missingFields.isNotEmpty) {
-      setState(() {
-        _validationError = 'Please fill/enter: ' + missingFields.join(', ');
-      });
-      return false;
-    }
-    setState(() {
-      _validationError = null;
-    });
-    return true;
-  }
-
-  void _clearForm() {
-    nameController.clear();
-    phoneController.clear();
-    shopNameController.clear();
-    streetAddressController.clear();
-    streetNumberController.clear();
-    townController.clear();
-    postcodeController.clear();
-    // dateController.clear(); // No longer used
-    timeController.clear();
-    dateOfVisitController.clear();
-    setState(() {
-      selectedSalespersonId = null;
-      selectedSalespersonName = null;
-    });
+    _filterJobs();
   }
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = widget.isMobile;
-    return Form(
-      key: _formKey,
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Basic information',
-                style: TextStyle(
-                  fontSize: isMobile ? 14 : 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1B2330),
-                ),
+                'New job request',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1B2330),
+                    ),
               ),
-              SizedBox(width: 8),
-              Expanded(
-                child: Container(
-                  height: 2,
-                  color: Color(0xFF1B2330).withAlpha(20),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  await showDialog(
+                    context: context,
+                    builder: (context) => _AddJobDialog(onJobAdded: _loadJobs),
+                  );
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Add New job'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7DE2D1),
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 ),
               ),
             ],
           ),
-          SizedBox(height: isMobile ? 16 : 32),
-          isMobile
-              ? Column(
-                  children: _buildFormFields(isMobile),
-                )
-              : Row(
+          const SizedBox(height: 24),
+          // Prominent Search Bar
+          Container(
+            margin: const EdgeInsets.only(bottom: 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search by name, email, or ID...',
+                prefixIcon: const Icon(Icons.search, color: Color(0xFF7DE2D1)),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          _filterJobs();
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              ),
+              onChanged: (value) => _filterJobs(),
+            ),
+          ),
+          Expanded(
+            child: Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: _buildLeftFields(),
+                    // Filter section without the search bar
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[200]!),
                       ),
-                    ),
-                    SizedBox(width: 32),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: _buildRightFields(),
-                      ),
-                    ),
-                  ],
-                ),
-          SizedBox(height: isMobile ? 16 : 32),
-          // Salesperson dropdown
-          Padding(
-            padding: EdgeInsets.only(bottom: isMobile ? 12.0 : 24.0),
-            child: _isLoadingSalespersons
-                ? const Center(child: CircularProgressIndicator())
-                : DropdownButtonFormField<String>(
-                    isExpanded: true,
-                    decoration: InputDecoration(
-                      labelText: 'Assign Salesperson',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: isMobile ? 10 : 14),
-                      errorText: _invalidFields.contains('salesperson') ? 'Please select a salesperson' : null,
-                    ),
-                    value: selectedSalespersonId,
-                    items: availableSalespersons
-                        .map((sp) => DropdownMenuItem<String>(
-                              value: sp['id'],
-                              child: Text(sp['name'] ?? '', style: TextStyle(fontSize: isMobile ? 13 : 15)),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedSalespersonId = value;
-                        selectedSalespersonName = availableSalespersons.firstWhere((sp) => sp['id'] == value)['name'];
-                      });
-                    },
-                  ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: isMobile ? 38 : 44,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF36A1C5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      elevation: 0,
-                    ),
-                    onPressed: _isSubmitting ? null : _submitJobRequest,
-                    child: _isSubmitting
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          )
-                        : Text(
-                            'Submit',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w500,
-                              fontSize: isMobile ? 14 : 16,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: _selectedStatus,
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedStatus = value;
+                                });
+                                _filterJobs();
+                              },
+                              items: _statuses
+                                  .map((status) => DropdownMenuItem<String>(
+                                        value: status,
+                                        child: Text(status),
+                                      ))
+                                  .toList(),
+                              decoration: InputDecoration(
+                                labelText: 'Status',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide:
+                                      BorderSide(color: Colors.grey.shade300),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
+                              ),
                             ),
                           ),
-                  ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: _selectedPriority,
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedPriority = value;
+                                });
+                                _filterJobs();
+                              },
+                              items: _priorities
+                                  .map((priority) => DropdownMenuItem<String>(
+                                        value: priority,
+                                        child: Text(priority),
+                                      ))
+                                  .toList(),
+                              decoration: InputDecoration(
+                                labelText: 'Priority',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide:
+                                      BorderSide(color: Colors.grey.shade300),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          ElevatedButton(
+                            onPressed: _clearFilters,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFEF5350),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text('Clear Filters'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Table headers
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 32, vertical: 18),
+                      child: Row(
+                        children: const [
+                          Expanded(
+                              child: Text('Name',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFFBDBDBD),
+                                      fontSize: 15))),
+                          Expanded(
+                              child: Text('ID',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFFBDBDBD),
+                                      fontSize: 15))),
+                          Expanded(
+                              child: Text('Email',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFFBDBDBD),
+                                      fontSize: 15))),
+                          Expanded(
+                              child: Text('Phone number',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFFBDBDBD),
+                                      fontSize: 15))),
+                          Expanded(
+                              child: Text('Date added',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFFBDBDBD),
+                                      fontSize: 15))),
+                          Expanded(
+                              child: Text('STATUS',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFFBDBDBD),
+                                      fontSize: 15))),
+                          SizedBox(width: 28),
+                        ],
+                      ),
+                    ),
+                    const Divider(
+                        height: 1, thickness: 1, color: Color(0xFFF2F2F2)),
+                    // Job list
+                    _buildJobList(),
+                  ],
                 ),
               ),
-            ],
-          ),
-          if (_submitMessage != null) ...[
-            SizedBox(height: isMobile ? 10 : 16),
-            Text(
-              _submitMessage!,
-              style: TextStyle(
-                color: _submitMessage!.contains('success') ? Colors.green : Colors.red,
-                fontWeight: FontWeight.w600,
-                fontSize: isMobile ? 13 : 15,
-              ),
             ),
-          ],
+          ),
         ],
       ),
     );
   }
 
-  List<Widget> _buildFormFields(bool isMobile) {
-    return [
-      ..._buildLeftFields(),
-      const SizedBox(height: 20),
-      ..._buildRightFields(),
-    ];
-  }
+  Widget _buildJobList() {
+    final jobProvider = Provider.of<JobRequestProvider>(context);
+    final jobs = _filteredJobs.isEmpty && _searchController.text.isEmpty
+        ? jobProvider.jobRequests
+        : _filteredJobs;
 
-  List<Widget> _buildLeftFields() {
-    return [
-      _Label('Name', tooltip: 'Customer full name'),
-      _InputField(
-        hint: 'Enter name',
-        controller: nameController,
-        error: _invalidFields.contains('name'),
-      ),
-      SizedBox(height: 20),
-      _Label('Phone number', tooltip: 'At least 8 digits, numbers only'),
-      _InputField(
-        hint: 'Enter phone number',
-        controller: phoneController,
-        error: _invalidFields.contains('phone'),
-        keyboardType: TextInputType.number,
-        helperText: _invalidFields.contains('phone') ? 'Enter at least 8 digits, numbers only' : null,
-      ),
-      SizedBox(height: 20),
-      _Label('Shop name', tooltip: 'Business/shop name'),
-      _InputField(
-        hint: 'Enter shop name',
-        controller: shopNameController,
-        error: _invalidFields.contains('shopName'),
-      ),
-      SizedBox(height: 20),
-      _Label('Street address', tooltip: 'Street name (no number)'),
-      _InputField(
-        hint: 'Enter street address',
-        controller: streetAddressController,
-        error: _invalidFields.contains('streetAddress'),
-      ),
-      SizedBox(height: 20),
-      _Label('Date of appointment', tooltip: 'Auto-filled as today'),
-      _InputField(
-        hint: '',
-        controller: dateOfAppointmentController,
-        readOnly: true,
-        error: false,
-      ),
-    ];
-  }
+    if (jobProvider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-  List<Widget> _buildRightFields() {
-    return [
-      _Label('Street number', tooltip: 'Building/street number'),
-      _InputField(
-        hint: 'Enter street number',
-        controller: streetNumberController,
-        error: _invalidFields.contains('streetNumber'),
-      ),
-      SizedBox(height: 20),
-      _Label('Town', tooltip: 'Town or city'),
-      _InputField(
-        hint: 'Enter town',
-        controller: townController,
-        error: _invalidFields.contains('town'),
-      ),
-      SizedBox(height: 20),
-      _Label('Postcode', tooltip: '4-8 digits, numbers only'),
-      _InputField(
-        hint: 'Enter postcode',
-        controller: postcodeController,
-        error: _invalidFields.contains('postcode'),
-        keyboardType: TextInputType.number,
-        helperText: _invalidFields.contains('postcode') ? 'Enter 4-8 digits, numbers only' : null,
-      ),
-      SizedBox(height: 20),
-      _Label('Date of visit', tooltip: 'Date the salesperson will visit'),
-      _InputField(
-        hint: 'Select date of visit',
-        controller: dateOfVisitController,
-        readOnly: true,
-        onTap: () => _pickDateOfVisit(context),
-        suffixIcon: Icon(Icons.calendar_today, size: 18, color: Color(0xFFBDBDBD)),
-        error: _invalidFields.contains('dateOfVisit'),
-      ),
-      SizedBox(height: 20),
-      _Label('Time of visit', tooltip: 'Time the salesperson will visit'),
-      _InputField(
-        hint: 'Select time',
-        controller: timeController,
-        readOnly: true,
-        onTap: () => _pickTime(context),
-        suffixIcon: Icon(Icons.access_time, size: 18, color: Color(0xFFBDBDBD)),
-        error: _invalidFields.contains('timeOfVisit'),
-      ),
-    ];
-  }
-}
-
-class _Label extends StatelessWidget {
-  final String text;
-  final String? tooltip;
-  const _Label(this.text, {this.tooltip, Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 12,
-            color: Color(0xFF7B7B7B),
-            fontWeight: FontWeight.w500,
+    if (jobs.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(32),
+        child: Center(
+          child: Text(
+            'No requests for today',
+            style: TextStyle(color: Colors.grey, fontSize: 16),
           ),
         ),
-        if (tooltip != null)
-          Padding(
-            padding: const EdgeInsets.only(left: 4.0),
-            child: Tooltip(
-              message: tooltip!,
-              child: Icon(Icons.info_outline, size: 15, color: Color(0xFFBDBDBD)),
+      );
+    }
+
+    return Column(
+      children: jobs.map((job) => _buildJobRow(job)).toList(),
+    );
+  }
+
+  Widget _buildJobRow(JobRequest job) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFFF2F2F2), width: 1)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundImage:
+                      AssetImage(job.avatar ?? 'assets/images/elite_logo.png'),
+                  radius: 18,
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      job.name,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                    Text(
+                      job.subtitle ?? '',
+                      style: const TextStyle(
+                          fontSize: 11, color: Color(0xFFBDBDBD)),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-      ],
+          Expanded(
+            child: Text(
+              job.id,
+              style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              job.email,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF7B7B7B)),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              job.phone,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF7B7B7B)),
+            ),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  job.dateAdded != null
+                      ? DateFormat('dd/MM/yyyy').format(job.dateAdded!)
+                      : '',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: Color(0xFF1B2330),
+                  ),
+                ),
+                Text(
+                  job.time ?? '',
+                  style:
+                      const TextStyle(fontSize: 11, color: Color(0xFFBDBDBD)),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: job.assigned == true
+                    ? const Color(0xFF7DE2D1)
+                    : const Color(0xFFFFAFAF),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                job.assigned == true ? 'Assigned' : 'Unassigned',
+                style: TextStyle(
+                  color: job.assigned == true
+                      ? const Color(0xFF1B2330)
+                      : const Color(0xFFD32F2F),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.arrow_forward_ios,
+                size: 18, color: Color(0xFFBDBDBD)),
+            onPressed: () => _showJobDetails(job),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showJobDetails(JobRequest job) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Job Details'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Name: ${job.name}'),
+            Text('ID: ${job.id}'),
+            Text('Email: ${job.email}'),
+            Text('Phone: ${job.phone}'),
+            Text('Status: ${job.assigned == true ? "Assigned" : "Unassigned"}'),
+            if (job.dateAdded != null)
+              Text(
+                  'Date Added: ${DateFormat('dd/MM/yyyy').format(job.dateAdded!)}'),
+            if (job.time != null) Text('Time: ${job.time}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _InputField extends StatelessWidget {
-  final String hint;
-  final Widget? suffixIcon;
-  final TextEditingController? controller;
-  final bool readOnly;
-  final VoidCallback? onTap;
-  final bool error;
-  final TextInputType? keyboardType;
-  final String? helperText;
-  const _InputField({
-    required this.hint,
-    this.suffixIcon,
-    this.controller,
-    this.readOnly = false,
-    this.onTap,
-    this.error = false,
-    this.keyboardType,
-    this.helperText,
-    Key? key,
-  }) : super(key: key);
+class _AddJobDialog extends StatefulWidget {
+  final VoidCallback onJobAdded;
+  const _AddJobDialog({required this.onJobAdded});
+
+  @override
+  State<_AddJobDialog> createState() => _AddJobDialogState();
+}
+
+class _AddJobDialogState extends State<_AddJobDialog> {
+  final _formKey = GlobalKey<FormState>();
+  String name = '';
+  String phone = '';
+  String email = '';
+  String subtitle = '';
+  String priority = 'Medium';
+  bool isLoading = false;
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeInOut,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(4),
-        boxShadow: error
-            ? [
-                BoxShadow(
-                  color: Colors.red.withOpacity(0.15),
-                  blurRadius: 6,
-                  offset: Offset(0, 2),
-                ),
-              ]
-            : [],
-      ),
-      child: TextField(
-        controller: controller,
-        readOnly: readOnly,
-        onTap: onTap,
-        keyboardType: keyboardType,
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: TextStyle(fontSize: 13, color: Color(0xFFBDBDBD)),
-          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          filled: true,
-          fillColor: Color(0xFFF8F8F8),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4),
-            borderSide: BorderSide.none,
+    return AlertDialog(
+      title: const Text('Add New Job Request'),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                decoration: const InputDecoration(labelText: 'Customer Name'),
+                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                onSaved: (v) => name = v ?? '',
+              ),
+              TextFormField(
+                decoration: const InputDecoration(labelText: 'Phone'),
+                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                onSaved: (v) => phone = v ?? '',
+              ),
+              TextFormField(
+                decoration: const InputDecoration(labelText: 'Email'),
+                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                onSaved: (v) => email = v ?? '',
+              ),
+              TextFormField(
+                decoration:
+                    const InputDecoration(labelText: 'Subtitle (Shop/Note)'),
+                onSaved: (v) => subtitle = v ?? '',
+              ),
+              DropdownButtonFormField<String>(
+                value: priority,
+                items: ['High', 'Medium', 'Low']
+                    .map((p) => DropdownMenuItem(value: p, child: Text(p)))
+                    .toList(),
+                onChanged: (v) => setState(() => priority = v ?? 'Medium'),
+                decoration: const InputDecoration(labelText: 'Priority'),
+              ),
+            ],
           ),
-          suffixIcon: suffixIcon,
-          errorText: error ? '' : null,
-          errorBorder: error
-              ? OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4),
-                  borderSide: BorderSide(color: Colors.red, width: 1.5),
-                )
-              : null,
-          helperText: helperText,
-          helperStyle: TextStyle(color: Colors.red, fontSize: 11),
         ),
       ),
-    );
-  }
-}
-
-// Right column fields as a separate widget for clarity
-class _RightFormFields extends StatefulWidget {
-  const _RightFormFields({Key? key}) : super(key: key);
-  @override
-  State<_RightFormFields> createState() => _RightFormFieldsState();
-}
-
-class _RightFormFieldsState extends State<_RightFormFields> {
-  final TextEditingController streetNumberController = TextEditingController();
-  final TextEditingController townController = TextEditingController();
-  final TextEditingController postcodeController = TextEditingController();
-  final TextEditingController dateController = TextEditingController();
-
-  @override
-  void dispose() {
-    streetNumberController.dispose();
-    townController.dispose();
-    postcodeController.dispose();
-    dateController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) {
-      setState(() {
-        dateController.text = "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _Label('Street number'),
-        _InputField(hint: 'Enter street number', controller: streetNumberController),
-        SizedBox(height: 20),
-        _Label('Town'),
-        _InputField(hint: 'Enter town', controller: townController),
-        SizedBox(height: 20),
-        _Label('Postcode'),
-        _InputField(hint: 'Enter postcode', controller: postcodeController),
-        SizedBox(height: 20),
-        _Label('Date of appointment'),
-        _InputField(
-          hint: 'Select date',
-          controller: dateController,
-          readOnly: true,
-          onTap: () => _pickDate(context),
-          suffixIcon: Icon(Icons.calendar_today, size: 18, color: Color(0xFFBDBDBD)),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: isLoading
+              ? null
+              : () async {
+                  if (!_formKey.currentState!.validate()) return;
+                  _formKey.currentState!.save();
+                  setState(() => isLoading = true);
+                  final provider =
+                      Provider.of<JobRequestProvider>(context, listen: false);
+                  await provider.addJobRequest(
+                    JobRequest(
+                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                      name: name,
+                      phone: phone,
+                      email: email,
+                      status: JobRequestStatus.pending,
+                      dateAdded: DateTime.now(),
+                      subtitle: subtitle,
+                      avatar: '',
+                      time: '',
+                      assigned: false,
+                      priority: priority,
+                    ),
+                  );
+                  setState(() => isLoading = false);
+                  widget.onJobAdded();
+                  Navigator.pop(context);
+                },
+          child: isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('Add'),
         ),
       ],
     );

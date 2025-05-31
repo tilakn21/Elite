@@ -9,7 +9,8 @@ enum ChatStatus {
 class ChatMessage {
   final String id;
   final String senderId;
-  final String senderName;  final String message;
+  final String senderName;
+  final String message;
   final DateTime timestamp;
   final bool isRead;
   final List<String>? imageUrls;
@@ -43,7 +44,7 @@ class ChatMessage {
       message: json['message'],
       timestamp: DateTime.parse(json['timestamp']),
       isRead: json['isRead'] ?? false,
-      imageUrls: json['imageUrls'] != null 
+      imageUrls: json['imageUrls'] != null
           ? List<String>.from(json['imageUrls'])
           : null,
     );
@@ -58,6 +59,7 @@ class Chat {
   final List<ChatMessage> messages;
   final ChatStatus status;
   final DateTime lastUpdated;
+  final bool isOnline; // Add online status
 
   Chat({
     String? id,
@@ -67,6 +69,7 @@ class Chat {
     required this.messages,
     required this.status,
     required this.lastUpdated,
+    this.isOnline = false, // Default to offline
   }) : id = id ?? const Uuid().v4();
 
   Chat copyWith({
@@ -76,6 +79,7 @@ class Chat {
     List<ChatMessage>? messages,
     ChatStatus? status,
     DateTime? lastUpdated,
+    bool? isOnline,
   }) {
     return Chat(
       id: this.id,
@@ -85,6 +89,7 @@ class Chat {
       messages: messages ?? this.messages,
       status: status ?? this.status,
       lastUpdated: lastUpdated ?? this.lastUpdated,
+      isOnline: isOnline ?? this.isOnline,
     );
   }
 
@@ -97,6 +102,7 @@ class Chat {
       'messages': messages.map((message) => message.toJson()).toList(),
       'status': status.toString().split('.').last,
       'lastUpdated': lastUpdated.toIso8601String(),
+      'isOnline': isOnline,
     };
   }
 
@@ -114,6 +120,7 @@ class Chat {
         orElse: () => ChatStatus.pending,
       ),
       lastUpdated: DateTime.parse(json['lastUpdated']),
+      isOnline: json['isOnline'] ?? false,
     );
   }
 }

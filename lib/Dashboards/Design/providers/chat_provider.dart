@@ -14,10 +14,11 @@ class ChatProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  List<Chat> get activeChats => _chats.where((chat) => 
-    chat.status == ChatStatus.inProgress || 
-    chat.status == ChatStatus.pending
-  ).toList();
+  List<Chat> get activeChats => _chats
+      .where((chat) =>
+          chat.status == ChatStatus.inProgress ||
+          chat.status == ChatStatus.pending)
+      .toList();
 
   ChatProvider(this._designService) {
     _fetchChats(); // Renamed from _loadChats
@@ -43,7 +44,7 @@ class ChatProvider with ChangeNotifier {
 
   void _loadSampleChats() {
     final now = DateTime.now();
-    
+
     _chats = [
       Chat(
         customerId: '1',
@@ -65,6 +66,7 @@ class ChatProvider with ChangeNotifier {
         ],
         status: ChatStatus.inProgress,
         lastUpdated: now.subtract(const Duration(minutes: 25)),
+        isOnline: true,
       ),
       Chat(
         customerId: '2',
@@ -80,6 +82,7 @@ class ChatProvider with ChangeNotifier {
         ],
         status: ChatStatus.pending,
         lastUpdated: now.subtract(const Duration(hours: 2)),
+        isOnline: false,
       ),
       Chat(
         customerId: '3',
@@ -101,6 +104,7 @@ class ChatProvider with ChangeNotifier {
         ],
         status: ChatStatus.approved,
         lastUpdated: now.subtract(const Duration(days: 1, hours: 1)),
+        isOnline: false,
       ),
       Chat(
         customerId: '4',
@@ -122,6 +126,7 @@ class ChatProvider with ChangeNotifier {
         ],
         status: ChatStatus.inProgress,
         lastUpdated: now.subtract(const Duration(hours: 4)),
+        isOnline: true,
       ),
     ];
   }
@@ -154,7 +159,8 @@ class ChatProvider with ChangeNotifier {
       if (index != -1) {
         _chats[index] = returnedChat;
       } else {
-        print('ChatProvider: Updated chat ID ${returnedChat.id} not found in local list.');
+        print(
+            'ChatProvider: Updated chat ID ${returnedChat.id} not found in local list.');
       }
     } catch (e) {
       _errorMessage = e.toString();
@@ -202,7 +208,8 @@ class ChatProvider with ChangeNotifier {
         final updatedMessages = [...chat.messages, newMessage];
         _chats[index] = chat.copyWith(
           messages: updatedMessages,
-          lastUpdated: newMessage.timestamp, // Or use server-provided timestamp if different
+          lastUpdated: newMessage
+              .timestamp, // Or use server-provided timestamp if different
           status: ChatStatus.inProgress, // Potentially update status
         );
       }
@@ -215,6 +222,10 @@ class ChatProvider with ChangeNotifier {
       // _isLoading = false; // Might not be needed if not globally set for this op
       notifyListeners(); // Notify that chat list (specifically one chat) has changed
     }
+  }
+
+  Future<void> refreshChats() async {
+    await _fetchChats();
   }
 
   Chat? getChatById(String id) {

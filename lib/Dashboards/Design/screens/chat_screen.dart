@@ -85,7 +85,9 @@ class _ChatScreenState extends State<ChatScreen> {
       if (result != null && result.files.isNotEmpty) {
         setState(() {
           _selectedImages.addAll(
-            result.files.where((file) => file.path != null).map((file) => File(file.path!)),
+            result.files
+                .where((file) => file.path != null)
+                .map((file) => File(file.path!)),
           );
           _showImagePreview = true;
         });
@@ -110,7 +112,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _sendMessage() async {
-    if ((_messageController.text.trim().isEmpty && _selectedImages.isEmpty) || _chat == null) return;
+    if ((_messageController.text.trim().isEmpty && _selectedImages.isEmpty) ||
+        _chat == null) return;
 
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
     final designService = DesignService();
@@ -165,7 +168,6 @@ class _ChatScreenState extends State<ChatScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scrollToBottom();
       });
-
     } catch (e) {
       setState(() {
         _isUploading = false;
@@ -190,7 +192,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildImagePreview() {
-    if (!_showImagePreview || _selectedImages.isEmpty) return const SizedBox.shrink();
+    if (!_showImagePreview || _selectedImages.isEmpty)
+      return const SizedBox.shrink();
 
     return Container(
       padding: const EdgeInsets.all(8),
@@ -284,7 +287,8 @@ class _ChatScreenState extends State<ChatScreen> {
               decoration: BoxDecoration(
                 color: isAdmin ? AppTheme.accentColor : Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: isAdmin ? null : Border.all(color: AppTheme.dividerColor),
+                border:
+                    isAdmin ? null : Border.all(color: AppTheme.dividerColor),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -293,7 +297,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     Text(
                       message,
                       style: TextStyle(
-                        color: isAdmin ? Colors.white : AppTheme.textPrimaryColor,
+                        color:
+                            isAdmin ? Colors.white : AppTheme.textPrimaryColor,
                       ),
                     ),
                     if (imageUrls != null && imageUrls.isNotEmpty)
@@ -303,53 +308,60 @@ class _ChatScreenState extends State<ChatScreen> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: imageUrls.map((url) => Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: Colors.grey[300]!,
-                            width: 1,
-                          ),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            url,
-                            height: 150,
-                            width: 150,
-                            fit: BoxFit.cover,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Container(
-                                height: 150,
-                                width: 150,
-                                color: Colors.grey[200],
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    value: loadingProgress.expectedTotalBytes != null
-                                        ? loadingProgress.cumulativeBytesLoaded /
-                                            loadingProgress.expectedTotalBytes!
-                                        : null,
+                      children: imageUrls
+                          .map((url) => Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: Colors.grey[300]!,
+                                    width: 1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    url,
+                                    height: 150,
+                                    width: 150,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder:
+                                        (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Container(
+                                        height: 150,
+                                        width: 150,
+                                        color: Colors.grey[200],
+                                        child: Center(
+                                          child: CircularProgressIndicator(
+                                            value: loadingProgress
+                                                        .expectedTotalBytes !=
+                                                    null
+                                                ? loadingProgress
+                                                        .cumulativeBytesLoaded /
+                                                    loadingProgress
+                                                        .expectedTotalBytes!
+                                                : null,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        height: 150,
+                                        width: 150,
+                                        color: Colors.grey[200],
+                                        child: const Center(
+                                          child: Icon(
+                                            Icons.error_outline,
+                                            color: Colors.red,
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                height: 150,
-                                width: 150,
-                                color: Colors.grey[200],
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.error_outline,
-                                    color: Colors.red,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      )).toList(),
+                              ))
+                          .toList(),
                     ),
                     const SizedBox(height: 8),
                   ],
@@ -392,16 +404,37 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: AppBar(
         title: Row(
           children: [
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: Colors.grey[200],
-              child: Text(
-                widget.customerName.substring(0, 1),
-                style: const TextStyle(
-                  color: AppTheme.primaryColor,
-                  fontWeight: FontWeight.bold,
+            Stack(
+              children: [
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Colors.grey[200],
+                  child: Text(
+                    widget.customerName.substring(0, 1),
+                    style: const TextStyle(
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-              ),
+                if (_chat?.isOnline ?? false)
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(width: 12),
             Column(
@@ -412,6 +445,17 @@ class _ChatScreenState extends State<ChatScreen> {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: (_chat?.isOnline ?? false)
+                        ? Colors.green
+                        : Colors.grey[400],
+                    shape: BoxShape.circle,
                   ),
                 ),
                 Text(
@@ -517,7 +561,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                       height: 20,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
                                           AppTheme.primaryColor,
                                         ),
                                       ),

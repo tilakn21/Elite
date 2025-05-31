@@ -14,9 +14,12 @@ class JobProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  List<Job> get approvedJobs => _jobs.where((job) => job.status == JobStatus.approved).toList();
-  List<Job> get pendingJobs => _jobs.where((job) => job.status == JobStatus.pending).toList();
-  List<Job> get inProgressJobs => _jobs.where((job) => job.status == JobStatus.inProgress).toList();
+  List<Job> get approvedJobs =>
+      _jobs.where((job) => job.status == JobStatus.approved).toList();
+  List<Job> get pendingJobs =>
+      _jobs.where((job) => job.status == JobStatus.pending).toList();
+  List<Job> get inProgressJobs =>
+      _jobs.where((job) => job.status == JobStatus.inProgress).toList();
 
   JobProvider(this._designService) {
     _fetchJobs(); // Renamed from _loadJobs for clarity
@@ -25,7 +28,8 @@ class JobProvider with ChangeNotifier {
   Future<void> _fetchJobs() async {
     _isLoading = true;
     _errorMessage = null;
-    notifyListeners();    try {
+    notifyListeners();
+    try {
       _jobs = await _designService.getJobs();
       if (_jobs.isEmpty) {
         _errorMessage = 'No jobs found';
@@ -45,7 +49,7 @@ class JobProvider with ChangeNotifier {
 
   void _loadSampleJobs() {
     final now = DateTime.now();
-    
+
     _jobs = [
       Job(
         jobNo: '#1001',
@@ -128,7 +132,8 @@ class JobProvider with ChangeNotifier {
     notifyListeners();
     try {
       final newJob = await _designService.createJob(job);
-      _jobs.add(newJob); // Assuming service returns the created job with potential updates (e.g., ID)
+      _jobs.add(
+          newJob); // Assuming service returns the created job with potential updates (e.g., ID)
     } catch (e) {
       _errorMessage = e.toString();
       if (kDebugMode) {
@@ -151,7 +156,8 @@ class JobProvider with ChangeNotifier {
         _jobs[index] = returnedJob;
       } else {
         // If the job wasn't in the list, perhaps add it or log an error
-        print('JobProvider: Updated job ID ${returnedJob.id} not found in local list.');
+        print(
+            'JobProvider: Updated job ID ${returnedJob.id} not found in local list.');
       }
     } catch (e) {
       _errorMessage = e.toString();
@@ -175,6 +181,26 @@ class JobProvider with ChangeNotifier {
       _errorMessage = e.toString();
       if (kDebugMode) {
         print('Error deleting job via service: $e');
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> refreshJobs() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      _jobs = await _designService.getJobs();
+      if (_jobs.isEmpty) {
+        _errorMessage = 'No jobs found';
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+      if (kDebugMode) {
+        print('Error refreshing jobs: $e');
       }
     } finally {
       _isLoading = false;

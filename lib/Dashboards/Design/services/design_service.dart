@@ -18,7 +18,7 @@ class DesignService {
           .not('receptionist', 'is', null)
           .not('salesperson', 'is', null)
           .filter('design', 'is', null);
-      
+
       // Map each job from Supabase to the Job model
       return List<Map<String, dynamic>>.from(response)
           .map((json) => Job.fromJson(json))
@@ -78,6 +78,7 @@ class DesignService {
         ],
         status: ChatStatus.inProgress,
         lastUpdated: now.subtract(const Duration(minutes: 10)),
+        isOnline: true,
       ),
       Chat(
         customerId: 'cust_102',
@@ -93,12 +94,14 @@ class DesignService {
         ],
         status: ChatStatus.pending,
         lastUpdated: now.subtract(const Duration(hours: 1)),
+        isOnline: false,
       ),
     ];
   }
 
   Future<Chat> createChat(Chat chat) async {
-    print('DesignService: Creating chat (mocked) for customer ${chat.customerName}');
+    print(
+        'DesignService: Creating chat (mocked) for customer ${chat.customerName}');
     await Future.delayed(const Duration(milliseconds: 500));
     // In a real backend, ID would be assigned here.
     // For mock, we assume chat object passed in has a generated ID.
@@ -117,8 +120,10 @@ class DesignService {
     await Future.delayed(const Duration(milliseconds: 500));
   }
 
-  Future<ChatMessage> addMessageToChat(String chatId, ChatMessage message) async {
-    print('DesignService: Adding message to chat (mocked) - Chat ID: $chatId, Message: ${message.message}');
+  Future<ChatMessage> addMessageToChat(
+      String chatId, ChatMessage message) async {
+    print(
+        'DesignService: Adding message to chat (mocked) - Chat ID: $chatId, Message: ${message.message}');
     await Future.delayed(const Duration(milliseconds: 300));
     // In a real backend, the message would be persisted and returned, possibly with a new ID or timestamp.
     // For mock, we assume message object passed in has a generated ID.
@@ -130,31 +135,31 @@ class DesignService {
       // Create a unique filename with timestamp to avoid overwriting
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = '${timestamp}_${file.path.split('/').last}';
-      
+
       // Upload the file
       await Supabase.instance.client.storage.from('eliteimage').upload(
-        fileName,
-        file,
-        fileOptions: const FileOptions(upsert: true),
-      );
-      
+            fileName,
+            file,
+            fileOptions: const FileOptions(upsert: true),
+          );
+
       // Get the public URL of the uploaded file
-      final publicUrl = Supabase.instance.client.storage.from('eliteimage').getPublicUrl(fileName);
+      final publicUrl = Supabase.instance.client.storage
+          .from('eliteimage')
+          .getPublicUrl(fileName);
       return publicUrl;
     } catch (e) {
       print('Error uploading file: $e');
       rethrow;
     }
   }
-  
-  Future<void> updateJobDesignData(String jobId, Map<String, dynamic> newDraft) async {
+
+  Future<void> updateJobDesignData(
+      String jobId, Map<String, dynamic> newDraft) async {
     try {
       final supabase = Supabase.instance.client;
-      final response = await supabase
-          .from('jobs')
-          .select()
-          .eq('id', jobId)
-          .maybeSingle();
+      final response =
+          await supabase.from('jobs').select().eq('id', jobId).maybeSingle();
       if (response == null) {
         throw Exception('Job not found');
       }
@@ -169,11 +174,9 @@ class DesignService {
         }
       }
       drafts.add(newDraft);
-      await supabase
-          .from('jobs')
-          .update({'design': drafts})
-          .eq('id', jobId);
-      print('Successfully appended new draft to job design data for job: $jobId');
+      await supabase.from('jobs').update({'design': drafts}).eq('id', jobId);
+      print(
+          'Successfully appended new draft to job design data for job: $jobId');
     } catch (e) {
       print('Error updating job design data: $e');
       rethrow;
@@ -184,15 +187,35 @@ class DesignService {
   Future<List<app.User>> getUsers() async {
     await Future.delayed(const Duration(milliseconds: 500));
     return [
-      app.User(id: '1', name: 'John Doe', email: 'john@elitesigns.com', role: 'Admin', avatar: 'assets/images/avatar1.png'),
-      app.User(id: '2', name: 'Jane Smith', email: 'jane@elitesigns.com', role: 'Salesperson', avatar: 'assets/images/avatar2.png'),
-      app.User(id: '3', name: 'Mike Johnson', email: 'mike@elitesigns.com', role: 'design', avatar: 'assets/images/avatar3.png'),
+      app.User(
+          id: '1',
+          name: 'John Doe',
+          email: 'john@elitesigns.com',
+          role: 'Admin',
+          avatar: 'assets/images/avatar1.png'),
+      app.User(
+          id: '2',
+          name: 'Jane Smith',
+          email: 'jane@elitesigns.com',
+          role: 'Salesperson',
+          avatar: 'assets/images/avatar2.png'),
+      app.User(
+          id: '3',
+          name: 'Mike Johnson',
+          email: 'mike@elitesigns.com',
+          role: 'design',
+          avatar: 'assets/images/avatar3.png'),
     ];
   }
 
   Future<app.User?> getCurrentUser() async {
     await Future.delayed(const Duration(milliseconds: 300));
     // For mock, return the first user
-    return app.User(id: '1', name: 'John Doe', email: 'john@elitesigns.com', role: 'Admin', avatar: 'assets/images/avatar1.png');
+    return app.User(
+        id: '1',
+        name: 'John Doe',
+        email: 'john@elitesigns.com',
+        role: 'Admin',
+        avatar: 'assets/images/avatar1.png');
   }
 }
