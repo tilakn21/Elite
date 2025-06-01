@@ -31,10 +31,13 @@ class _SalespersonProfileScreenState extends State<SalespersonProfileScreen> {
     });
     try {
       final supabase = Supabase.instance.client;
+      // Use authenticated user's id from Supabase
+      final user = Supabase.instance.client.auth.currentUser;
+      final userId = user?.id ?? 'sal2005';
       final response = await supabase
           .from('employee')
           .select()
-          .eq('id', 'sal2002')
+          .eq('id', userId)
           .single();
       setState(() {
         employee = response;
@@ -60,6 +63,8 @@ class _SalespersonProfileScreenState extends State<SalespersonProfileScreen> {
           Navigator.of(context).pushReplacementNamed('/salesperson/dashboard');
         } else if (route == 'profile') {
           if (isMobile) Navigator.of(context).pop();
+        } else if (route == 'reimbursement') {
+          Navigator.of(context).pushReplacementNamed('/salesperson/reimbursement');
         }
       },
     );

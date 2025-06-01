@@ -32,44 +32,31 @@ class TopBar extends StatelessWidget {
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w700,
-              color: isDashboard ? Color(0xFF1B2330) : Colors.white,
+              color: Colors.white, // Always white for visibility
               letterSpacing: 1.0,
             ),
           ),
           const Spacer(),
-          if (isDashboard)
-            Container(
-              width: 320,
-              height: 44,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search data for this page',
-                  hintStyle: TextStyle(color: Colors.grey.shade500),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                ),
+          // Branch badge to the left of notification icon
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: Color(0xFF7DE2D1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              // TODO: Replace with actual branch name from employee table after auth
+              'Branch: Demo Branch',
+              style: const TextStyle(
+                color: Color(0xFF1B2330),
+                fontWeight: FontWeight.w600,
+                fontSize: 11,
               ),
             ),
-          if (isDashboard) const SizedBox(width: 32),
-          IconButton(
-            icon: Icon(Icons.bar_chart_rounded, color: isDashboard ? Color(0xFF9BA8B7) : Colors.white, size: 28),
-            onPressed: () {},
-            splashRadius: 24,
           ),
+          const SizedBox(width: 16),
           IconButton(
-            icon: Icon(Icons.notifications_none, color: isDashboard ? Color(0xFF9BA8B7) : Colors.white, size: 28),
+            icon: Icon(Icons.notifications_none, color: Colors.white, size: 28),
             onPressed: () {},
             splashRadius: 24,
           ),
@@ -77,17 +64,18 @@ class TopBar extends StatelessWidget {
           Row(
             children: [
               CircleAvatar(
-                backgroundColor: isDashboard ? Color(0xFF24344D) : Colors.white,
+                backgroundColor: Colors.white,
                 radius: 20,
-                child: Text('J', style: TextStyle(color: isDashboard ? Colors.white : sidebarColor, fontWeight: FontWeight.bold, fontSize: 18)),
+                child: Text('J', style: TextStyle(color: sidebarColor, fontWeight: FontWeight.bold, fontSize: 18)),
               ),
               const SizedBox(width: 10),
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('John Doe', style: TextStyle(fontWeight: FontWeight.normal, fontSize: 13, color: isDashboard ? Color(0xFF1B2330) : Colors.white)),
-                  Text('Receptionist', style: TextStyle(fontWeight: FontWeight.w400, fontSize: 11, color: isDashboard ? Color(0xFF1B2330) : Colors.white)),
+                  // Name row
+                  Text('John Doe', style: TextStyle(fontWeight: FontWeight.normal, fontSize: 13, color: Colors.white)),
+                  Text('Receptionist', style: TextStyle(fontWeight: FontWeight.w400, fontSize: 11, color: Colors.white)),
                 ],
               ),
             ],

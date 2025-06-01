@@ -16,8 +16,11 @@ class _SalespersonHomeScreenState extends State<SalespersonHomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   String _selectedSidebar = 'home';
   List<SiteVisitItem> visits = [];
+  List<SiteVisitItem> filteredVisits = [];
   bool _isLoading = true;
   String? _error;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -32,7 +35,7 @@ class _SalespersonHomeScreenState extends State<SalespersonHomeScreen> {
     });
     try {
       // TODO: Replace with actual logged-in user id from auth/session
-      final userId = 'sal2002';
+      final userId = 'sal2005';
       final supabase = Supabase.instance.client;
       final response = await supabase
           .from('jobs')
@@ -48,7 +51,8 @@ class _SalespersonHomeScreenState extends State<SalespersonHomeScreen> {
               receptionist?['customerName'] ?? '',
               'assets/images/avatar1.png', // Placeholder, update if you have avatar
               receptionist?['dateOfVisit'] ?? '',
-              receptionist?['submitted'] == true,
+              // Determine submitted status based on salesperson.status
+              (salesperson != null && (salesperson['status']?.toString().toLowerCase() == 'completed')),
               // Add extra fields for navigation
               jobJson: e,
               salespersonJson: salesperson,
@@ -56,6 +60,7 @@ class _SalespersonHomeScreenState extends State<SalespersonHomeScreen> {
             );
           })
           .toList();
+      _applySearch();
     } catch (e) {
       _error = 'Failed to load jobs: $e';
     } finally {
@@ -63,6 +68,21 @@ class _SalespersonHomeScreenState extends State<SalespersonHomeScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  void _applySearch() {
+    setState(() {
+      if (_searchQuery.isEmpty) {
+        filteredVisits = List.from(visits);
+      } else {
+        filteredVisits = visits.where((item) {
+          final name = item.name.toLowerCase();
+          final siteId = item.siteId.toLowerCase();
+          final query = _searchQuery.toLowerCase();
+          return name.contains(query) || siteId.contains(query);
+        }).toList();
+      }
+    });
   }
 
   @override
@@ -77,11 +97,11 @@ class _SalespersonHomeScreenState extends State<SalespersonHomeScreen> {
           _selectedSidebar = route;
         });
         if (route == 'profile') {
-          Navigator.of(context)
-              .pushReplacementNamed('/salesperson/profile');
+          Navigator.of(context).pushReplacementNamed('/salesperson/profile');
         } else if (route == 'home') {
-          Navigator.of(context)
-              .pushReplacementNamed('/salesperson/dashboard');
+          Navigator.of(context).pushReplacementNamed('/salesperson/dashboard');
+        } else if (route == 'reimbursement') {
+          Navigator.of(context).pushReplacementNamed('/salesperson/reimbursement');
         }
       },
     );
@@ -107,6 +127,28 @@ class _SalespersonHomeScreenState extends State<SalespersonHomeScreen> {
                   onMenuTap: () => scaffoldKey.currentState?.openDrawer(),
                 ),
                 const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search by customer name or site ID',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF3F3FB),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                    ),
+                    onChanged: (value) {
+                      _searchQuery = value;
+                      _applySearch();
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -114,7 +156,7 @@ class _SalespersonHomeScreenState extends State<SalespersonHomeScreen> {
                         ? const Center(child: CircularProgressIndicator())
                         : _error != null
                             ? Center(child: Text(_error!, style: TextStyle(color: Colors.red)))
-                            : visits.isEmpty
+                            : filteredVisits.isEmpty
                                 ? Center(child: Text('No assigned jobs found.', style: TextStyle(color: Colors.grey)))
                                 : Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,10 +164,10 @@ class _SalespersonHomeScreenState extends State<SalespersonHomeScreen> {
                                       const SizedBox(height: 12),
                                       Expanded(
                                         child: ListView.separated(
-                                          itemCount: visits.length,
+                                          itemCount: filteredVisits.length,
                                           separatorBuilder: (_, __) => const SizedBox(height: 8),
                                           itemBuilder: (context, index) {
-                                            final item = visits[index];
+                                            final item = filteredVisits[index];
                                             final salespersonJson = item.salespersonJson;
                                             final receptionistJson = item.receptionistJson ?? {};
                                             final canOpenDetails = salespersonJson == null;

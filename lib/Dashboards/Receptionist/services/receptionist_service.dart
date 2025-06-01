@@ -184,29 +184,42 @@ class ReceptionistService {
   }) async {
     final supabase = Supabase.instance.client;
     final now = DateTime.now().toUtc().toIso8601String();
-    final address = '$streetAddress, $streetNumber, $town, $postcode';
     final receptionistJson = {
       'customerName': customerName,
       'phone': phone,
       'shopName': shopName,
-      'address': address,
+      'streetAddress': streetAddress, // separate
+      'streetNumber': streetNumber,   // separate
+      'town': town,                   // separate
+      'postcode': postcode,           // separate
       'dateOfAppointment': dateOfAppointment,
       'dateOfVisit': dateOfVisit,
       'timeOfVisit': timeOfVisit,
       'assignedSalesperson': assignedSalesperson,
       'createdBy': createdBy,
       'createdAt': now,
+      // Add status as completed for receptionist jsonb
+      'status': 'completed',
     };
     try {
-      await supabase
+      // Insert job and get the created job's id
+      final insertedJob = await supabase
           .from('jobs')
           .insert({
-            'status': 'reception',
+            'status': 'salesperson assigned',
             'created_at': now,
             'receptionist': receptionistJson,
           })
           .select()
           .single();
+      final jobId = insertedJob['id'];
+      // Update assigned_job for the assigned salesperson
+      if (assignedSalesperson != null && jobId != null) {
+        await supabase
+            .from('employee')
+            .update({'assigned_job': jobId})
+            .eq('id', assignedSalesperson);
+      }
       if (onJobAdded != null) {
         onJobAdded();
       }
@@ -246,6 +259,9 @@ class ReceptionistService {
         .select('id, status, created_at, receptionist');
     return List<Map<String, dynamic>>.from(response).map<JobRequest>((e) {
       final receptionist = e['receptionist'] as Map<String, dynamic>?;
+      // Determine assigned: true if receptionist['status'] == 'completed', else false
+      final receptionistStatus = receptionist?['status']?.toString().toLowerCase();
+      final isAssigned = receptionistStatus == 'completed';
       return JobRequest(
         id: e['id']?.toString() ?? '',
         name: receptionist?['customerName'] ?? '',
@@ -256,7 +272,8 @@ class ReceptionistService {
         subtitle: receptionist?['shopName'] ?? '',
         avatar: '',
         time: receptionist?['timeOfVisit'] ?? '',
-        assigned: receptionist?['assignedSalesperson'] != null,
+        assigned: isAssigned,
+        receptionistJson: receptionist,
       );
     }).toList();
   }

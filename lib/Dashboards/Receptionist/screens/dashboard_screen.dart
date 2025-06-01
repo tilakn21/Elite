@@ -12,11 +12,43 @@ import '../models/salesperson.dart';
 import '../providers/job_request_provider.dart';
 import '../providers/salesperson_provider.dart';
 
-class DashboardPage extends StatelessWidget {
+class DashboardPage extends StatefulWidget {
   const DashboardPage({Key? key}) : super(key: key);
 
   static Route<dynamic> route() =>
       MaterialPageRoute(builder: (_) => const DashboardPage());
+
+  @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserver {
+  final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Refresh job requests and salespersons when screen is opened
+    Future.microtask(() {
+      Provider.of<JobRequestProvider>(context, listen: false).fetchJobRequests();
+      Provider.of<SalespersonProvider>(context, listen: false).fetchSalespersons();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      Provider.of<JobRequestProvider>(context, listen: false).fetchJobRequests();
+      Provider.of<SalespersonProvider>(context, listen: false).fetchSalespersons();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +59,6 @@ class DashboardPage extends StatelessWidget {
     final bool isLoading = jobRequestProvider.isLoading || salespersonProvider.isLoading;
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isMobile = screenWidth < 600;
-    final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
     return Scaffold(
       key: scaffoldKey,
       backgroundColor: const Color(0xFFF6F3FE),

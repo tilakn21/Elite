@@ -111,6 +111,20 @@ class AdminSidebar extends StatelessWidget {
               onItemTapped(4);
             },
           ),
+          _SidebarButton(
+            icon: Icons.attach_money,
+            label: 'Reimbursements',
+            selected: selectedIndex == 5,
+            onTap: () {
+              if (ModalRoute.of(context)?.settings.name != '/admin/reimbursements') {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/admin/reimbursements',
+                  (route) => false,
+                );
+              }
+              onItemTapped(5);
+            },
+          ),
           const Spacer(),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),

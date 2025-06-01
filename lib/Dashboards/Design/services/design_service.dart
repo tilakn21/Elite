@@ -15,9 +15,7 @@ class DesignService {
       final response = await supabase
           .from('jobs')
           .select()
-          .not('receptionist', 'is', null)
-          .not('salesperson', 'is', null)
-          .filter('design', 'is', null);
+          .not('salesperson', 'is', null);
       
       // Map each job from Supabase to the Job model
       return List<Map<String, dynamic>>.from(response)
@@ -29,28 +27,6 @@ class DesignService {
       throw Exception('Failed to fetch jobs from database: $e');
     }
   }
-
-  Future<Job> createJob(Job job) async {
-    print('DesignService: Creating job (mocked) - ${job.jobNo}');
-    await Future.delayed(const Duration(milliseconds: 500));
-    // In a real scenario, the backend would assign the ID and return the created job.
-    // For this mock, we assume the job object passed in already has a generated ID.
-    return job;
-  }
-
-  Future<Job> updateJob(Job job) async {
-    print('DesignService: Updating job (mocked) - ${job.jobNo}');
-    await Future.delayed(const Duration(milliseconds: 500));
-    return job; // Return the updated job
-  }
-
-  Future<void> deleteJob(String jobId) async {
-    print('DesignService: Deleting job (mocked) - ID: $jobId');
-    await Future.delayed(const Duration(milliseconds: 500));
-    // No return value needed for delete
-  }
-
-  // Add other methods as needed, e.g., for chat, user details specific to design context
 
   // --- Chat Methods (Mocked) ---
   Future<List<Chat>> getChats() async {

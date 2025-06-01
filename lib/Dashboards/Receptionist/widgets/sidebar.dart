@@ -36,13 +36,28 @@ class Sidebar extends StatelessWidget {
             Navigator.of(context).pushReplacementNamed('/receptionist/dashboard');
             if (isDrawer && onClose != null) onClose!();
           },
-        ),
-        SidebarButton(
+        ),        SidebarButton(
           icon: Icons.add_circle_outline,
           label: 'New Request',
           selected: selectedIndex == 1,
           onTap: () {
             Navigator.of(context).pushReplacementNamed('/receptionist/new-job-request');
+            if (isDrawer && onClose != null) onClose!();
+          },
+        ),        SidebarButton(
+          icon: Icons.list_alt,
+          label: 'View Jobs',
+          selected: selectedIndex == 2,
+          onTap: () {
+            Navigator.of(context).pushReplacementNamed('/receptionist/view-all-jobs');
+            if (isDrawer && onClose != null) onClose!();
+          },
+        ),        SidebarButton(
+          icon: Icons.receipt_long,
+          label: 'Reimbursement',
+          selected: selectedIndex == 3,
+          onTap: () {
+            Navigator.of(context).pushReplacementNamed('/receptionist/reimbursement-request');
             if (isDrawer && onClose != null) onClose!();
           },
         ),

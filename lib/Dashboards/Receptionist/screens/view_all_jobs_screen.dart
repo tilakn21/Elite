@@ -5,8 +5,43 @@ import '../models/job_request.dart';
 import '../widgets/sidebar.dart';
 import '../widgets/topbar.dart';
 
-class ViewAllJobsScreen extends StatelessWidget {
+class ViewAllJobsScreen extends StatefulWidget {
   const ViewAllJobsScreen({Key? key}) : super(key: key);
+
+  @override
+  State<ViewAllJobsScreen> createState() => _ViewAllJobsScreenState();
+}
+
+class _ViewAllJobsScreenState extends State<ViewAllJobsScreen> with WidgetsBindingObserver {
+  final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+  final TextEditingController searchController = TextEditingController();
+  String searchQuery = '';
+  String selectedStatus = 'All';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Refresh job requests when screen is opened
+    Future.microtask(() {
+      Provider.of<JobRequestProvider>(context, listen: false).fetchJobRequests();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Refresh job requests when app resumes
+      Provider.of<JobRequestProvider>(context, listen: false).fetchJobRequests();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +50,17 @@ class ViewAllJobsScreen extends StatelessWidget {
     final bool isLoading = jobRequestProvider.isLoading;
     final double width = MediaQuery.of(context).size.width;
     final bool isMobile = width < 600;
-    final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+    // Filtered jobs based on search and status
+    List<JobRequest> filteredJobs = jobRequests.where((job) {
+      final matchesSearch = searchQuery.isEmpty ||
+          job.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+          job.phone.toLowerCase().contains(searchQuery.toLowerCase()) ||
+          job.id.toLowerCase().contains(searchQuery.toLowerCase());
+      final matchesStatus = selectedStatus == 'All' ||
+          (selectedStatus == 'Assigned' && job.assigned == true) ||
+          (selectedStatus == 'Unassigned' && job.assigned != true);
+      return matchesSearch && matchesStatus;
+    }).toList();
     return Scaffold(
       key: scaffoldKey,
       backgroundColor: const Color(0xFFF6F3FE),
@@ -50,97 +95,79 @@ class ViewAllJobsScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: const [
-                                        Text(
-                                          'New job request',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 28,
-                                            color: Color(0xFF1B2330),
-                                          ),
-                                        ),
-                                        SizedBox(height: 4),
-                                        Text(
-                                          "Today's Requests",
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            color: Color(0xFF7B7B7B),
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
+                                // Add label above search bar
+                                const Padding(
+                                  padding: EdgeInsets.only(bottom: 12.0),
+                                  child: Text(
+                                    'Jobs Screen',
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF1B2330),
                                     ),
-                                    ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF7DE2D1),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                // --- Search and Filter Row ---
+                                Row(
+                                  children: [
+                                    // Search bar
+                                    Expanded(
+                                      flex: 2,
+                                      child: TextField(
+                                        controller: searchController,
+                                        decoration: InputDecoration(
+                                          hintText: 'Search by name, phone, or ID...',
+                                          prefixIcon: Icon(Icons.search, size: 20),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                            borderSide: BorderSide(color: Colors.grey[300]!),
+                                          ),
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                         ),
-                                        minimumSize: const Size(200, 54),
-                                        elevation: 0,
+                                        onChanged: (value) {
+                                          setState(() {
+                                            searchQuery = value;
+                                          });
+                                        },
                                       ),
-                                      onPressed: () {
-                                        Navigator.of(context).pushNamed('/receptionist/new-job-request');
-                                      },
-                                      child: const Text(
-                                        '+Add New job',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 20,
+                                    ),
+                                    const SizedBox(width: 16),
+                                    // Status filter dropdown
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: Colors.grey[300]!),
+                                        borderRadius: BorderRadius.circular(8),
+                                        color: Colors.white,
+                                      ),
+                                      child: DropdownButtonHideUnderline(
+                                        child: DropdownButton<String>(
+                                          value: selectedStatus,
+                                          icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                                          isExpanded: false,
+                                          style: const TextStyle(color: Colors.black87, fontSize: 14),
+                                          onChanged: (String? newValue) {
+                                            if (newValue != null) {
+                                              setState(() {
+                                                selectedStatus = newValue;
+                                              });
+                                            }
+                                          },
+                                          items: ['All', 'Assigned', 'Unassigned']
+                                              .map<DropdownMenuItem<String>>((String value) {
+                                            return DropdownMenuItem<String>(
+                                              value: value,
+                                              child: Text(value),
+                                            );
+                                          }).toList(),
                                         ),
                                       ),
-                                    )
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 24),
-                                SizedBox(
-                                  height: 150,
-                                  child: Builder(
-                                    builder: (context) {
-                                      final todaysJobs = jobRequests.where((job) {
-                                        final now = DateTime.now();
-                                        return job.dateAdded != null &&
-                                            job.dateAdded!.year == now.year &&
-                                            job.dateAdded!.month == now.month &&
-                                            job.dateAdded!.day == now.day;
-                                      }).toList();
-                                      if (todaysJobs.isEmpty) {
-                                        return Center(
-                                          child: Text(
-                                            "No requests for today",
-                                            style: TextStyle(color: Colors.grey, fontSize: 16),
-                                          ),
-                                        );
-                                      }
-                                      return ListView.builder(
-                                        scrollDirection: Axis.horizontal,
-                                        itemCount: todaysJobs.length,
-                                        itemBuilder: (context, index) {
-                                          final job = todaysJobs[index];
-                                          return Padding(
-                                            padding: EdgeInsets.only(left: index == 0 ? 0 : 20, right: 0),
-                                            child: _RequestCard(
-                                              avatar: job.avatar ?? 'assets/images/elite_logo.png',
-                                              name: job.name,
-                                              subtitle: job.subtitle ?? '',
-                                              status: job.assigned == true ? 'Assigned' : 'Unassigned',
-                                              statusColor: job.assigned == true ? Color(0xFF7DE2D1) : Color(0xFFFFAFAF),
-                                              date: job.dateAdded != null ? "${job.dateAdded!.day.toString().padLeft(2, '0')}/${job.dateAdded!.month.toString().padLeft(2, '0')}/${job.dateAdded!.year}" : '',
-                                            ),
-                                          );
-                                        },
-                                      );
-                                    },
-                                  ),
-                                ),
                                 const SizedBox(height: 36),
-                                _JobRequestsTable(jobRequests: jobRequests),
+                                _JobRequestsTable(jobRequests: filteredJobs),
                               ],
                             ),
                           ),
@@ -148,72 +175,6 @@ class ViewAllJobsScreen extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RequestCard extends StatelessWidget {
-  final String avatar;
-  final String name;
-  final String subtitle;
-  final String status;
-  final Color statusColor;
-  final String date;
-  const _RequestCard({required this.avatar, required this.name, required this.subtitle, required this.status, required this.statusColor, required this.date});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9F7FD),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundImage: AssetImage(avatar),
-                radius: 22,
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: Color(0xFF1B2330))),
-                  Text(subtitle, style: const TextStyle(fontSize: 13, color: Color(0xFFBDBDBD))),
-                ],
-              ),
-              const Spacer(),
-              if (status.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusColor,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    status,
-                    style: TextStyle(
-                      color: status == 'Assigned' ? const Color(0xFF1B2330) : const Color(0xFFD32F2F),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              const Text('Date', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: Color(0xFFBDBDBD))),
-              const Spacer(),
-              Text(date, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF1B2330))),
-            ],
           ),
         ],
       ),
@@ -243,7 +204,6 @@ class _JobRequestsTable extends StatelessWidget {
               children: const [
                 Expanded(child: Text('Name', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFFBDBDBD), fontSize: 15))),
                 Expanded(child: Text('ID', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFFBDBDBD), fontSize: 15))),
-                Expanded(child: Text('Email', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFFBDBDBD), fontSize: 15))),
                 Expanded(child: Text('Phone number', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFFBDBDBD), fontSize: 15))),
                 Expanded(child: Text('Date added', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFFBDBDBD), fontSize: 15))),
                 Expanded(child: Text('STATUS', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFFBDBDBD), fontSize: 15))),
@@ -264,35 +224,126 @@ class _TableRowWidget extends StatelessWidget {
   const _TableRowWidget(this.row);
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {
+    return InkWell(      onTap: () {
         showDialog(
           context: context,
-          builder: (context) => AlertDialog(
-            title: Text('Job Details'),
-            content: SingleChildScrollView(
+          builder: (context) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Container(
+              width: 600,
+              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  _jobDetailRow('Name', row.name),
-                  _jobDetailRow('ID', row.id),
-                  _jobDetailRow('Email', row.email),
-                  _jobDetailRow('Phone', row.phone),
-                  _jobDetailRow('Date Added', row.dateAdded != null ? " ${row.dateAdded!.day.toString().padLeft(2, '0')}/${row.dateAdded!.month.toString().padLeft(2, '0')}/${row.dateAdded!.year}" : ''),
-                  _jobDetailRow('Time', row.time ?? ''),
-                  _jobDetailRow('Status', row.assigned == true ? 'Assigned' : 'Unassigned'),
-                  if (row.subtitle != null && row.subtitle!.isNotEmpty)
-                    _jobDetailRow('Subtitle', row.subtitle!),
-                  // Add more fields as needed
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF8F6FF),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF8B5CF6),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.person, color: Colors.white, size: 24),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                row.name,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1F2937),
+                                ),
+                              ),
+                              Text(
+                                'Job ID: ${row.id}',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFF6B7280),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: row.assigned == true ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            row.assigned == true ? 'Assigned' : 'Unassigned',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close, color: Color(0xFF6B7280)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Contact Information Card
+                          _buildInfoCard(
+                            'Contact Information',
+                            Icons.contact_phone,
+                            [
+                              _buildDetailItem('Phone', row.phone, Icons.phone),
+                              _buildDetailItem('Email', row.email, Icons.email),
+                              _buildDetailItem('Date Added', row.dateAdded != null 
+                                ? "${row.dateAdded!.day.toString().padLeft(2, '0')}/${row.dateAdded!.month.toString().padLeft(2, '0')}/${row.dateAdded!.year}"
+                                : 'Not specified', Icons.calendar_today),
+                              _buildDetailItem('Time', row.time ?? 'Not specified', Icons.access_time),
+                            ],
+                          ),
+                          
+                          const SizedBox(height: 20),
+                          
+                          // Job Status Card
+                          _buildInfoCard(
+                            'Job Status',
+                            Icons.work,
+                            [
+                              _buildDetailItem('Status', row.status.toString().split('.').last, Icons.info),
+                              _buildDetailItem('Subtitle', row.subtitle ?? 'Not specified', Icons.description),
+                            ],
+                          ),
+                          
+                          // Receptionist Details Card (if available)
+                          if (row.receptionistJson != null) ...[
+                            const SizedBox(height: 20),
+                            _buildReceptionistCard(row.receptionistJson!),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Close'),
-              ),
-            ],
           ),
         );
       },
@@ -319,13 +370,12 @@ class _TableRowWidget extends StatelessWidget {
               ),
             ),
             Expanded(child: Text(row.id, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13))),
-            Expanded(child: Text(row.email, style: const TextStyle(fontSize: 13, color: Color(0xFF7B7B7B)))),
             Expanded(child: Text(row.phone, style: const TextStyle(fontSize: 13, color: Color(0xFF7B7B7B)))),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(row.dateAdded != null ? " ${row.dateAdded!.day.toString().padLeft(2, '0')}/${row.dateAdded!.month.toString().padLeft(2, '0')}/${row.dateAdded!.year}" : '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF1B2330))),
+                  Text(row.dateAdded != null ? "${row.dateAdded!.day.toString().padLeft(2, '0')}/${row.dateAdded!.month.toString().padLeft(2, '0')}/${row.dateAdded!.year}" : '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF1B2330))),
                   Text(row.time ?? '', style: const TextStyle(fontSize: 11, color: Color(0xFFBDBDBD))),
                 ],
               ),
@@ -360,15 +410,281 @@ class _TableRowWidget extends StatelessWidget {
   }
 }
 
-Widget _jobDetailRow(String label, String value) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4.0),
-    child: Row(
+Widget _buildInfoCard(String title, IconData icon, List<Widget> children) {
+  return Container(
+    width: double.infinity,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: const Color(0xFFE5E7EB)),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 4,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),
-        Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w400))),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: const BoxDecoration(
+            color: Color(0xFFF9FAFB),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: const Color(0xFF8B5CF6), size: 20),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1F2937),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: children,
+          ),
+        ),
       ],
     ),
   );
 }
+
+Widget _buildDetailItem(String label, String value, IconData icon) {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Row(
+      children: [
+        Icon(icon, color: const Color(0xFF6B7280), size: 16),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF6B7280),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF1F2937),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildReceptionistCard(Map<String, dynamic> receptionistData) {
+  // Organize the data into logical sections
+  final contactInfo = <String, dynamic>{};
+  final locationInfo = <String, dynamic>{};
+  final appointmentInfo = <String, dynamic>{};
+  final businessInfo = <String, dynamic>{};
+  final systemInfo = <String, dynamic>{};
+
+  // Categorize the data
+  receptionistData.forEach((key, value) {
+    switch (key.toLowerCase()) {
+      case 'phone':
+      case 'customername':
+        contactInfo[key] = value;
+        break;
+      case 'streetaddress':
+      case 'streetnumber':
+      case 'town':
+      case 'postcode':
+        locationInfo[key] = value;
+        break;
+      case 'dateofvisit':
+      case 'timeofvisit':
+      case 'dateofappointment':
+      case 'assignedsalesperson':
+        appointmentInfo[key] = value;
+        break;
+      case 'shopname':
+        businessInfo[key] = value;
+        break;
+      case 'status':
+      case 'createdat':
+      case 'createdby':
+        systemInfo[key] = value;
+        break;
+      default:
+        systemInfo[key] = value;
+    }
+  });
+
+  return Column(
+    children: [
+      // Contact Information
+      if (contactInfo.isNotEmpty) ...[
+        _buildInfoCard(
+          'Customer Contact',
+          Icons.person_outline,
+          contactInfo.entries.map((e) => 
+            _buildDetailItem(_formatFieldName(e.key), e.value?.toString() ?? 'Not specified', _getIconForField(e.key))
+          ).toList(),
+        ),
+        const SizedBox(height: 20),
+      ],
+
+      // Location Information
+      if (locationInfo.isNotEmpty) ...[
+        _buildInfoCard(
+          'Location Details',
+          Icons.location_on_outlined,
+          [
+            _buildDetailItem(
+              'Full Address',
+              _buildFullAddress(locationInfo),
+              Icons.home,
+            ),
+            ...locationInfo.entries.map((e) => 
+              _buildDetailItem(_formatFieldName(e.key), e.value?.toString() ?? 'Not specified', _getIconForField(e.key))
+            ).toList(),
+          ],
+        ),
+        const SizedBox(height: 20),
+      ],
+
+      // Appointment Information
+      if (appointmentInfo.isNotEmpty) ...[
+        _buildInfoCard(
+          'Appointment Details',
+          Icons.schedule,
+          appointmentInfo.entries.map((e) => 
+            _buildDetailItem(_formatFieldName(e.key), _formatFieldValue(e.key, e.value), _getIconForField(e.key))
+          ).toList(),
+        ),
+        const SizedBox(height: 20),
+      ],
+
+      // Business Information
+      if (businessInfo.isNotEmpty) ...[
+        _buildInfoCard(
+          'Business Information',
+          Icons.store,
+          businessInfo.entries.map((e) => 
+            _buildDetailItem(_formatFieldName(e.key), e.value?.toString() ?? 'Not specified', _getIconForField(e.key))
+          ).toList(),
+        ),
+        const SizedBox(height: 20),
+      ],
+
+      // System Information
+      if (systemInfo.isNotEmpty) ...[
+        _buildInfoCard(
+          'System Information',
+          Icons.info_outline,
+          systemInfo.entries.map((e) => 
+            _buildDetailItem(_formatFieldName(e.key), _formatFieldValue(e.key, e.value), _getIconForField(e.key))
+          ).toList(),
+        ),
+      ],
+    ],
+  );
+}
+
+String _formatFieldName(String fieldName) {
+  // Convert camelCase and snake_case to proper titles
+  return fieldName
+      .replaceAllMapped(RegExp(r'([A-Z])'), (match) => ' ${match.group(1)}')
+      .replaceAll('_', ' ')
+      .split(' ')
+      .map((word) => word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1).toLowerCase())
+      .join(' ')
+      .trim();
+}
+
+String _formatFieldValue(String fieldName, dynamic value) {
+  if (value == null) return 'Not specified';
+  
+  String stringValue = value.toString();
+  
+  // Special formatting for date fields
+  if (fieldName.toLowerCase().contains('date') || fieldName.toLowerCase().contains('createdat')) {
+    try {
+      DateTime date = DateTime.parse(stringValue);
+      return "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
+    } catch (e) {
+      return stringValue;
+    }
+  }
+  
+  return stringValue;
+}
+
+IconData _getIconForField(String fieldName) {
+  switch (fieldName.toLowerCase()) {
+    case 'phone':
+      return Icons.phone;
+    case 'customername':
+      return Icons.person;
+    case 'streetaddress':
+    case 'streetnumber':
+      return Icons.home;
+    case 'town':
+    case 'postcode':
+      return Icons.location_city;
+    case 'dateofvisit':
+    case 'dateofappointment':
+      return Icons.calendar_today;
+    case 'timeofvisit':
+      return Icons.access_time;
+    case 'assignedsalesperson':
+      return Icons.person_pin;
+    case 'shopname':
+      return Icons.store;
+    case 'status':
+      return Icons.info;
+    case 'createdat':
+      return Icons.schedule;
+    case 'createdby':
+      return Icons.person_outline;
+    default:
+      return Icons.info_outline;
+  }
+}
+
+String _buildFullAddress(Map<String, dynamic> locationInfo) {
+  final parts = <String>[];
+  
+  if (locationInfo['streetnumber'] != null && locationInfo['streetnumber'].toString().isNotEmpty) {
+    parts.add(locationInfo['streetnumber'].toString());
+  }
+  if (locationInfo['streetaddress'] != null && locationInfo['streetaddress'].toString().isNotEmpty) {
+    parts.add(locationInfo['streetaddress'].toString());
+  }
+  if (locationInfo['town'] != null && locationInfo['town'].toString().isNotEmpty) {
+    parts.add(locationInfo['town'].toString());
+  }
+  if (locationInfo['postcode'] != null && locationInfo['postcode'].toString().isNotEmpty) {
+    parts.add(locationInfo['postcode'].toString());
+  }
+  
+  return parts.isNotEmpty ? parts.join(', ') : 'Not specified';
+}
+
+

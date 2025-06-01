@@ -23,7 +23,7 @@ class NewJobRequestCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('New Job Request',
+                  const Text('Jobs',
                       style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 15,
@@ -33,7 +33,6 @@ class NewJobRequestCard extends StatelessWidget {
                     children: const [
                       Expanded(child: _Header('Name')),
                       Expanded(child: _Header('Phone')),
-                      Expanded(child: _Header('Email')),
                       Expanded(child: _Header('Status')),
                     ],
                   ),
@@ -89,14 +88,9 @@ class _JobRow extends StatelessWidget {
                   style:
                       const TextStyle(fontSize: 14, color: Color(0xFF1B2330)))),
           Expanded(
-              child: Text(job.email,
-                  style:
-                      const TextStyle(fontSize: 14, color: Color(0xFF1B2330)),
-                  overflow: TextOverflow.ellipsis)),
-          Expanded(
               child: Align(
                   alignment: Alignment.centerLeft,
-                  child: _StatusChip(job.status.name))),
+                  child: _StatusChip(job.assigned == true ? 'Assigned' : 'Unassigned'))),
         ],
       ),
     );
@@ -110,11 +104,11 @@ class _StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     Color color;
     switch (status) {
-      case 'Approved':
-        color = const Color(0xFF4CAF50);
+      case 'Assigned':
+        color = const Color(0xFF7DE2D1);
         break;
-      case 'Declined':
-        color = const Color(0xFFF44336);
+      case 'Unassigned':
+        color = const Color(0xFFFFAFAF);
         break;
       default:
         color = Colors.grey;
@@ -127,7 +121,7 @@ class _StatusChip extends StatelessWidget {
       ),
       child: Text(status,
           style: TextStyle(
-              color: color, fontWeight: FontWeight.bold, fontSize: 13)),
+              color: status == 'Assigned' ? const Color(0xFF1B2330) : const Color(0xFFD32F2F), fontWeight: FontWeight.bold, fontSize: 13)),
     );
   }
 }

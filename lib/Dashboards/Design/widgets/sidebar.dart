@@ -52,12 +52,27 @@ class DesignSidebar extends StatelessWidget {
             selected: selectedIndex == 1,
             onTap: () => onItemTapped(1),
           ),
-        
+          _SidebarButton(
+            icon: Icons.receipt_long,
+            label: 'Reimbursement',
+            selected: selectedIndex == 2,
+            onTap: () {
+              if (ModalRoute.of(context)?.settings.name != '/design/reimbursement') {
+                Navigator.of(context).pushReplacementNamed('/design/reimbursement');
+              }
+              onItemTapped(2);
+            },
+          ),
           _SidebarButton(
             icon: Icons.chat,
             label: 'Customer\nChats',
             selected: selectedIndex == 3,
-            onTap: () => onItemTapped(3),
+            onTap: () {
+              if (ModalRoute.of(context)?.settings.name != '/design/chats') {
+                Navigator.of(context).pushReplacementNamed('/design/chats');
+              }
+              onItemTapped(3);
+            },
           ),
           const Spacer(),
           Padding(

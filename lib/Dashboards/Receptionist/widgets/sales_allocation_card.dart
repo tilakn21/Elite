@@ -39,7 +39,7 @@ class SalesAllocationCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Sales Allocation Dashboard',
+                'Salesperson',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 15,

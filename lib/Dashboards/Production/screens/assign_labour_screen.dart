@@ -50,7 +50,7 @@ class _AssignLabourScreenState extends State<AssignLabourScreen> {  final Scroll
   }
   Color _getStatusColor(JobStatus status) {
     switch (status) {
-      case JobStatus.receiver:
+      case JobStatus.received:
         return const Color(0xFFE3F2FD);
       case JobStatus.assignedLabour:
         return const Color(0xFFE8F5E8);
@@ -69,7 +69,7 @@ class _AssignLabourScreenState extends State<AssignLabourScreen> {  final Scroll
 
   Color _getStatusTextColor(JobStatus status) {
     switch (status) {
-      case JobStatus.receiver:
+      case JobStatus.received:
         return const Color(0xFF1976D2);
       case JobStatus.assignedLabour:
         return const Color(0xFF2E7D32);
@@ -102,7 +102,7 @@ class _AssignLabourScreenState extends State<AssignLabourScreen> {  final Scroll
               } else if (index == 2) {
                 Navigator.of(context).pushReplacementNamed('/production/joblist');
               } else if (index == 3) {
-                Navigator.of(context).pushReplacementNamed('/production/updatejobstatus');
+                Navigator.of(context).pushReplacementNamed('/production/reimbursement');
               }
             },
           ),
@@ -160,13 +160,13 @@ class _AssignLabourScreenState extends State<AssignLabourScreen> {  final Scroll
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: _getStatusColor(selectedJob!.status),
+                                      color: _getStatusColor(selectedJob!.computedStatus),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
-                                      selectedJob!.status.label,
+                                      selectedJob!.computedStatus.label,
                                       style: TextStyle(
-                                        color: _getStatusTextColor(selectedJob!.status),
+                                        color: _getStatusTextColor(selectedJob!.computedStatus),
                                         fontWeight: FontWeight.bold,
                                         fontSize: 13,
                                       ),

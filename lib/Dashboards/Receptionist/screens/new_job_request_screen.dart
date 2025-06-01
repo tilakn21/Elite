@@ -7,8 +7,24 @@ import '../providers/salesperson_provider.dart';
 import '../providers/job_request_provider.dart';
 import '../models/job_request.dart';
 
-class NewJobRequestScreen extends StatelessWidget {
+class NewJobRequestScreen extends StatefulWidget {
   const NewJobRequestScreen({Key? key}) : super(key: key);
+
+  @override
+  State<NewJobRequestScreen> createState() => _NewJobRequestScreenState();
+}
+
+class _NewJobRequestScreenState extends State<NewJobRequestScreen> {
+  final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    // Refresh job requests when screen is opened
+    Future.microtask(() {
+      Provider.of<JobRequestProvider>(context, listen: false).fetchJobRequests();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +32,6 @@ class NewJobRequestScreen extends StatelessWidget {
     final isMobile = width < 600;
     final isTablet = width >= 600 && width < 900;
     final double formWidth = isMobile ? double.infinity : (isTablet ? 500 : 800);
-    final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
     return Scaffold(
       key: scaffoldKey,
       backgroundColor: const Color(0xFFF6F3FE),
@@ -205,20 +220,27 @@ class _JobRequestFormState extends State<_JobRequestForm> {
     try {
       // TODO: Replace with actual logged-in user id
       const String createdBy = 'receptionist-uid';
-      final jobRequestProvider = Provider.of<JobRequestProvider>(context, listen: false);
-      await jobRequestProvider.addJobRequest(
-        JobRequest(
-          id: '', // Will be set by backend
-          name: nameController.text.trim(),
-          phone: phoneController.text.trim(),
-          email: '', // Add email if available
-          status: JobRequestStatus.pending, // Or appropriate status
-          dateAdded: DateTime.now(),
-          subtitle: shopNameController.text.trim(),
-          avatar: null, // Set if available
-          time: timeController.text.trim(),
-          assigned: false,
-        ),
+      // Upload job to Supabase
+      await _receptionistService.addJobToSupabase(
+        customerName: nameController.text.trim(),
+        phone: phoneController.text.trim(),
+        shopName: shopNameController.text.trim(),
+        streetAddress: streetAddressController.text.trim(),
+        streetNumber: streetNumberController.text.trim(),
+        town: townController.text.trim(),
+        postcode: postcodeController.text.trim(),
+        dateOfAppointment: dateOfAppointmentController.text.trim(),
+        dateOfVisit: dateOfVisitController.text.trim(),
+        timeOfVisit: timeController.text.trim(),
+        assignedSalesperson: selectedSalespersonId,
+        createdBy: createdBy,
+        onJobAdded: () async {
+          // Optionally refresh job requests after adding
+          try {
+            final jobRequestProvider = Provider.of<JobRequestProvider>(context, listen: false);
+            await jobRequestProvider.fetchJobRequests();
+          } catch (_) {}
+        },
       );
       // Set salesperson as unavailable
       if (selectedSalespersonId != null) {

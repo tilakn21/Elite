@@ -77,9 +77,9 @@ class _DashboardScreenState extends State<DashboardScreen>
         return _buildOverviewDashboard(
             context, jobProvider, chatProvider, isDesktop, isTablet, isMobile);
       case 1: // Job Details
-        return const JobListScreen();
+        return const JobListScreen(showNavigation: false);
       case 2: // Upload Design Draft (Replaced with Job List)
-        return const JobListScreen();
+        return const JobListScreen(showNavigation: false);
       case 3: // Chat
         return const ActiveChatsScreen();
       default:

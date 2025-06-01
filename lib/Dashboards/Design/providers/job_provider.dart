@@ -43,6 +43,10 @@ class JobProvider with ChangeNotifier {
     }
   }
 
+  Future<void> fetchJobs() async {
+    await _fetchJobs();
+  }
+
   void _loadSampleJobs() {
     final now = DateTime.now();
     
@@ -120,66 +124,6 @@ class JobProvider with ChangeNotifier {
         status: JobStatus.inProgress,
       ),
     ];
-  }
-
-  Future<void> addJob(Job job) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-    try {
-      final newJob = await _designService.createJob(job);
-      _jobs.add(newJob); // Assuming service returns the created job with potential updates (e.g., ID)
-    } catch (e) {
-      _errorMessage = e.toString();
-      if (kDebugMode) {
-        print('Error adding job via service: $e');
-      }
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> updateJob(Job updatedJob) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-    try {
-      final returnedJob = await _designService.updateJob(updatedJob);
-      final index = _jobs.indexWhere((job) => job.id == returnedJob.id);
-      if (index != -1) {
-        _jobs[index] = returnedJob;
-      } else {
-        // If the job wasn't in the list, perhaps add it or log an error
-        print('JobProvider: Updated job ID ${returnedJob.id} not found in local list.');
-      }
-    } catch (e) {
-      _errorMessage = e.toString();
-      if (kDebugMode) {
-        print('Error updating job via service: $e');
-      }
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> deleteJob(String id) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-    try {
-      await _designService.deleteJob(id);
-      _jobs.removeWhere((job) => job.id == id);
-    } catch (e) {
-      _errorMessage = e.toString();
-      if (kDebugMode) {
-        print('Error deleting job via service: $e');
-      }
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
   }
 
   Job? getJobById(String id) {

@@ -15,79 +15,85 @@ class JobListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 600;    return Card(
-      margin: EdgeInsets.zero,
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0).copyWith(bottom: 23.0), // Added extra bottom padding to fix overflow
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Job List',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 18,
-                  ),
-            ),
-            const SizedBox(height: 20),
-            if (jobs.isNotEmpty && !isMobile)
-              _buildApprovedJobsSection(context),
-            if (jobs.isNotEmpty && !isMobile) const SizedBox(height: 24),
-            if (!isMobile) _buildJobListHeader(context),
-            if (!isMobile)
-              const Divider(height: 1, thickness: 1, color: Color(0xFFEEEEEE)),
-            const SizedBox(height: 12),
-            jobs.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.work_outline,
-                            size: 48,
-                            color: Colors.grey[300],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No jobs available',
-                            style:
-                                Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                      color: AppTheme.textSecondaryColor,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                          ),
-                        ],
+    final isMobile = screenWidth < 600;
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(context, '/design/job-list');
+      },
+      child: Card(
+        margin: EdgeInsets.zero,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0).copyWith(bottom: 23.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Job List',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 18,
+                    ),
+              ),
+              const SizedBox(height: 20),
+              if (jobs.isNotEmpty && !isMobile)
+                _buildApprovedJobsSection(context),
+              if (jobs.isNotEmpty && !isMobile) const SizedBox(height: 24),
+              if (!isMobile) _buildJobListHeader(context),
+              if (!isMobile)
+                const Divider(height: 1, thickness: 1, color: Color(0xFFEEEEEE)),
+              const SizedBox(height: 12),
+              jobs.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.work_outline,
+                              size: 48,
+                              color: Colors.grey[300],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No jobs available',
+                              style:
+                                  Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                        color: AppTheme.textSecondaryColor,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: jobs.length > 4 ? 400 : jobs.length * 80.0,
+                      ),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: jobs.length > 4 ? 4 : jobs.length,
+                        separatorBuilder: (context, index) => const Divider(
+                            height: 1, thickness: 1, color: Color(0xFFEEEEEE)),
+                        itemBuilder: (context, index) {
+                          final job = jobs[index];
+                          return _buildJobListItem(context, job,
+                              isMobile: isMobile);
+                        },
                       ),
                     ),
-                  )                : ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxHeight: jobs.length > 4 ? 400 : jobs.length * 80.0,
-                    ),
-                    child: ListView.separated(
-                      shrinkWrap: true,
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: jobs.length > 4 ? 4 : jobs.length,
-                      separatorBuilder: (context, index) => const Divider(
-                          height: 1, thickness: 1, color: Color(0xFFEEEEEE)),
-                      itemBuilder: (context, index) {
-                        final job = jobs[index];
-                        return _buildJobListItem(context, job,
-                            isMobile: isMobile);
-                      },
-                    ),
-                  ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildApprovedJobsSection(BuildContext context) {
-    final approvedJobs =
-        jobs.where((job) => job.status == JobStatus.approved).toList();
+    final approvedJobs = jobs.where((job) => job.displayStatus == 'Approved').toList();
 
     if (approvedJobs.isEmpty) {
       return const SizedBox.shrink();
@@ -122,6 +128,8 @@ class JobListCard extends StatelessWidget {
   }
 
   Widget _buildApprovedJobCard(BuildContext context, Job job) {
+    final statusColor = job.displayStatusColor;
+    final statusText = job.displayStatus;
     return InkWell(
       onTap: () => _navigateToJobDetails(context, job),
       borderRadius: BorderRadius.circular(8),
@@ -202,13 +210,13 @@ class JobListCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: AppTheme.approvedColor.withAlpha(26),
+                color: statusColor.withAlpha(26),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                'Approved',
+                statusText,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.approvedColor,
+                      color: statusColor,
                       fontWeight: FontWeight.w500,
                     ),
               ),
@@ -276,35 +284,14 @@ class JobListCard extends StatelessWidget {
       {bool isMobile = false}) {
     final dateFormat =
         isMobile ? DateFormat('dd/MM/yy') : DateFormat('dd/MM/yyyy\nhh:mm a');
-
-    Color statusColor;
-    String statusText;
-
-    switch (job.status) {
-      case JobStatus.approved:
-        statusColor = AppTheme.approvedColor;
-        statusText = 'Approved';
-        break;
-      case JobStatus.pending:
-        statusColor = AppTheme.pendingColor;
-        statusText = 'Pending';
-        break;
-      case JobStatus.inProgress:
-        statusColor = AppTheme.inProgressColor;
-        statusText = 'In progress';
-        break;
-    }
+    final statusColor = job.displayStatusColor;
+    final statusText = job.displayStatus;
 
     if (isMobile) {
       // Mobile layout - card style
       return InkWell(
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => JobDetailsScreen(jobId: job.id),
-            ),
-          );
+          _navigateToJobDetails(context, job);
         },
         child: Card(
           margin: const EdgeInsets.symmetric(vertical: 4),
@@ -372,12 +359,7 @@ class JobListCard extends StatelessWidget {
       // Desktop layout - row style
       return InkWell(
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => JobDetailsScreen(jobId: job.id),
-            ),
-          );
+          _navigateToJobDetails(context, job);
         },
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 12.0),

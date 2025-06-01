@@ -1,8 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:file_picker/file_picker.dart';
 import '../providers/job_provider.dart';
 import '../providers/chat_provider.dart';
 import '../models/job.dart';
@@ -12,7 +10,6 @@ import '../widgets/upload_draft_widget.dart';
 import '../services/design_service.dart';
 import 'chat_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:file_picker/file_picker.dart';
 
 class JobDetailsScreen extends StatefulWidget {
   final String jobId;
@@ -35,13 +32,12 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
   final _messageController = TextEditingController();
 
   final GlobalKey<UploadDraftWidgetState> _uploadDraftKey = GlobalKey<UploadDraftWidgetState>();
+  final _uploadDraftSectionKey = GlobalKey();
   Job? _job;
   Chat? _activeChat;
   bool _isEditingDetails = false;
   bool _showChatPanel = false;
-  List<File> _selectedImages = [];
-  bool _showImagePreview = false;
-  bool _isUploading = false;
+  bool _isRefreshingJobs = false;
 
   // Status tracking
   double _progressValue = 0.0;
@@ -51,7 +47,10 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      setState(() => _isRefreshingJobs = true);
+      await Provider.of<JobProvider>(context, listen: false).fetchJobs();
+      setState(() => _isRefreshingJobs = false);
       _loadJobDetails();
       _loadActiveChat();
     });
@@ -59,6 +58,10 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
 
   @override
   void dispose() {
+    setState(() => _isRefreshingJobs = true);
+    Provider.of<JobProvider>(context, listen: false).fetchJobs().then((_) {
+      setState(() => _isRefreshingJobs = false);
+    });
     _notesController.dispose();
     _commentsController.dispose();
     _measurementsController.dispose();
@@ -131,7 +134,6 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
 
   void _updateJobStatus(JobStatus status) {
     if (_job != null) {
-      final jobProvider = Provider.of<JobProvider>(context, listen: false);
       final updatedJob = _job!.copyWith(
         status: status,
         notes: _notesController.text.isEmpty ? null : _notesController.text,
@@ -139,11 +141,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
             ? null
             : _measurementsController.text,
       );
-
-      jobProvider.updateJob(updatedJob);
       setState(() {
         _job = updatedJob;
-
         // Update progress based on new status
         switch (status) {
           case JobStatus.inProgress:
@@ -166,7 +165,6 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
             break;
         }
       });
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Job status updated successfully'),
@@ -269,7 +267,35 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     }
   }
 
-  void _approveJob() {
+  void _approveJob() async {
+    if (_job == null) return;
+    // Find the latest draft with status 'pending_approval' or 'pending for approval'
+    final design = _job!.design;
+    if (design is List && design.isNotEmpty) {
+      for (var i = design.length - 1; i >= 0; i--) {
+        final draft = design[i];
+        final status = draft is Map<String, dynamic> ? draft['status']?.toString().toLowerCase() : null;
+        if (status == 'pending_approval' || status == 'pending for approval') {
+          // Update the status to 'completed' for this draft
+          final updatedDraft = Map<String, dynamic>.from(draft);
+          updatedDraft['status'] = 'completed';
+          final updatedDesign = List<Map<String, dynamic>>.from(design);
+          updatedDesign[i] = updatedDraft;
+          // Update in database
+          final supabase = Supabase.instance.client;
+          await supabase.from('jobs').update({'design': updatedDesign}).eq('id', _job!.id);
+          // Also update locally
+          setState(() {
+            _job = _job!.copyWith(design: updatedDesign);
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Design approved and status updated.'), backgroundColor: AppTheme.successColor),
+          );
+          break;
+        }
+      }
+    }
+    // Optionally, update job status as well
     _updateJobStatus(JobStatus.approved);
   }
 
@@ -311,118 +337,35 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     }
   }
 
-  Future<void> _pickImages() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        allowMultiple: true,
-        allowedExtensions: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+  void _scrollToUploadDraftSection() {
+    final ctx = _uploadDraftSectionKey.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+        alignment: 0.1,
       );
-
-      if (result != null && result.files.isNotEmpty) {
-        setState(() {
-          _selectedImages.addAll(
-            result.files.where((file) => file.path != null).map((file) => File(file.path!)),
-          );
-          _showImagePreview = true;
-        });
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error picking images: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  void _removeImage(int index) {
-    setState(() {
-      _selectedImages.removeAt(index);
-      if (_selectedImages.isEmpty) {
-        _showImagePreview = false;
-      }
-    });
-  }
-
-  Future<void> _sendMessage() async {
-    if (_job == null) return;
-    if (_messageController.text.trim().isEmpty && _selectedImages.isEmpty) return;
-
-    setState(() {
-      _isUploading = true;
-    });
-
-    try {
-      final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-      final designService = DesignService();
-
-      // Upload images if any
-      List<String> uploadedImageUrls = [];
-      if (_selectedImages.isNotEmpty) {
-        for (var image in _selectedImages) {
-          try {
-            final url = await designService.uploadDraftFile(image);
-            if (url != null) {
-              uploadedImageUrls.add(url);
-            }
-          } catch (e) {
-            print('Error uploading image: $e');
-            continue;
-          }
-        }
-      }
-
-      // Create chat if it doesn't exist
-      if (_activeChat == null) {
-        final newChat = Chat(
-          customerId: _job!.id,
-          customerName: _job!.clientName,
-          customerSpecialty: 'Client',
-          messages: [],
-          status: ChatStatus.inProgress,
-          lastUpdated: DateTime.now(),
-        );
-        chatProvider.addChat(newChat);
-        _activeChat = newChat;
-      }
-
-      // Send message with images
-      final message = ChatMessage(
-        senderId: 'admin',
-        senderName: 'Admin',
-        message: _messageController.text.trim(),
-        timestamp: DateTime.now(),
-        imageUrls: uploadedImageUrls.isNotEmpty ? uploadedImageUrls : null,
-      );
-
-      await chatProvider.addMessage(_activeChat!.id, message);
-      
-      // Clear input and reset state
-      _messageController.clear();
-      setState(() {
-        _selectedImages.clear();
-        _showImagePreview = false;
-        _isUploading = false;
-        _activeChat = chatProvider.getChatById(_activeChat!.id);
-      });
-
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error sending message: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      setState(() {
-        _isUploading = false;
-      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isRefreshingJobs) {
+      return const Scaffold(
+        body: Stack(
+          children: [
+            Opacity(
+              opacity: 0.5,
+              child: ModalBarrier(dismissible: false, color: Colors.black),
+            ),
+            Center(
+              child: CircularProgressIndicator(),
+            ),
+          ],
+        ),
+      );
+    }
     if (_job == null) {
       return const Scaffold(
         body: Center(
@@ -524,35 +467,38 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                         children: [
                           _buildJobProgress(),
                           const SizedBox(height: 28),
-                          _buildUploadDraftDesign(),
-                          const SizedBox(height: 28),
-                          _buildComments(),
-                          const SizedBox(height: 28),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: _submitForApproval,
-                                  icon: const Icon(Icons.upload_file),
-                                  label: const Text(
-                                    'Submit for Approval',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
+                          if (_job?.displayStatus != 'Design Completed') ...[
+                            _buildUploadDraftDesign(),
+                            const SizedBox(height: 28),
+                            _buildComments(),
+                            const SizedBox(height: 28),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: _submitForApproval,
+                                    icon: const Icon(Icons.upload_file),
+                                    label: const Text(
+                                      'Submit for Approval',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
                                     ),
-                                  ),                                  style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                    backgroundColor: AppTheme.primaryColor,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                                    style: ElevatedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 16),
+                                      backgroundColor: AppTheme.primaryColor,
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      elevation: 2,
                                     ),
-                                    elevation: 2,
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -574,7 +520,6 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
             ),
           ),
         ),
-
         // Chat panel (only shown when _showChatPanel is true)
         if (_showChatPanel)
           Container(
@@ -812,36 +757,38 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           const SizedBox(height: 24),
           _buildJobProgress(),
           const SizedBox(height: 24),
-          _buildUploadDraftDesign(),
-          const SizedBox(height: 24),
-          _buildComments(),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _submitForApproval,
-                  icon: const Icon(Icons.upload_file),
-                  label: const Text(
-                    'Submit for Approval',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+          if (_job?.displayStatus != 'Design Completed') ...[
+            _buildUploadDraftDesign(),
+            const SizedBox(height: 24),
+            _buildComments(),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _submitForApproval,
+                    icon: const Icon(Icons.upload_file),
+                    label: const Text(
+                      'Submit for Approval',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: AppTheme.primaryColor,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
                     ),
-                    elevation: 2,
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
           const SizedBox(height: 24),
           // Customer and Salesperson info at the bottom
           _buildCustomerInformation(),
@@ -867,36 +814,38 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           const SizedBox(height: 20),
           _buildJobProgress(),
           const SizedBox(height: 20),
-          _buildUploadDraftDesign(),
-          const SizedBox(height: 20),
-          _buildComments(),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _submitForApproval,
-                  icon: const Icon(Icons.upload_file),
-                  label: const Text(
-                    'Submit for Approval',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+          if (_job?.displayStatus != 'Design Completed') ...[
+            _buildUploadDraftDesign(),
+            const SizedBox(height: 20),
+            _buildComments(),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _submitForApproval,
+                    icon: const Icon(Icons.upload_file),
+                    label: const Text(
+                      'Submit for Approval',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: AppTheme.primaryColor,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
                     ),
-                    elevation: 2,
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
           const SizedBox(height: 16),
           // Customer and Salesperson info at the bottom
           _buildCustomerInformation(),
@@ -926,7 +875,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
-                _getStatusText(_job!.status),
+                _job!.displayStatus,
                 style: TextStyle(
                   color: _getStatusColor(_job!.status),
                   fontWeight: FontWeight.bold,
@@ -946,6 +895,35 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     );
   }
   Widget _buildJobProgress() {
+    // Compute progress and status based on displayStatus
+    double progressValue = 0.0;
+    String progressStatus = 'Not Started';
+    String estimatedCompletion = 'N/A';
+    if (_job != null) {
+      switch (_job!.displayStatus) {
+        case 'Queued':
+          progressValue = 0.2;
+          progressStatus = 'Queued';
+          estimatedCompletion = DateFormat('dd/MM/yyyy')
+              .format(_job!.dateAdded.add(const Duration(days: 14)));
+          break;
+        case 'Pending for Approval':
+          progressValue = 0.7;
+          progressStatus = 'Pending for Approval';
+          estimatedCompletion = DateFormat('dd/MM/yyyy')
+              .format(_job!.dateAdded.add(const Duration(days: 7)));
+          break;
+        case 'Design Completed':
+          progressValue = 1.0;
+          progressStatus = 'Design Completed';
+          estimatedCompletion = DateFormat('dd/MM/yyyy').format(DateTime.now());
+          break;
+        default:
+          progressValue = 0.0;
+          progressStatus = _job!.displayStatus;
+          estimatedCompletion = 'N/A';
+      }
+    }
     return Card(
       margin: EdgeInsets.zero,
       elevation: 2,
@@ -970,7 +948,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
             ),
             const SizedBox(height: 16),
             LinearProgressIndicator(
-              value: _progressValue,
+              value: progressValue,
               backgroundColor: Colors.grey[200],
               color: AppTheme.accentColor,
               minHeight: 8,
@@ -980,10 +958,9 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildProgressItem('Status', _progressStatus),
-                _buildProgressItem(
-                    'Estimated Completion', _estimatedCompletion),
-                _buildProgressItem('Job Number', _job!.jobNo),
+                _buildProgressItem('Status', progressStatus),
+                _buildProgressItem('Estimated Completion', estimatedCompletion),
+                _buildProgressItem('Job Number', _job?.jobNo ?? ''),
               ],
             ),
           ],
@@ -1205,16 +1182,136 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       ),
     );
   }  Widget _buildSiteVisitImages() {
+    // If job is in 'pending_approval' or 'completed' status, show the latest draft card above images
+    if (_job != null && (_job!.displayStatus == 'Pending for Approval' || _job!.displayStatus == 'Design Completed')) {
+      final design = _job!.design;
+      Map<String, dynamic>? latestDraft;
+      if (design is List && design.isNotEmpty) {
+        // Find the most recent draft with status 'pending_approval', 'pending for approval', or 'completed'
+        for (var i = design.length - 1; i >= 0; i--) {
+          final draft = design[i];
+          final status = draft is Map<String, dynamic> ? draft['status']?.toString().toLowerCase() : null;
+          if (_job!.displayStatus == 'Pending for Approval' && (status == 'pending_approval' || status == 'pending for approval')) {
+            latestDraft = Map<String, dynamic>.from(draft);
+            break;
+          } else if (_job!.displayStatus == 'Design Completed' && status == 'completed') {
+            latestDraft = Map<String, dynamic>.from(draft);
+            break;
+          }
+        }
+      }
+      if (latestDraft != null) {
+        final List images = latestDraft['images'] ?? [];
+        final String comment = latestDraft['comments'] ?? '';
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Card(
+              color: _job!.displayStatus == 'Pending for Approval' ? Colors.yellow[50] : Colors.green[50],
+              margin: const EdgeInsets.only(bottom: 20),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _job!.displayStatus == 'Pending for Approval' ? 'Design Draft Pending Approval' : 'Design Completed',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 12),
+                    if (images.isNotEmpty)
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: images.map<Widget>((imgUrl) => GestureDetector(
+                          onTap: () => _showImageDialog(imgUrl),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              imgUrl,
+                              width: 100,
+                              height: 100,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                width: 100,
+                                height: 100,
+                                color: Colors.grey[200],
+                                child: const Icon(Icons.broken_image, color: Colors.grey),
+                              ),
+                            ),
+                          ),
+                        )).toList(),
+                      ),
+                    if (comment.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Text('Comment:', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold)),
+                      Text(comment, style: Theme.of(context).textTheme.bodyMedium),
+                    ],
+                    if (_job!.displayStatus == 'Pending for Approval') ...[
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _approveJob,
+                              icon: const Icon(Icons.check_circle_outline),
+                              label: const Text('Approve Design'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.successColor,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 2,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _scrollToUploadDraftSection,
+                              icon: const Icon(Icons.upload_file),
+                              label: const Text('Upload Another Draft'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primaryColor,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 2,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            _buildSiteVisitImagesCard(),
+          ],
+        );
+      }
+    }
+    // Default: just show site visit images
+    return _buildSiteVisitImagesCard();
+  }
+
+  Widget _buildSiteVisitImagesCard() {
     final Map<String, dynamic> salespersonData = _job?.salespersonData ?? {};
     final List<String> imageUrls = [];
-      // Check if there's an images array in the salesperson data
+    // Check if there's an images array in the salesperson data
     if (salespersonData.containsKey('images') && salespersonData['images'] != null) {
       // Handle images as an array
       if (salespersonData['images'] is List) {
         for (var imageUrl in salespersonData['images']) {
           if (imageUrl is String && imageUrl.isNotEmpty) {
             imageUrls.add(imageUrl);
-            print('Found image URL from images array: $imageUrl');
           }
         }
       } 
@@ -1226,27 +1323,22 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           for (var url in urlsList) {
             if (url.trim().isNotEmpty) {
               imageUrls.add(url.trim());
-              print('Found image URL from comma-separated string: $url');
             }
           }
         } else {
           // It's a single URL string
           imageUrls.add(salespersonData['images']);
-          print('Found single image URL from images: ${salespersonData['images']}');
         }
       }
     }
-    
     // Also look for any other image URLs in other fields as a fallback
     salespersonData.forEach((key, value) {
       if (key != 'images' && value is String && 
           (value.startsWith('https://') || value.startsWith('http://')) && 
           RegExp(r'\.(jpg|jpeg|png|webp|gif)', caseSensitive: false).hasMatch(value)) {
         imageUrls.add(value);
-        print('Found image URL from field $key: $value');
       }
     });
-    
     // If no images are found, show a "No site images" message
     if (imageUrls.isEmpty) {
       return Card(
@@ -1255,41 +1347,18 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Padding(
           padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.collections_outlined, color: AppTheme.primaryColor, size: 28),
-                  const SizedBox(width: 12),
-                  Text('Site Visit Images', 
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      )),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.image_not_supported_outlined, size: 48, color: Colors.grey[400]),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No site images available',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 16),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
+          child: Center(
+            child: Column(
+              children: [
+                Icon(Icons.image_not_supported, size: 48, color: Colors.grey[400]),
+                const SizedBox(height: 12),
+                Text('No site visit images available', style: TextStyle(color: Colors.grey[600])),
+              ],
+            ),
           ),
         ),
       );
     }
-    
     return Card(
       margin: EdgeInsets.zero,
       elevation: 2,
@@ -1299,66 +1368,29 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.collections_outlined, color: AppTheme.primaryColor, size: 28),
-                const SizedBox(width: 12),
-                Text('Site Visit Images', 
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                    )),
-              ],
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 200, // Increased height for better visibility
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: imageUrls.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            imageUrls[index],
-                            width: 200,
-                            height: 150,
-                            fit: BoxFit.cover,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Container(
-                                width: 200,
-                                height: 150,
-                                color: Colors.grey[200],
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    value: loadingProgress.expectedTotalBytes != null
-                                        ? loadingProgress.cumulativeBytesLoaded / 
-                                          loadingProgress.expectedTotalBytes!
-                                        : null,
-                                  ),
-                                ),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              print('Error loading image: $error');
-                              return _buildImagePlaceholder();
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text('Site Image ${index + 1}',
-                            style: Theme.of(context).textTheme.bodySmall),
-                      ],
+            Text('Site Visit Images', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: imageUrls.map((url) => GestureDetector(
+                onTap: () => _showImageDialog(url),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    url,
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 100,
+                      height: 100,
+                      color: Colors.grey[200],
+                      child: const Icon(Icons.broken_image, color: Colors.grey),
                     ),
-                  );
-                },
-              ),
+                  ),
+                ),
+              )).toList(),
             ),
           ],
         ),
@@ -1367,6 +1399,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
   }
   Widget _buildUploadDraftDesign() {
     return Card(
+      key: _uploadDraftSectionKey,
       margin: EdgeInsets.zero,
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1503,38 +1536,38 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       ],
     );
   }
-  Widget _buildImagePlaceholder() {
-    return Container(
-      width: 200,
-      height: 150,
-      decoration: BoxDecoration(
-        border: Border.all(color: AppTheme.dividerColor),
-        borderRadius: BorderRadius.circular(8),
-        color: Colors.grey[100],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.image_not_supported, size: 40, color: Colors.grey[400]),
-          const SizedBox(height: 8),
-          Text(
-            'Image not available',
-            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+  void _showImageDialog(String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
+        child: GestureDetector(
+          onTap: () => Navigator.of(context).pop(),
+          child: InteractiveViewer(
+            minScale: 0.5,
+            maxScale: 4.0,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  return SizedBox(
+                    height: 300,
+                    child: Center(
+                      child: CircularProgressIndicator(value: progress.expectedTotalBytes != null ? progress.cumulativeBytesLoaded / (progress.expectedTotalBytes ?? 1) : null),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, size: 100, color: Colors.grey),
+              ),
+            ),
           ),
-        ],
+        ),
       ),
     );
-  }
-
-  String _getStatusText(JobStatus status) {
-    switch (status) {
-      case JobStatus.approved:
-        return 'Approved';
-      case JobStatus.pending:
-        return 'Pending';
-      case JobStatus.inProgress:
-        return 'In progress';
-    }
   }
 
   Color _getStatusColor(JobStatus status) {

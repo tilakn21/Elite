@@ -490,9 +490,12 @@ class _SalespersonDetailsScreenState extends State<SalespersonDetailsScreen> {
                                 'dateOfSubmission': now.toLocal().toString().split(' ')[0],
                                 'salespersonId': salespersonId,
                                 'paymentAmount': paymentAmount,
+                                'status': 'completed', // Add status as completed
                               };
-                              // TODO: Update Supabase jobs table for this jobId, set salesperson = details
-                              await updateSalespersonJsonb(widget.jobId, details, paymentAmount); // implement this
+                              // Update Supabase jobs table for this jobId:
+                              // 1. set salesperson = details (with status: completed)
+                              // 2. set status = 'site_visited'
+                              await updateSalespersonJsonbAndStatus(widget.jobId, details, paymentAmount);
                               await showDialog(
                                 context: context,
                                 builder: (context) => AlertDialog(
@@ -550,17 +553,20 @@ class _SalespersonDetailsScreenState extends State<SalespersonDetailsScreen> {
     return urls;
   }
 
-  Future<void> updateSalespersonJsonb(String jobId, Map<String, dynamic> details, double paymentAmount) async {
+  Future<void> updateSalespersonJsonbAndStatus(String jobId, Map<String, dynamic> details, double paymentAmount) async {
     final supabase = Supabase.instance.client;
     try {
       // Upload images and get URLs
       final imageUrls = await uploadImagesToSupabaseStorage(_images, jobId);
       final detailsWithUrls = Map<String, dynamic>.from(details);
       detailsWithUrls['images'] = imageUrls;
-      // Update salesperson JSONB
+      // Update salesperson JSONB and status column
       await supabase
           .from('jobs')
-          .update({'salesperson': detailsWithUrls})
+          .update({
+            'salesperson': detailsWithUrls,
+            'status': 'site_visited',
+          })
           .eq('id', jobId)
           .select();
       // Update accounts JSONB: set amount_salesperson

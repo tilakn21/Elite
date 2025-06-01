@@ -8,37 +8,9 @@ class ProductionTopBar extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          // Search box
-          Expanded(
-            child: Container(
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                children: [
-                  const SizedBox(width: 16),
-                  const Icon(Icons.search, color: Colors.grey, size: 22),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'Search data for this page',
-                        hintStyle: TextStyle(color: Colors.grey, fontSize: 15),
-                        isDense: true,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
           const SizedBox(width: 32),
-          Icon(Icons.bar_chart_outlined, color: Color(0xFF232B3E), size: 26),
-          const SizedBox(width: 18),
           Icon(Icons.notifications_none, color: Color(0xFF232B3E), size: 26),
           const SizedBox(width: 18),
           // Logout button

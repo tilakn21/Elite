@@ -75,7 +75,7 @@ class ProductionService {
       }
 
       // Convert the records to ProductionJob objects
-      final jobs = response.map<ProductionJob>((record) {
+      final jobs = await Future.wait(response.map<Future<ProductionJob>>((record) async {
         // Convert design data to the expected format
         Map<String, dynamic> designData = {};
         if (record['design'] is List && (record['design'] as List).isNotEmpty) {
@@ -85,12 +85,65 @@ class ProductionService {
           designData = record['design'] as Map<String, dynamic>;
         }
 
-        // Create a modified record with the processed design data
+        // Handle production data
+        final productionData = (record['production'] as Map<String, dynamic>?) ?? {};
+        String computedStatus = '';
+        // 1. If design is completed and production is null/empty/null current_status
+        final designCompleted = designData['status']?.toString().toLowerCase() == 'completed';
+        // Use both current_status and status from production jsonb for status logic
+        final prodStatus = (productionData['current_status'] ?? productionData['status'])?.toString().toLowerCase();
+
+        // Check for printing JSONB status
+        String? printingStatus;
+        if (record['printing'] is List && (record['printing'] as List).isNotEmpty) {
+          final latestPrinting = (record['printing'] as List).last;
+          if (latestPrinting is Map<String, dynamic> && latestPrinting['status'] != null) {
+            printingStatus = latestPrinting['status'].toString().toLowerCase();
+          }
+        } else if (record['printing'] is Map<String, dynamic> && record['printing']['status'] != null) {
+          printingStatus = record['printing']['status'].toString().toLowerCase();
+        }
+
+        // --- NEW LOGIC: If printing is completed, update DB if needed ---
+        if (printingStatus == 'print_completed') {
+          // Only set to printing_completed if not already completed
+          if (productionData['current_status'] != 'printing_completed' && productionData['current_status'] != 'completed') {
+            computedStatus = 'printing_completed';
+            productionData['current_status'] = 'printing_completed';
+            await _supabase
+              .from('jobs')
+              .update({'production': productionData})
+              .eq('id', record['id']);
+          } else if (productionData['current_status'] == 'completed') {
+            computedStatus = 'completed';
+          } else {
+            computedStatus = 'printing_completed';
+          }
+        } else if (productionData['current_status'] == 'printing_completed') {
+          computedStatus = 'printing_completed';
+        } else if (designCompleted && (record['production'] == null || productionData.isEmpty || prodStatus == null)) {
+          computedStatus = 'received';
+        } else if (prodStatus == 'labour_assigned' || prodStatus == 'assigned_labour') {
+          computedStatus = 'assigned_labour';
+        } else if (prodStatus == 'in_progress' || prodStatus == 'printing' || prodStatus == 'forwarded for printing') {
+          computedStatus = 'in_progress';
+        } else if (prodStatus == 'processed_for_printing' || prodStatus == 'forwarded for printing') {
+          computedStatus = 'processed_for_printing';
+        } else if (prodStatus == 'completed' || prodStatus == 'production_complete') {
+          computedStatus = 'completed';
+        } else {
+          // fallback to DB status
+          computedStatus = (record['status'] as String?) ?? 'pending';
+        }
+
+        // Create a modified record with the processed design data and computed status
         final processedRecord = Map<String, dynamic>.from(record);
         processedRecord['designjsonb'] = designData;
+        processedRecord['productionjsonb'] = productionData;
+        processedRecord['status'] = computedStatus;
 
         return ProductionJob.fromJson(processedRecord);
-      }).toList();
+      }).toList());
 
       // Print mapped jobs for verification
       print('\n=== Mapped Production Jobs ===\n');
@@ -356,20 +409,45 @@ class ProductionService {
     }
   }  String _getStatusString(JobStatus status) {
     switch (status) {
-      case JobStatus.receiver:
-        return 'receiver';
+      case JobStatus.received:
+        return 'received';
       case JobStatus.assignedLabour:
         return 'assigned_labour';
       case JobStatus.inProgress:
-        return 'in_progress';
+        return 'forwarded for printing';
       case JobStatus.processedForPrinting:
-        return 'processed_for_printing';
+        return 'forwarded for printing';
       case JobStatus.completed:
         return 'completed';
       case JobStatus.onHold:
         return 'on_hold';
       case JobStatus.pending:
         return 'pending';
+      case JobStatus.printingCompleted:
+        return 'printing_completed';
+    }
+  }
+
+  // When reading from DB, treat 'printing' as 'forwarded for printing'
+  static JobStatus _parseStatus(String status) {
+    switch (status.toLowerCase()) {
+      case 'received':
+        return JobStatus.received;
+      case 'assigned_labour':
+        return JobStatus.assignedLabour;
+      case 'in_progress':
+      case 'printing':
+      case 'forwarded for printing':
+      case 'processed_for_printing':
+        return JobStatus.inProgress;
+      case 'completed':
+      case 'production_complete':
+        return JobStatus.completed;
+      case 'on_hold':
+        return JobStatus.onHold;
+      case 'pending':
+      default:
+        return JobStatus.pending;
     }
   }
 }

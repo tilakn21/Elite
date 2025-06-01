@@ -76,7 +76,6 @@ class DynamicProgressBar extends StatelessWidget {
                   isFirst: true,
                 ),
                 _buildProgressConnector(progressData['received']!),
-                
                 _buildProgressStep(
                   'Assigned',
                   Icons.person_add,
@@ -84,7 +83,6 @@ class DynamicProgressBar extends StatelessWidget {
                   progressData['assignedLabourDate'],
                 ),
                 _buildProgressConnector(progressData['assignedLabour']!),
-                
                 _buildProgressStep(
                   'In Progress',
                   Icons.build,
@@ -92,7 +90,14 @@ class DynamicProgressBar extends StatelessWidget {
                   progressData['inProgressDate'],
                 ),
                 _buildProgressConnector(progressData['inProgress']!),
-                
+                _buildProgressStep(
+                  'Print Completed',
+                  Icons.print,
+                  progressData['printingCompleted'] ?? false,
+                  progressData['printingCompletedDate'],
+                  // Turn green if completed
+                ),
+                _buildProgressConnector(progressData['printingCompleted'] ?? false),
                 _buildProgressStep(
                   'Completed',
                   Icons.check_circle,
@@ -145,7 +150,7 @@ class DynamicProgressBar extends StatelessWidget {
     String statusText = job!.status.label;
     
     switch (job!.status) {
-      case JobStatus.receiver:
+      case JobStatus.received:
         chipColor = Colors.orange;
         break;
       case JobStatus.assignedLabour:
@@ -207,9 +212,9 @@ class DynamicProgressBar extends StatelessWidget {
     if (progressData['received'] == true) completedSteps++;
     if (progressData['assignedLabour'] == true) completedSteps++;
     if (progressData['inProgress'] == true) completedSteps++;
+    if (progressData['printingCompleted'] == true) completedSteps++;
     if (progressData['completed'] == true) completedSteps++;
-    
-    int percentage = (completedSteps / 4 * 100).round();
+    int percentage = (completedSteps / 5 * 100).round();
     
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -430,12 +435,14 @@ class DynamicProgressBar extends StatelessWidget {
   
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'receiver':
+      case 'received':
         return Colors.orange;
       case 'assignedlabour':
         return Colors.blue;
       case 'inprogress':
         return Colors.purple;
+      case 'printing_completed':
+        return Colors.teal;
       case 'completed':
         return Colors.green;
       default:
@@ -445,12 +452,14 @@ class DynamicProgressBar extends StatelessWidget {
   
   String _getStatusLabel(String status) {
     switch (status.toLowerCase()) {
-      case 'receiver':
+      case 'received':
         return 'Received';
       case 'assignedlabour':
         return 'Assigned to Labour';
       case 'inprogress':
         return 'In Progress';
+      case 'printing_completed':
+        return 'Print Completed';
       case 'completed':
         return 'Completed';
       default:
@@ -463,10 +472,12 @@ class DynamicProgressBar extends StatelessWidget {
       'received': false,
       'assignedLabour': false,
       'inProgress': false,
+      'printingCompleted': false,
       'completed': false,
       'receivedDate': null,
       'assignedLabourDate': null,
       'inProgressDate': null,
+      'printingCompletedDate': null,
       'completedDate': null,
       'lastUpdate': null,
     };
@@ -492,7 +503,7 @@ class DynamicProgressBar extends StatelessWidget {
               final dateStr = _formatDate(updatedAt);
               
               switch (status.toLowerCase()) {
-                case 'receiver':
+                case 'received':
                   progress['received'] = true;
                   progress['receivedDate'] = dateStr;
                   break;
@@ -503,6 +514,10 @@ class DynamicProgressBar extends StatelessWidget {
                 case 'inprogress':
                   progress['inProgress'] = true;
                   progress['inProgressDate'] = dateStr;
+                  break;
+                case 'printing_completed':
+                  progress['printingCompleted'] = true;
+                  progress['printingCompletedDate'] = dateStr;
                   break;
                 case 'completed':
                   progress['completed'] = true;
@@ -527,7 +542,7 @@ class DynamicProgressBar extends StatelessWidget {
     
     // Fallback to main job status if no JSONB data
     if (!progress['received'] && !progress['assignedLabour'] && 
-        !progress['inProgress'] && !progress['completed']) {
+        !progress['inProgress'] && !progress['printingCompleted'] && !progress['completed']) {
       _setProgressFromStatus(progress, _getStatusString(currentStatus));
     }
     
@@ -539,7 +554,14 @@ class DynamicProgressBar extends StatelessWidget {
         progress['received'] = true;
         progress['assignedLabour'] = true;
         progress['inProgress'] = true;
+        progress['printingCompleted'] = true;
         progress['completed'] = true;
+        break;
+      case 'printing_completed':
+        progress['received'] = true;
+        progress['assignedLabour'] = true;
+        progress['inProgress'] = true;
+        progress['printingCompleted'] = true;
         break;
       case 'inprogress':
         progress['received'] = true;
@@ -550,7 +572,7 @@ class DynamicProgressBar extends StatelessWidget {
         progress['received'] = true;
         progress['assignedLabour'] = true;
         break;
-      case 'receiver':
+      case 'received':
         progress['received'] = true;
         break;
     }
@@ -558,8 +580,8 @@ class DynamicProgressBar extends StatelessWidget {
   
   String _getStatusString(JobStatus status) {
     switch (status) {
-      case JobStatus.receiver:
-        return 'receiver';
+      case JobStatus.received:
+        return 'received';
       case JobStatus.assignedLabour:
         return 'assignedlabour';
       case JobStatus.inProgress:
@@ -567,7 +589,7 @@ class DynamicProgressBar extends StatelessWidget {
       case JobStatus.completed:
         return 'completed';
       default:
-        return 'receiver';
+        return 'received';
     }
   }
   

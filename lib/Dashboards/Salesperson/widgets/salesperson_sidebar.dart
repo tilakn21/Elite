@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SalespersonSidebar extends StatelessWidget {
   final String selectedRoute;
@@ -85,6 +86,15 @@ class SalespersonSidebar extends StatelessWidget {
                     onTap: () => onItemSelected('profile'),
                     isMobile: isMobile,
                   ),
+                  const SizedBox(height: 20),
+                  _SidebarButton(
+                    icon: Icons.attach_money,
+                    label: 'Reimbursement',
+                    selected: selectedRoute == 'reimbursement',
+                    onTap: () => onItemSelected('reimbursement'),
+                    isMobile: isMobile,
+                  ),
+
                   const Spacer(),
                   Divider(color: Colors.white.withOpacity(0.15)),
                   Align(
@@ -93,6 +103,32 @@ class SalespersonSidebar extends StatelessWidget {
                       icon: const Icon(Icons.settings, color: Colors.white, size: 28),
                       onPressed: () {},
                       tooltip: 'Settings',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        // Log out using Supabase and navigate to login
+                        await Supabase.instance.client.auth.signOut();
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                        } else {
+                          Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                        }
+                      },
+                      icon: const Icon(Icons.logout, size: 18),
+                      label: const Text('Logout'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(44),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                 ],

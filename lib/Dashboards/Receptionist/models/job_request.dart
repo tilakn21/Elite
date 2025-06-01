@@ -13,6 +13,7 @@ class JobRequest {
   final String? avatar;
   final String? time;
   final bool? assigned;
+  final Map<String, dynamic>? receptionistJson;
 
   JobRequest({
     String? id,
@@ -25,6 +26,7 @@ class JobRequest {
     this.avatar,
     this.time,
     this.assigned,
+    this.receptionistJson,
   }) : id = id ?? const Uuid().v4();
 
   factory JobRequest.fromJson(Map<String, dynamic> json) {
@@ -33,17 +35,27 @@ class JobRequest {
       name: json['name'],
       phone: json['phone'],
       email: json['email'],
-      status: JobRequestStatus.values.firstWhere(
-        (e) =>
-            e.name.toLowerCase() == (json['status']?.toLowerCase() ?? 'pending'),
-        orElse: () => JobRequestStatus.pending,
-      ),
+      status: parseStatus(json['status']),
       dateAdded: json['date'] != null ? DateTime.tryParse(json['date']) : null,
       subtitle: json['subtitle'],
       avatar: json['avatar'],
       time: json['time'],
       assigned: json['assigned'],
+      receptionistJson: json['receptionistJson'] != null ? Map<String, dynamic>.from(json['receptionistJson']) : null,
     );
+  }
+
+  static JobRequestStatus parseStatus(dynamic status) {
+    switch (status?.toString().toLowerCase()) {
+      case 'approved':
+        return JobRequestStatus.approved;
+      case 'declined':
+        return JobRequestStatus.declined;
+      case 'pending':
+        return JobRequestStatus.pending;
+      default:
+        return JobRequestStatus.pending;
+    }
   }
 
   Map<String, dynamic> toJson() => {
@@ -57,6 +69,7 @@ class JobRequest {
         'avatar': avatar,
         'time': time,
         'assigned': assigned,
+        'receptionistJson': receptionistJson,
       };
 }
 
