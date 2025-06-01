@@ -18,6 +18,7 @@ class _ViewReimbursementsScreenState extends State<ViewReimbursementsScreen> {
   
   String searchQuery = '';
   String selectedStatus = 'All';
+  int sidebarIndex = 5; // <-- Move sidebarIndex here as a state field
 
   @override
   void initState() {
@@ -38,7 +39,6 @@ class _ViewReimbursementsScreenState extends State<ViewReimbursementsScreen> {
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isMobile = screenWidth < 600;
-    int sidebarIndex = 5; // Set to the correct index for reimbursements in AdminSidebar (add a button if needed)
 
     return Scaffold(
       key: scaffoldKey,
@@ -48,7 +48,9 @@ class _ViewReimbursementsScreenState extends State<ViewReimbursementsScreen> {
               child: AdminSidebar(
                 selectedIndex: sidebarIndex,
                 onItemTapped: (idx) {
-                  // Optionally handle navigation here
+                  setState(() {
+                    sidebarIndex = idx;
+                  });
                   Navigator.of(context).pop();
                 },
               ),
@@ -61,6 +63,9 @@ class _ViewReimbursementsScreenState extends State<ViewReimbursementsScreen> {
             AdminSidebar(
               selectedIndex: sidebarIndex,
               onItemTapped: (idx) {
+                setState(() {
+                  sidebarIndex = idx;
+                });
                 // Optionally handle navigation here
               },
             ),
@@ -336,7 +341,7 @@ class _ViewReimbursementsScreenState extends State<ViewReimbursementsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Update Status'),
-        content: Text('Are you sure you want to \\${status.toString().split('.').last} this reimbursement request?'),
+        content: Text('Are you sure you want to ${status.toString().split('.').last} this reimbursement request?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -345,7 +350,11 @@ class _ViewReimbursementsScreenState extends State<ViewReimbursementsScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              provider.updateReimbursementStatus(id, status);
+              if (status == ReimbursementStatus.approved) {
+                provider.approveReimbursement(id);
+              } else if (status == ReimbursementStatus.rejected) {
+                provider.declineReimbursement(id);
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: status == ReimbursementStatus.approved ? Colors.green : Colors.red,
@@ -492,9 +501,9 @@ class _ReimbursementsTable extends StatelessWidget {
                 onStatusUpdate: onStatusUpdate,
               )),
         ],
-      ),
-    );
-  }
+      )
+      );
+    }
 }
 
 class _MobileReimbursementCard extends StatelessWidget {
@@ -676,12 +685,18 @@ class _DesktopReimbursementRow extends StatelessWidget {
                   ? Row(
                       children: [
                         IconButton(
-                          onPressed: () => onStatusUpdate(reimbursement.id, ReimbursementStatus.approved),
+                          onPressed: () {
+                            print('Approve (tick) clicked for id: \'${reimbursement.id}\'');
+                            onStatusUpdate(reimbursement.id, ReimbursementStatus.approved);
+                          },
                           icon: Icon(Icons.check, color: Colors.green, size: 20),
                           tooltip: 'Approve',
                         ),
                         IconButton(
-                          onPressed: () => onStatusUpdate(reimbursement.id, ReimbursementStatus.rejected),
+                          onPressed: () {
+                            print('Reject (cross) clicked for id: \'${reimbursement.id}\'');
+                            onStatusUpdate(reimbursement.id, ReimbursementStatus.rejected);
+                          },
                           icon: Icon(Icons.close, color: Colors.red, size: 20),
                           tooltip: 'Reject',
                         ),
@@ -698,34 +713,384 @@ class _DesktopReimbursementRow extends StatelessWidget {
   void _showDetails(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Reimbursement Details'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _DetailRow('Employee', reimbursement.empName),
-              _DetailRow('Employee ID', reimbursement.empId),
-              _DetailRow('Amount', '\$${reimbursement.amount.toStringAsFixed(2)}'),
-              _DetailRow('Purpose', reimbursement.purpose),
-              _DetailRow('Date', '${reimbursement.reimbursementDate.day.toString().padLeft(2, '0')}/${reimbursement.reimbursementDate.month.toString().padLeft(2, '0')}/${reimbursement.reimbursementDate.year}'),
-              _DetailRow('Status', reimbursement.statusString),
-              if (reimbursement.remarks != null)
-                _DetailRow('Remarks', reimbursement.remarks!),
-              if (reimbursement.receiptUrl != null)
-                _DetailRow('Receipt', 'Available'),
-            ],
-          ),
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 8,
+        backgroundColor: Colors.white,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Custom header with gradient background
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF36A1C5), Color(0xFF5B86E5)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.receipt_long, color: Colors.white, size: 22),
+                  ),
+                  SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      'Reimbursement Details',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      padding: EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Icon(Icons.close, color: Colors.white, size: 20),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Content with better spacing and styling
+            Flexible(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Receipt image with enhanced styling
+                      if (reimbursement.receiptUrl != null && reimbursement.receiptUrl!.isNotEmpty)
+                        Center(
+                          child: GestureDetector(
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                barrierColor: Colors.black87,
+                                builder: (context) => Dialog(
+                                  backgroundColor: Colors.transparent,
+                                  insetPadding: EdgeInsets.all(16),
+                                  child: Stack(
+                                    children: [
+                                      InteractiveViewer(
+                                        minScale: 1,
+                                        maxScale: 4,
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(16),
+                                          child: Image.network(
+                                            reimbursement.receiptUrl!,
+                                            fit: BoxFit.contain,
+                                            errorBuilder: (context, error, stackTrace) => Container(
+                                              height: 320,
+                                              width: 400,
+                                              color: Colors.grey[200],
+                                              child: Icon(Icons.broken_image, size: 64, color: Colors.grey[400]),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 12,
+                                        right: 12,
+                                        child: CircleAvatar(
+                                          backgroundColor: Colors.black54,
+                                          child: IconButton(
+                                            icon: Icon(Icons.close, color: Colors.white),
+                                            onPressed: () => Navigator.of(context).pop(),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              margin: EdgeInsets.only(bottom: 24),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 12,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: Stack(
+                                children: [
+                                  Image.network(
+                                    reimbursement.receiptUrl!,
+                                    height: 200,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) => Container(
+                                      height: 200,
+                                      width: double.infinity,
+                                      color: Colors.grey[200],
+                                      child: Icon(Icons.broken_image, size: 48, color: Colors.grey[400]),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    bottom: 0,
+                                    right: 0,
+                                    child: Container(
+                                      padding: EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black54,
+                                        borderRadius: BorderRadius.only(topLeft: Radius.circular(12)),
+                                      ),
+                                      child: Icon(
+                                        Icons.zoom_in,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+
+                      // Status badge at the top of details
+                      Container(
+                        width: double.infinity,
+                        margin: EdgeInsets.only(bottom: 20),
+                        padding: EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(reimbursement.status).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: _getStatusColor(reimbursement.status).withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Center(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _getStatusIcon(reimbursement.status),
+                                color: _getStatusColor(reimbursement.status),
+                                size: 18,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                reimbursement.statusString.toUpperCase(),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                  color: _getStatusColor(reimbursement.status),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Reimbursement amount with prominent display
+                      Container(
+                        width: double.infinity,
+                        margin: EdgeInsets.only(bottom: 20),
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Text(
+                                '\$${reimbursement.amount.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green[700],
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Reimbursement Amount',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Detailed information with better styling
+                      _buildDetailRow(Icons.person, 'Employee', reimbursement.empName),
+                      _buildDetailRow(Icons.badge, 'Employee ID', reimbursement.empId),
+                      _buildDetailRow(Icons.category, 'Purpose', reimbursement.purpose),
+                      _buildDetailRow(Icons.calendar_today, 'Date', 
+                          '${reimbursement.reimbursementDate.day.toString().padLeft(2, '0')}/${reimbursement.reimbursementDate.month.toString().padLeft(2, '0')}/${reimbursement.reimbursementDate.year}'),
+                      if (reimbursement.remarks != null && reimbursement.remarks!.isNotEmpty)
+                        _buildDetailRow(Icons.comment, 'Remarks', reimbursement.remarks!),
+                      
+                      // Action buttons for pending reimbursements
+                      if (reimbursement.status == ReimbursementStatus.pending) ...[
+                        SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  onStatusUpdate(reimbursement.id, ReimbursementStatus.approved);
+                                },
+                                icon: Icon(Icons.check_circle, size: 18),
+                                label: Text('Approve'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  foregroundColor: Colors.white,
+                                  padding: EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  onStatusUpdate(reimbursement.id, ReimbursementStatus.rejected);
+                                },
+                                icon: Icon(Icons.cancel, size: 18),
+                                label: Text('Reject'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                  padding: EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else ...[
+                        SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                side: BorderSide(color: Color(0xFF36A1C5)),
+                              ),
+                            ),
+                            child: Text(
+                              'Close',
+                              style: TextStyle(
+                                color: Color(0xFF36A1C5),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text('Close'),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: EdgeInsets.all(8),
+            margin: EdgeInsets.only(right: 12),
+            decoration: BoxDecoration(
+              color: Color(0xFFF0F0F0),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 16, color: Color(0xFF666666)),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF999999),
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF333333),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
+  }
+  
+  Color _getStatusColor(ReimbursementStatus status) {
+    switch (status) {
+      case ReimbursementStatus.pending:
+        return Colors.orange[700]!;
+      case ReimbursementStatus.approved:
+        return Colors.green[700]!;
+      case ReimbursementStatus.rejected:
+        return Colors.red[700]!;
+    }
+  }
+  
+  IconData _getStatusIcon(ReimbursementStatus status) {
+    switch (status) {
+      case ReimbursementStatus.pending:
+        return Icons.pending_actions;
+      case ReimbursementStatus.approved:
+        return Icons.check_circle;
+      case ReimbursementStatus.rejected:
+        return Icons.cancel;
+    }
   }
 }
 
@@ -774,17 +1139,4 @@ class _StatusBadge extends StatelessWidget {
       ),
     );
   }
-}
-
-Widget _DetailRow(String label, String value) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4.0),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),
-        Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w400))),
-      ],
-    ),
-  );
 }

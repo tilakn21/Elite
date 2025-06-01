@@ -94,10 +94,8 @@ class AdminSidebar extends StatelessWidget {
                   '/admin/jobs',
                   (route) => false,
                 );
-              } else {
-                // If already on /admin/jobs, still call onItemTapped to update selection
-                onItemTapped(3);
               }
+              onItemTapped(3);
             },
           ),
           _SidebarButton(

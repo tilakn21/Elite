@@ -12,6 +12,7 @@ class JobListingScreen extends StatefulWidget {
 }
 
 class _JobListingScreenState extends State<JobListingScreen> {
+  final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
   String selectedStatus = 'All';
   late Future<List<AdminJob>> _jobsFuture;
   final AdminService _adminService = AdminService();
@@ -21,6 +22,9 @@ class _JobListingScreenState extends State<JobListingScreen> {
   DateTime? _startDate;
   DateTime? _endDate;
   String _searchQuery = '';
+  
+  // Keep track of the sidebar index as a class property
+  int sidebarIndex = 3; // Jobs is index 3 in the sidebar
 
   @override
   void initState() {
@@ -88,38 +92,70 @@ class _JobListingScreenState extends State<JobListingScreen> {
       });
     }
   }
-
   void _clearDateFilter() {
     setState(() {
       _startDate = null;
       _endDate = null;
     });
   }
-
+  
+  // Handle navigation based on the sidebar index
+  void _handleNavigation(int index) {
+    if (index == 0) {
+      Navigator.pushReplacementNamed(context, '/admin/dashboard');
+    } else if (index == 1) {
+      Navigator.pushReplacementNamed(context, '/admin/employees');
+    } else if (index == 2) {
+      Navigator.pushReplacementNamed(context, '/admin/assign-salesperson');
+    } else if (index == 3) {
+      // We're already on the Jobs screen, no need to navigate
+      // Navigator.pushReplacementNamed(context, '/admin/jobs');
+    } else if (index == 4) {
+      Navigator.pushReplacementNamed(context, '/admin/calendar');    } else if (index == 5) {
+      Navigator.pushReplacementNamed(context, '/admin/reimbursements');
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 600;
+    
     return Scaffold(
+      key: scaffoldKey,
       backgroundColor: const Color(0xFFF7F5FF),
+      drawer: isMobile
+          ? Drawer(
+              child: AdminSidebar(
+                selectedIndex: sidebarIndex,
+                onItemTapped: (idx) {
+                  setState(() {
+                    sidebarIndex = idx;
+                  });
+                  Navigator.of(context).pop(); // Close the drawer
+                  
+                  // Handle navigation here
+                  _handleNavigation(idx);
+                },
+              ),
+            )
+          : null,
       body: SafeArea(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AdminSidebar(
-              selectedIndex: 0, // Highlight dashboard since this is job-related
-              onItemTapped: (index) {
-                if (index == 0) {
-                  Navigator.pushReplacementNamed(context, '/admin/dashboard');
-                } else if (index == 1) {
-                  Navigator.pushReplacementNamed(context, '/admin/employees');
-                } else if (index == 2) {
-                  Navigator.pushReplacementNamed(context, '/admin/assign-salesperson');
-                } else if (index == 3) {
-                  Navigator.pushReplacementNamed(context, '/admin/job-progress');
-                } else if (index == 4) {
-                  Navigator.pushReplacementNamed(context, '/admin/calendar');
-                }
-              },
-            ),
+            if (!isMobile)
+              AdminSidebar(
+                selectedIndex: sidebarIndex,
+                onItemTapped: (index) {
+                  setState(() {
+                    sidebarIndex = index;
+                  });
+                  
+                  // Handle navigation
+                  _handleNavigation(index);
+                },
+              ),
             Expanded(
               child: Column(
                 children: [
@@ -389,6 +425,7 @@ class JobStatusFilterDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print('JobStatusFilterDropdown statuses: ' + statuses.toString());
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
@@ -413,8 +450,8 @@ class JobStatusFilterDropdown extends StatelessWidget {
             );
           }).toList(),
         ),
-      ),
-    );
+      )
+      );
   }
 }
 
@@ -1003,8 +1040,8 @@ class JobDetailsDialog extends StatelessWidget {
   Widget _buildStageSection(String stageName, Map<String, dynamic>? stageData, IconData icon, Color color) {
     final locked = _isStageLocked(stageName, job);
     bool isCompleted = !locked && _isStageCompleted(stageName.toLowerCase(), stageData);
-    String stageStatus = locked ? 'Pending' : _getStageStatus(stageName.toLowerCase(), stageData);
-    Color statusColor = _getStageStatusColor(stageStatus);
+    String fetchedStatus = locked ? 'Pending' : _getStageStatus(stageName.toLowerCase(), stageData, log: true);
+    Color statusColor = _getStageStatusColor(fetchedStatus);
     
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1057,13 +1094,13 @@ class JobDetailsDialog extends StatelessWidget {
                     children: [
                       Icon(
                         isCompleted ? Icons.check_circle : 
-                        (stageStatus == 'Pending' ? Icons.pending : Icons.schedule),
+                        (fetchedStatus == 'Pending' ? Icons.pending : Icons.schedule),
                         size: 14,
                         color: statusColor,
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        stageStatus,
+                        fetchedStatus,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -1081,8 +1118,8 @@ class JobDetailsDialog extends StatelessWidget {
             ],
           ],
         ),
-      ),
-    );
+      )
+      );
   }
 
   Widget _buildStageDetails(String stageName, Map<String, dynamic> stageData) {
@@ -1188,41 +1225,88 @@ class JobDetailsDialog extends StatelessWidget {
     return label.replaceAll('_', ' ').split(' ').map((word) => 
       word.isEmpty ? word : word[0].toUpperCase() + word.substring(1)).join(' ');
   }
+ bool _isStageCompleted(String stageName, dynamic stageData) {
+  if (stageData == null) return false;
 
-  // Helper method to check if a stage is truly completed
-  bool _isStageCompleted(String stageName, Map<String, dynamic>? stageData) {
-    if (stageData == null) return false;
-    
-    // For design and printing stages, check if it's an array and look at status of first submission
-    if ((stageName == 'design' || stageName == 'printing') && stageData.containsKey('0')) {
-      final firstSubmission = stageData['0'] as Map<String, dynamic>?;
-      final s = firstSubmission?['status']?.toString().toLowerCase();
-      return s == 'approved' || s == 'completed' || s == 'done';
-    }
-    
-    // For other stages, check common completion indicators
-    final status = stageData['status']?.toString().toLowerCase();
-    return status == 'completed' || status == 'approved' || status == 'done';
+  String? status;
+  if ((stageName == 'design' || stageName == 'designer' || stageName == 'printing')) {
+    status = _getMostRecentStatus(stageData)?.toLowerCase();
+  } else if (stageData is Map<String, dynamic>) {
+    status = stageData['status']?.toString().toLowerCase();
   }
+  return ['completed', 'approved', 'done'].contains(status);
+}
 
-  // Get stage status for display
-  String _getStageStatus(String stageName, Map<String, dynamic>? stageData) {
-    // If stage is locked, always return 'Pending'
-    if (_isStageLocked(stageName, job)) return 'Pending';
-    // If stageData is null, always return 'Pending'
-    if (stageData == null) return 'Pending';
-    
-    // For design and printing stages with array structure
-    if ((stageName == 'design' || stageName == 'printing') && stageData.containsKey('0')) {
-      final firstSubmission = stageData['0'] as Map<String, dynamic>?;
-      final status = firstSubmission?['status']?.toString() ?? 'pending';
-      return _formatStatus(status);
+String _getStageStatus(String stageName, dynamic stageData, {bool log = false}) {
+  if (_isStageLocked(stageName, job)) {
+    return 'Pending';
+  }
+  if (stageData == null) {
+    return 'Pending';
+  }
+  if (stageName == 'design' || stageName == 'designer' || stageName == 'printing') {
+    String? status = _getMostRecentStatus(stageData);
+    if (status?.isNotEmpty == true) return _formatStatus(status!);
+    if (stageData is Map<String, dynamic> && (stageData.containsKey('images') || stageData.containsKey('comments') || stageData.containsKey('submission_date'))) {
+      return 'Complete';
     }
-    
-    // For other stages
-    final status = stageData['status']?.toString();
-    if (status == null || status.isEmpty) return 'Pending';
-    return _formatStatus(status);
+    return 'Pending';
+  }
+  String? status;
+  if (stageData is Map<String, dynamic>) {
+    status = stageData['status']?.toString();
+  }
+  return status?.isNotEmpty == true ? _formatStatus(status!) : 'Pending';
+}
+
+String? _getMostRecentStatus(dynamic stageData) {
+    if (stageData == null) return null;
+    if (stageData is List) {
+      if (stageData.isEmpty) return null;
+      Map<String, dynamic>? mostRecent;
+      DateTime? mostRecentDateTime;
+      for (final item in stageData) {
+        if (item is Map<String, dynamic> && item['submission_date'] != null && item['submission_time'] != null) {
+          try {
+            final dt = DateTime.parse(item['submission_date'] + ' ' + item['submission_time']);
+            if (mostRecentDateTime == null || dt.isAfter(mostRecentDateTime)) {
+              mostRecentDateTime = dt;
+              mostRecent = item;
+            }
+          } catch (_) {}
+        }
+      }
+      mostRecent ??= stageData.isNotEmpty ? stageData.last as Map<String, dynamic>? : null;
+      return mostRecent?['status']?.toString();
+    } else if (stageData is Map<String, dynamic>) {
+      final numericKeys = stageData.keys.where((k) => int.tryParse(k) != null).toList();
+      if (numericKeys.isNotEmpty) {
+        numericKeys.sort((a, b) => int.parse(a).compareTo(int.parse(b)));
+        Map<String, dynamic>? mostRecent;
+        DateTime? mostRecentDateTime;
+        for (final key in numericKeys) {
+          final submission = stageData[key] as Map<String, dynamic>?;
+          if (submission != null) {
+            if (submission['submission_date'] != null && submission['submission_time'] != null) {
+              try {
+                final dt = DateTime.parse(submission['submission_date'] + ' ' + submission['submission_time']);
+                if (mostRecentDateTime == null || dt.isAfter(mostRecentDateTime)) {
+                  mostRecentDateTime = dt;
+                  mostRecent = submission;
+                }
+              } catch (_) {
+                mostRecent = submission;
+              }
+            } else {
+              mostRecent = submission;
+            }
+          }
+        }
+        return mostRecent?['status']?.toString();
+      }
+      return stageData['status']?.toString();
+    }
+    return null;
   }
 
   // Format status for display

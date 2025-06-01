@@ -16,6 +16,7 @@ class EmployeeManagementScreen extends StatefulWidget {
 
 class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
   String selectedRole = 'All';
+  String searchQuery = '';
   late Future<List<Employee>> _employeesFuture;
   final AdminService _adminService = AdminService();
 
@@ -85,6 +86,30 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
                               ),
                             ),
                             const SizedBox(height: 22),
+                            // --- Search Bar Start ---
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 18),
+                              padding: const EdgeInsets.symmetric(horizontal: 0),
+                              child: TextField(
+                                decoration: InputDecoration(
+                                  hintText: 'Search employees by name, email, or role...',
+                                  prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                                onChanged: (value) {
+                                  setState(() {
+                                    searchQuery = value.trim();
+                                  });
+                                },
+                              ),
+                            ),
+                            // --- Search Bar End ---
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
                               decoration: BoxDecoration(
@@ -123,7 +148,8 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
                                             );
                                           },
                                         ),
-                                      ),                                      ElevatedButton(
+                                      ),
+                                      ElevatedButton(
                                         onPressed: _navigateToAddEmployee,
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: const Color(0xFF9EE2EA),
@@ -149,9 +175,18 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
                                       } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                                         return const Center(child: Text('No employees found.'));
                                       }
-                                      final employees = selectedRole == 'All'
-                                          ? snapshot.data!
-                                          : snapshot.data!.where((e) => e.role == selectedRole).toList();
+                                      // --- Filter by role and search query ---
+                                      List<Employee> employees = snapshot.data!;
+                                      if (selectedRole != 'All') {
+                                        employees = employees.where((e) => e.role == selectedRole).toList();
+                                      }
+                                      if (searchQuery.isNotEmpty) {
+                                        employees = employees.where((e) =>
+                                          e.fullName.toLowerCase().contains(searchQuery.toLowerCase()) ||
+                                          e.phone.toLowerCase().contains(searchQuery.toLowerCase()) ||
+                                          e.role.toLowerCase().contains(searchQuery.toLowerCase())
+                                        ).toList();
+                                      }
                                       return EmployeeTable(employees: employees);
                                     },
                                   ),
