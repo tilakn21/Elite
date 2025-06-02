@@ -52,8 +52,8 @@ class ProductionSidebar extends StatelessWidget {
             label: 'Reimbursement',
             selected: selectedIndex == 3,
             onTap: () {
-              if (ModalRoute.of(context)?.settings.name != '/production/reimbursement') {
-                Navigator.of(context).pushReplacementNamed('/production/reimbursement');
+              if (ModalRoute.of(context)?.settings.name != '/production/reimbursement_request') {
+                Navigator.of(context).pushReplacementNamed('/production/reimbursement_request');
               }
               onItemTapped(3);
             },

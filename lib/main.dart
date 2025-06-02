@@ -1,5 +1,6 @@
 import 'package:elite_signboard_app/Dashboards/Admin/screens/job_listing_screen_new.dart';
 import 'package:elite_signboard_app/Dashboards/Admin/screens/view_reimbursements_screen.dart';
+import 'package:elite_signboard_app/shared/reimbursement/screens/reimbursement_request_screen_new.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'Dashboards/Admin/screens/employee_management_screen.dart';
@@ -163,7 +164,11 @@ class MyApp extends StatelessWidget {
         '/admin/reimbursements': (context) => const ViewReimbursementsScreen(),
         //'reimbursement': (context) => const salesperson.ReimbursementRequestScreen(),
         //'/salesperson/reimbursement': (context) => const salesperson.ReimbursementRequestScreen(),
-        '/production/reimbursement': (context) => const ReimbursementRequestScreen(),
+        //'/production/reimbursement': (context) => const ReimbursementRequestScreen(),
+        '/production/reimbursement_request': (context) => const ReimbursementRequestScreenNew(dashboardType: 'production'),
+        '/design/reimbursement_request': (context) => const ReimbursementRequestScreenNew(dashboardType: 'design'),
+        '/design/joblist': (context) => const JobListScreen(),
+        '/design/chats': (context) => const ActiveChatsScreen(),
       },
       )
     );

@@ -62,18 +62,18 @@ class EmployeeReimbursement {
       };
 
   static ReimbursementStatus _statusFromString(String? status) {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'approved':
         return ReimbursementStatus.approved;
       case 'rejected':
         return ReimbursementStatus.rejected;
+      case 'paid':
+        return ReimbursementStatus.paid;
       case 'pending':
       default:
         return ReimbursementStatus.pending;
     }
   }
-
-  String get statusString => status.toString().split('.').last;
 
   EmployeeReimbursement copyWith({
     String? id,

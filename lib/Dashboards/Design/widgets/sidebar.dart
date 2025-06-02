@@ -50,15 +50,20 @@ class DesignSidebar extends StatelessWidget {
             icon: Icons.list_alt,
             label: 'Job List',
             selected: selectedIndex == 1,
-            onTap: () => onItemTapped(1),
+            onTap: () {
+              if (ModalRoute.of(context)?.settings.name != '/design/joblist') {
+                Navigator.of(context).pushReplacementNamed('/design/joblist');
+              }
+              onItemTapped(1);
+            },
           ),
           _SidebarButton(
             icon: Icons.receipt_long,
             label: 'Reimbursement',
             selected: selectedIndex == 2,
             onTap: () {
-              if (ModalRoute.of(context)?.settings.name != '/design/reimbursement') {
-                Navigator.of(context).pushReplacementNamed('/design/reimbursement');
+              if (ModalRoute.of(context)?.settings.name != '/design/reimbursement_request') {
+                Navigator.of(context).pushReplacementNamed('/design/reimbursement_request');
               }
               onItemTapped(2);
             },

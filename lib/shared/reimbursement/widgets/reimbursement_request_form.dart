@@ -445,13 +445,12 @@ class _ReimbursementRequestFormState extends State<ReimbursementRequestForm> {
       );
     }
   }
-
   Future<void> _submitForm(BuildContext context) async {
     final provider = Provider.of<ReimbursementProvider>(context, listen: false);
     provider.clearMessages();
     _invalidFields.clear();
 
-    // Validate all fields
+    // Validate amount
     if (_amountController.text.trim().isEmpty) {
       _invalidFields.add('amount');
     } else {
@@ -461,17 +460,10 @@ class _ReimbursementRequestFormState extends State<ReimbursementRequestForm> {
       }
     }
 
-    if (_purposeController.text.trim().isEmpty) {
-      _invalidFields.add('purpose');
-    }
-
-    if (_selectedDate == null) {
-      _invalidFields.add('date');
-    }
-
-    if (_receiptImage == null) {
-      _invalidFields.add('receipt');
-    }
+    // Validate required fields
+    if (_purposeController.text.trim().isEmpty) _invalidFields.add('purpose');
+    if (_selectedDate == null) _invalidFields.add('date');
+    if (_receiptImage == null) _invalidFields.add('receipt');
 
     if (_invalidFields.isNotEmpty) {
       setState(() {}); // Trigger rebuild to show validation errors
@@ -481,6 +473,7 @@ class _ReimbursementRequestFormState extends State<ReimbursementRequestForm> {
     setState(() => _isUploading = true);
 
     try {
+      // Create reimbursement request with initial pending status
       final reimbursement = EmployeeReimbursement(
         empId: widget.empId,
         empName: widget.empName,
@@ -488,23 +481,32 @@ class _ReimbursementRequestFormState extends State<ReimbursementRequestForm> {
         reimbursementDate: _selectedDate!,
         purpose: _purposeController.text.trim(),
         remarks: _remarksController.text.trim().isEmpty ? null : _remarksController.text.trim(),
+        status: ReimbursementStatus.pending, // Explicitly set initial status
       );
 
       await provider.addReimbursementRequest(reimbursement, receiptImage: _receiptImage);
 
       if (provider.submitMessage?.contains('success') == true) {
-        _clearForm();
+        _clearForm(); // Only clear if submission was successful
       }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error submitting reimbursement: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     } finally {
       setState(() => _isUploading = false);
     }
   }
-
   void _clearForm() {
     _amountController.clear();
     _purposeController.clear();
     _remarksController.clear();
     _dateController.clear();
+    final provider = Provider.of<ReimbursementProvider>(context, listen: false);
+    provider.clearMessages();
     setState(() {
       _selectedDate = null;
       _receiptImage = null;
