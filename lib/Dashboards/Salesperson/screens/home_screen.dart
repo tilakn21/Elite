@@ -35,7 +35,7 @@ class _SalespersonHomeScreenState extends State<SalespersonHomeScreen> {
     });
     try {
       // TODO: Replace with actual logged-in user id from auth/session
-      final userId = 'sal2005';
+      final userId = 'sal2001';
       final supabase = Supabase.instance.client;
       final response = await supabase
           .from('jobs')

@@ -180,6 +180,7 @@ class ReceptionistService {
     required String timeOfVisit,
     required String? assignedSalesperson,
     required String createdBy, // receptionist user id
+    Map<String, dynamic>? accountant, // <-- add this
     void Function()? onJobAdded, // callback after job is added
   }) async {
     final supabase = Supabase.instance.client;
@@ -203,13 +204,15 @@ class ReceptionistService {
     };
     try {
       // Insert job and get the created job's id
+      final insertData = {
+        'status': 'salesperson assigned',
+        'created_at': now,
+        'receptionist': receptionistJson,
+        if (accountant != null) 'accountant': accountant, // <-- include accountant if provided
+      };
       final insertedJob = await supabase
           .from('jobs')
-          .insert({
-            'status': 'salesperson assigned',
-            'created_at': now,
-            'receptionist': receptionistJson,
-          })
+          .insert(insertData)
           .select()
           .single();
       final jobId = insertedJob['id'];
@@ -226,7 +229,7 @@ class ReceptionistService {
       // Fetch jobs again after adding
       await fetchJobRequestsFromSupabase();
     } on PostgrestException catch (e) {
-      throw Exception('Failed to add job: ${e.message}');
+      throw Exception('Failed to add job: \\${e.message}');
     } catch (e) {
       throw Exception('Failed to add job: $e');
     }

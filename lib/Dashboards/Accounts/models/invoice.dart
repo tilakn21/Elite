@@ -70,6 +70,8 @@ class Invoice {
   final DateTime? paidDate;
   final String? paymentMethod;
   final List<InvoiceItem> items;
+  final Map<String, dynamic>? accountantJson; // <-- new
+  final List<dynamic> payments; // <-- new
 
   Invoice({
     required this.id,
@@ -88,7 +90,9 @@ class Invoice {
     this.paidDate,
     this.paymentMethod,
     required this.items,
-  });
+    this.accountantJson,
+    List<dynamic>? payments,
+  }) : payments = payments ?? const [];
 
   // Factory constructor for creating a new Invoice instance from a map.
   factory Invoice.fromJson(Map<String, dynamic> json) {
@@ -114,6 +118,8 @@ class Invoice {
       paidDate: json['paidDate'] != null ? DateTime.parse(json['paidDate'] as String) : null,
       paymentMethod: json['paymentMethod'] as String?,
       items: itemList,
+      accountantJson: json['accountantJson'] as Map<String, dynamic>?,
+      payments: json['payments'] as List<dynamic>? ?? [],
     );
   }
 
@@ -132,10 +138,12 @@ class Invoice {
       'totalAmount': totalAmount,
       'amountPaid': amountPaid,
       'balanceDue': balanceDue,
-      'status': status.name, // Uses the enum value's name string
+      'status': status.name,
       'paidDate': paidDate?.toIso8601String(),
       'paymentMethod': paymentMethod,
       'items': items.map((item) => item.toJson()).toList(),
+      'accountantJson': accountantJson,
+      'payments': payments,
     };
   }
 
@@ -161,6 +169,8 @@ class Invoice {
       balanceDue: 0.0,
       status: InvoiceStatus.draft,
       items: [],
+      accountantJson: null,
+      payments: const [],
     );
   }
 
@@ -182,6 +192,8 @@ class Invoice {
     DateTime? paidDate,
     String? paymentMethod,
     List<InvoiceItem>? items,
+    Map<String, dynamic>? accountantJson,
+    List<dynamic>? payments,
   }) {
     return Invoice(
       id: id ?? this.id,
@@ -200,6 +212,8 @@ class Invoice {
       paidDate: paidDate ?? this.paidDate,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       items: items ?? this.items,
+      accountantJson: accountantJson ?? this.accountantJson,
+      payments: payments ?? this.payments,
     );
   }
 }

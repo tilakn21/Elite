@@ -22,10 +22,10 @@ import 'Dashboards/Production/services/production_service.dart'; // Added Produc
 import 'Dashboards/Receptionist/services/receptionist_service.dart'; // Added ReceptionistService
 import 'Dashboards/Receptionist/providers/job_request_provider.dart'; // Added JobRequestProvider
 import 'Dashboards/Receptionist/providers/salesperson_provider.dart'; // Added SalespersonProvider
-import 'Dashboards/Receptionist/services/reimbursement_service.dart'; // Added ReimbursementService
+import 'Dashboards/Receptionist/services/reimbursement_service.dart'; // Fixed import path for ReimbursementService
 import 'Dashboards/Receptionist/providers/reimbursement_provider.dart'; // Added ReimbursementProvider
 import 'Dashboards/Admin/providers/reimbursement_provider.dart' as admin; // Added Admin ReimbursementProvider
-import 'shared/reimbursement/screens/reimbursement_request_screen_new.dart';
+import 'Dashboards/Accounts/providers/employee_provider.dart'; // Added for Accounts EmployeeProvider
 
 // Screens
 import 'Dashboards/Design/screens/dashboard_screen.dart';
@@ -46,7 +46,6 @@ import 'Dashboards/Design/screens/dashboard_screen.dart' as design;
 // Salesperson Dashboard
 import 'Dashboards/Salesperson/screens/home_screen.dart';
 import 'Dashboards/Salesperson/screens/profile_screen.dart';
-import 'Dashboards/Salesperson/screens/reimbursement_request_screen.dart' as salesperson;
 
 // Production Dashboard
 import 'Dashboards/Production/screens/production_dashboard.dart';
@@ -88,7 +87,8 @@ void main() async {
     print(details.stack);
   };
   runApp(
-    MultiProvider(      providers: [
+    MultiProvider(
+      providers: [
         ChangeNotifierProvider(create: (_) => UserProvider(DesignService())),
         ChangeNotifierProvider(create: (_) => JobProvider(DesignService())),
         ChangeNotifierProvider(create: (_) => ChatProvider(DesignService())),
@@ -105,6 +105,7 @@ void main() async {
         Provider(create: (_) => ReimbursementService()),
         ChangeNotifierProvider(create: (context) => ReimbursementProvider(context.read<ReimbursementService>())),
         ChangeNotifierProvider(create: (_) => admin.ReimbursementProvider()), // Admin ReimbursementProvider
+        ChangeNotifierProvider(create: (_) => EmployeeProvider()), // <-- Add this line for Accounts dashboard only
       ],
       child: MyApp(),
     ),
@@ -144,11 +145,8 @@ class MyApp extends StatelessWidget {
         '/receptionist/reimbursement-request': (context) => const ReimbursementRequestScreen(),
         //'/receptionist/view-reimbursements': (context) => const ViewReimbursementsScreen(),
         '/salesperson/dashboard': (context) => const SalespersonHomeScreen(),
-        '/salesperson/profile': (context) => const SalespersonProfileScreen(),        '/design/dashboard': (context) => const design.DashboardScreen(),
-        '/design/jobs': (context) => const JobListScreen(),
-        '/design/job-list': (context) => const JobListScreen(),
-        '/design/reimbursement': (context) => const ReimbursementRequestScreenNew(dashboardType: 'design'),
-        '/design/chats': (context) => const ActiveChatsScreen(),
+        '/salesperson/profile': (context) => const SalespersonProfileScreen(),
+        '/design/dashboard': (context) => const design.DashboardScreen(),
         '/accounts/dashboard': (context) => const AccountsDashboardScreen(),
         '/accounts/invoice': (context) => const AccountsInvoiceScreen(),
         '/accounts/employee': (context) => const AccountsEmployeeScreen(),
@@ -165,8 +163,7 @@ class MyApp extends StatelessWidget {
         '/admin/reimbursements': (context) => const ViewReimbursementsScreen(),
         //'reimbursement': (context) => const salesperson.ReimbursementRequestScreen(),
         //'/salesperson/reimbursement': (context) => const salesperson.ReimbursementRequestScreen(),
-        '/production/reimbursement': (context) => const ReimbursementRequestScreenNew(dashboardType: 'production'),
-        '/salesperson/reimbursement': (context) => const salesperson.ReimbursementRequestScreen(),
+        '/production/reimbursement': (context) => const ReimbursementRequestScreen(),
       },
       )
     );

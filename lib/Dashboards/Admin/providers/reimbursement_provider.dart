@@ -22,7 +22,9 @@ class ReimbursementProvider with ChangeNotifier {
   int get pendingReimbursementsCount =>
       _reimbursements.where((r) => r.status == ReimbursementStatus.pending).length;
   double get totalApprovedAmount =>
-      _reimbursements.where((r) => r.status == ReimbursementStatus.approved).fold(0.0, (sum, r) => sum + r.amount);
+      _reimbursements
+          .where((r) => r.status == ReimbursementStatus.approved || r.status == ReimbursementStatus.paid)
+          .fold(0.0, (sum, r) => sum + r.amount);
 
   Future<void> fetchReimbursements() async {
     _isLoading = true;
@@ -79,4 +81,12 @@ class ReimbursementProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+
+  List<EmployeeReimbursement> get visibleReimbursements =>
+      _reimbursements.where((r) =>
+        r.status == ReimbursementStatus.pending ||
+        r.status == ReimbursementStatus.approved ||
+        r.status == ReimbursementStatus.rejected ||
+        r.status == ReimbursementStatus.paid
+      ).toList();
 }

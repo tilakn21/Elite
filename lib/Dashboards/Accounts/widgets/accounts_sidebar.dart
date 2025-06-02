@@ -33,18 +33,10 @@ class AccountsSidebar extends StatelessWidget {
               children: [
                 _SidebarButton(
                   icon: Icons.dashboard,
-                  label: 'Dashboard',
+                  label: 'Jobs',
                   selected: selectedIndex == 0,
                   onTap: () {
                     Navigator.of(context).pushReplacementNamed('/accounts/dashboard');
-                  },
-                ),
-                _SidebarButton(
-                  icon: Icons.receipt_long,
-                  label: 'Invoice',
-                  selected: selectedIndex == 1,
-                  onTap: () {
-                    Navigator.of(context).pushReplacementNamed('/accounts/invoice');
                   },
                 ),
                 _SidebarButton(

@@ -113,6 +113,7 @@ class _JobRequestFormState extends State<_JobRequestForm> {
   final TextEditingController timeController = TextEditingController();
   final TextEditingController dateOfVisitController = TextEditingController();
   final TextEditingController dateOfAppointmentController = TextEditingController();
+  final TextEditingController totalAmountController = TextEditingController(); // Added for total amount
 
   String? selectedSalespersonId;
   String? selectedSalespersonName;
@@ -162,6 +163,7 @@ class _JobRequestFormState extends State<_JobRequestForm> {
     timeController.dispose();
     dateOfVisitController.dispose();
     dateOfAppointmentController.dispose();
+    totalAmountController.dispose(); // Dispose total amount controller
     super.dispose();
   }
 
@@ -220,6 +222,14 @@ class _JobRequestFormState extends State<_JobRequestForm> {
     try {
       // TODO: Replace with actual logged-in user id
       const String createdBy = 'receptionist-uid';
+      // Prepare accountant JSONB
+      final String totalAmountText = totalAmountController.text.trim();
+      final double? totalAmount = double.tryParse(totalAmountText);
+      final Map<String, dynamic> accountantJson = {
+        'total_amount': totalAmount ?? 0,
+        'amount_paid': 0,
+        'amount_due': totalAmount ?? 0,
+      };
       // Upload job to Supabase
       await _receptionistService.addJobToSupabase(
         customerName: nameController.text.trim(),
@@ -234,6 +244,7 @@ class _JobRequestFormState extends State<_JobRequestForm> {
         timeOfVisit: timeController.text.trim(),
         assignedSalesperson: selectedSalespersonId,
         createdBy: createdBy,
+        accountant: accountantJson, // Pass accountant JSONB
         onJobAdded: () async {
           // Optionally refresh job requests after adding
           try {
@@ -324,6 +335,16 @@ class _JobRequestFormState extends State<_JobRequestForm> {
       missingFields.add('Salesperson');
       _invalidFields.add('salesperson');
     }
+    // Validate total amount
+    final totalAmountText = totalAmountController.text.trim();
+    final totalAmount = double.tryParse(totalAmountText);
+    if (totalAmountText.isEmpty) {
+      missingFields.add('Total amount');
+      _invalidFields.add('totalAmount');
+    } else if (totalAmount == null || totalAmount < 0) {
+      missingFields.add('Valid total amount (number >= 0)');
+      _invalidFields.add('totalAmount');
+    }
     if (missingFields.isNotEmpty) {
       setState(() {
         _validationError = 'Please fill/enter: ' + missingFields.join(', ');
@@ -347,6 +368,7 @@ class _JobRequestFormState extends State<_JobRequestForm> {
     // dateController.clear(); // No longer used
     timeController.clear();
     dateOfVisitController.clear();
+    totalAmountController.clear(); // Clear total amount
     setState(() {
       selectedSalespersonId = null;
       selectedSalespersonName = null;
@@ -487,6 +509,15 @@ class _JobRequestFormState extends State<_JobRequestForm> {
       ..._buildLeftFields(),
       const SizedBox(height: 20),
       ..._buildRightFields(),
+      const SizedBox(height: 20),
+      _Label('Total Amount', tooltip: 'Total job amount (required)'),
+      _InputField(
+        hint: 'Enter total amount',
+        controller: totalAmountController,
+        error: _invalidFields.contains('totalAmount'),
+        keyboardType: TextInputType.numberWithOptions(decimal: true),
+        helperText: _invalidFields.contains('totalAmount') ? 'Enter a valid amount (number >= 0)' : null,
+      ),
     ];
   }
 
@@ -528,6 +559,15 @@ class _JobRequestFormState extends State<_JobRequestForm> {
         controller: dateOfAppointmentController,
         readOnly: true,
         error: false,
+      ),
+      SizedBox(height: 20),
+      _Label('Total Amount', tooltip: 'Total job amount (required)'),
+      _InputField(
+        hint: 'Enter total amount',
+        controller: totalAmountController,
+        error: _invalidFields.contains('totalAmount'),
+        keyboardType: TextInputType.numberWithOptions(decimal: true),
+        helperText: _invalidFields.contains('totalAmount') ? 'Enter a valid amount (number >= 0)' : null,
       ),
     ];
   }

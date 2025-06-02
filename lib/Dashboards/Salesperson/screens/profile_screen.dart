@@ -33,7 +33,7 @@ class _SalespersonProfileScreenState extends State<SalespersonProfileScreen> {
       final supabase = Supabase.instance.client;
       // Use authenticated user's id from Supabase
       final user = Supabase.instance.client.auth.currentUser;
-      final userId = user?.id ?? 'sal2005';
+      final userId = user?.id ?? 'sal2001';
       final response = await supabase
           .from('employee')
           .select()

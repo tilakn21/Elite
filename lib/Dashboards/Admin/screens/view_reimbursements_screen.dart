@@ -118,8 +118,8 @@ class _ViewReimbursementsScreenState extends State<ViewReimbursementsScreen> {
             ),
           ),
         ],
-      ),
-    );
+    )); // Close Row
+    // Close Scaffold
   }
 
   Widget _buildHeader(ReimbursementProvider provider) {
@@ -204,121 +204,121 @@ class _ViewReimbursementsScreenState extends State<ViewReimbursementsScreen> {
   }
 
   Widget _buildSearchAndFilter(bool isMobile) {
-    return isMobile 
-        ? Column(
-            children: [
-              // Search bar
-              TextField(
-                controller: searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search by employee name or purpose...',
-                  prefixIcon: Icon(Icons.search, size: 20),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    searchQuery = value;
-                  });
-                },
+    if (isMobile) {
+      return Column(
+        children: [
+          // Search bar
+          TextField(
+            controller: searchController,
+            decoration: InputDecoration(
+              hintText: 'Search by employee name or purpose...',
+              prefixIcon: Icon(Icons.search, size: 20),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey[300]!),
               ),
-              SizedBox(height: 12),
-              
-              // Status filter
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey[300]!),
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.white,
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: selectedStatus,
-                    icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
-                    isExpanded: true,
-                    style: const TextStyle(color: Colors.black87, fontSize: 14),
-                    onChanged: (String? newValue) {
-                      if (newValue != null) {
-                        setState(() {
-                          selectedStatus = newValue;
-                        });
-                      }
-                    },
-                    items: ['All', 'Pending', 'Approved', 'Rejected']
-                        .map<DropdownMenuItem<String>>((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
-            ],
-          )
-        : Row(
-            children: [
-              // Search bar
-              Expanded(
-                flex: 2,
-                child: TextField(
-                  controller: searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search by employee name or purpose...',
-                    prefixIcon: Icon(Icons.search, size: 20),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  ),
-                  onChanged: (value) {
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            onChanged: (value) {
+              setState(() {
+                searchQuery = value;
+              });
+            },
+          ),
+          SizedBox(height: 12),
+          // Status filter
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(8),
+              color: Colors.white,
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: selectedStatus,
+                icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                isExpanded: true,
+                style: const TextStyle(color: Colors.black87, fontSize: 14),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
                     setState(() {
-                      searchQuery = value;
+                      selectedStatus = newValue;
                     });
-                  },
-                ),
+                  }
+                },
+                items: ['All', 'Pending', 'Approved', 'Rejected', 'Paid']
+                    .map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
               ),
-              const SizedBox(width: 16),
-              
-              // Status filter dropdown
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey[300]!),
+            ),
+          ),
+        ],
+      );
+    } else {
+      return Row(
+        children: [
+          // Search bar
+          Expanded(
+            flex: 2,
+            child: TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                hintText: 'Search by employee name or purpose...',
+                prefixIcon: Icon(Icons.search, size: 20),
+                border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  color: Colors.white,
+                  borderSide: BorderSide(color: Colors.grey[300]!),
                 ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: selectedStatus,
-                    icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
-                    isExpanded: false,
-                    style: const TextStyle(color: Colors.black87, fontSize: 14),
-                    onChanged: (String? newValue) {
-                      if (newValue != null) {
-                        setState(() {
-                          selectedStatus = newValue;
-                        });
-                      }
-                    },
-                    items: ['All', 'Pending', 'Approved', 'Rejected']
-                        .map<DropdownMenuItem<String>>((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                  ),
-                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
-            ],
-          );
+              onChanged: (value) {
+                setState(() {
+                  searchQuery = value;
+                });
+              },
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Status filter dropdown
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(8),
+              color: Colors.white,
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: selectedStatus,
+                icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                isExpanded: false,
+                style: const TextStyle(color: Colors.black87, fontSize: 14),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      selectedStatus = newValue;
+                    });
+                  }
+                },
+                items: ['All', 'Pending', 'Approved', 'Rejected', 'Paid']
+                    .map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
   }
 
   List<EmployeeReimbursement> _getFilteredReimbursements(List<EmployeeReimbursement> reimbursements) {
@@ -327,10 +327,15 @@ class _ViewReimbursementsScreenState extends State<ViewReimbursementsScreen> {
           reimbursement.empName.toLowerCase().contains(searchQuery.toLowerCase()) ||
           reimbursement.purpose.toLowerCase().contains(searchQuery.toLowerCase());
       
-      final matchesStatus = selectedStatus == 'All' ||
-          (selectedStatus == 'Pending' && reimbursement.status == ReimbursementStatus.pending) ||
+      final matchesStatus = selectedStatus == 'All'
+        ? (reimbursement.status == ReimbursementStatus.pending ||
+           reimbursement.status == ReimbursementStatus.approved ||
+           reimbursement.status == ReimbursementStatus.rejected ||
+           reimbursement.status == ReimbursementStatus.paid)
+        : (selectedStatus == 'Pending' && reimbursement.status == ReimbursementStatus.pending) ||
           (selectedStatus == 'Approved' && reimbursement.status == ReimbursementStatus.approved) ||
-          (selectedStatus == 'Rejected' && reimbursement.status == ReimbursementStatus.rejected);
+          (selectedStatus == 'Rejected' && reimbursement.status == ReimbursementStatus.rejected) ||
+          (selectedStatus == 'Paid' && reimbursement.status == ReimbursementStatus.paid);
       
       return matchesSearch && matchesStatus;
     }).toList();
@@ -432,8 +437,7 @@ class _StatCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
+    ));
   }
 }
 
@@ -501,9 +505,8 @@ class _ReimbursementsTable extends StatelessWidget {
                 onStatusUpdate: onStatusUpdate,
               )),
         ],
-      )
-      );
-    }
+    ));
+  }
 }
 
 class _MobileReimbursementCard extends StatelessWidget {
@@ -606,8 +609,7 @@ class _MobileReimbursementCard extends StatelessWidget {
             ),
           ],
         ],
-      ),
-    );
+    ));
   }
 }
 
@@ -819,8 +821,7 @@ class _DesktopReimbursementRow extends StatelessWidget {
                                       ),
                                     ],
                                   ),
-                                ),
-                              );
+                              ));
                             },
                             child: Container(
                               margin: EdgeInsets.only(bottom: 24),
@@ -1023,8 +1024,7 @@ class _DesktopReimbursementRow extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
+    ));
   }
 
   Widget _buildDetailRow(IconData icon, String label, String value) {
@@ -1067,8 +1067,7 @@ class _DesktopReimbursementRow extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
+    ));
   }
   
   Color _getStatusColor(ReimbursementStatus status) {
@@ -1079,6 +1078,8 @@ class _DesktopReimbursementRow extends StatelessWidget {
         return Colors.green[700]!;
       case ReimbursementStatus.rejected:
         return Colors.red[700]!;
+      case ReimbursementStatus.paid:
+        return Colors.blue[700]!;
     }
   }
   
@@ -1090,6 +1091,8 @@ class _DesktopReimbursementRow extends StatelessWidget {
         return Icons.check_circle;
       case ReimbursementStatus.rejected:
         return Icons.cancel;
+      case ReimbursementStatus.paid:
+        return Icons.attach_money;
     }
   }
 }
@@ -1120,6 +1123,11 @@ class _StatusBadge extends StatelessWidget {
         bgColor = Colors.red.withOpacity(0.1);
         textColor = Colors.red[700]!;
         text = 'Rejected';
+        break;
+      case ReimbursementStatus.paid:
+        bgColor = Colors.blue.withOpacity(0.1);
+        textColor = Colors.blue[700]!;
+        text = 'Paid';
         break;
     }
 

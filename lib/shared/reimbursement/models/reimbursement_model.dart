@@ -1,6 +1,6 @@
 import 'package:uuid/uuid.dart';
 
-enum ReimbursementStatus { pending, approved, rejected }
+enum ReimbursementStatus { pending, approved, rejected, paid }
 
 class EmployeeReimbursement {
   final String id;

@@ -574,7 +574,7 @@ class _ReimbursementRequestScreenState extends State<ReimbursementRequestScreen>
     debugPrint('[Reimbursement] All validations passed. Creating reimbursement object...');
     // Create reimbursement request
     final reimbursement = EmployeeReimbursement(
-      empId: 'sal2004', // TODO: Get from actual auth/session
+      empId: 'sal2001', // TODO: Get from actual auth/session
       empName: _empNameController.text.trim(),
       amount: double.parse(_amountController.text.trim()),
       reimbursementDate: _selectedDate!,

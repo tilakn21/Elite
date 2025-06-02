@@ -10,36 +10,8 @@ class AccountsTopBar extends StatelessWidget {
       color: Colors.transparent,
       padding: const EdgeInsets.symmetric(horizontal: 32),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          Expanded(
-            child: Container(
-              height: 40,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF6F4FF),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  const Icon(Icons.search, color: Color(0xFFB0B3C7)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      decoration: const InputDecoration(
-                        hintText: 'Search data for this page',
-                        border: InputBorder.none,
-                        isDense: true,
-                      ),
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Icon(Icons.bar_chart, color: Color(0xFF232B3E)),
-          const SizedBox(width: 24),
           Row(
             children: [
               CircleAvatar(

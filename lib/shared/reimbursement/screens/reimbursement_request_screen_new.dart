@@ -31,7 +31,7 @@ class _ReimbursementRequestScreenNewState extends State<ReimbursementRequestScre
     await Future.delayed(const Duration(milliseconds: 100)); // Simulate network delay
     if (!mounted) return;
     setState(() {
-      _empId = 'sal2005'; // Demo employee ID
+      _empId = 'sal2001'; // Demo employee ID
       _empName = 'John Doe'; // Demo employee name
       _isLoading = false;
     });
