@@ -221,10 +221,51 @@ class ProductionService {
         'production': productionData,
       };
       
-      // If status is completed, update the main status column to production_complete
-      if (newStatus == JobStatus.completed) {
+      // Only run worker update logic if production.current_status is actually 'completed'
+      final currentStatus = productionData['current_status'] != null ? productionData['current_status'].toString().toLowerCase() : null;
+      if (newStatus == JobStatus.completed && currentStatus == 'completed') {
         updateData['status'] = 'production_complete';
         productionData['completed_at'] = DateTime.now().toIso8601String();
+
+        // --- Decrement number_of_jobs and update assigned_job for each worker in productionData['workers'] ---
+        if (productionData.containsKey('workers') && productionData['workers'] is List) {
+          List workers = productionData['workers'];
+          for (var worker in workers) {
+            final workerId = worker['worker_id'];
+            if (workerId != null) {
+              // Fetch current number_of_jobs and assigned_job array
+              final workerRow = await _supabase
+                .from('employee')
+                .select('number_of_jobs, assigned_job')
+                .eq('id', workerId)
+                .maybeSingle();
+              if (workerRow != null) {
+                int jobs = 0;
+                try {
+                  jobs = int.parse(workerRow['number_of_jobs'].toString());
+                } catch (_) {}
+                List<dynamic> assignedJobs = [];
+                if (workerRow['assigned_job'] is List) {
+                  assignedJobs = List<dynamic>.from(workerRow['assigned_job']);
+                } else if (workerRow['assigned_job'] != null) {
+                  assignedJobs = [workerRow['assigned_job']];
+                }
+                // Remove this jobId from assignedJobs
+                assignedJobs.remove(jobId);
+                final newJobs = jobs > 0 ? jobs - 1 : 0;
+                final newIsAvailable = newJobs < 4 ? true : false;
+                await _supabase
+                  .from('employee')
+                  .update({
+                    'number_of_jobs': newJobs,
+                    'assigned_job': assignedJobs,
+                    'is_available': newIsAvailable
+                  })
+                  .eq('id', workerId);
+              }
+            }
+          }
+        }
       }
       
       // Update the job
@@ -244,18 +285,35 @@ class ProductionService {
   }// Fetch production workers from employee table
   Future<List<Map<String, dynamic>>> getProductionWorkers() async {
     try {
-      final response = await _supabase
+      // Fetch available prod_labour first, sorted by number_of_jobs ascending
+      final availableResponse = await _supabase
           .from('employee')
           .select()
           .or('role.eq.prod_labour,role.eq.Production Worker')
+          .eq('is_available', true)
+          .order('number_of_jobs', ascending: true)
           .order('full_name');
-      
+
+      // Fetch unavailable prod_labour, sorted by full_name
+      final unavailableResponse = await _supabase
+          .from('employee')
+          .select()
+          .or('role.eq.prod_labour,role.eq.Production Worker')
+          .eq('is_available', false)
+          .order('full_name');
+
+      // Combine available and unavailable lists
+      final combined = [
+        ...List<Map<String, dynamic>>.from(availableResponse),
+        ...List<Map<String, dynamic>>.from(unavailableResponse),
+      ];
+
       print('Raw worker response from database:');
-      for (var worker in response) {
-        print('Worker: ${worker['full_name']} - Available: ${worker['is_available']} - Assigned Job: ${worker['assigned_job']}');
+      for (var worker in combined) {
+        print('Worker: [32m${worker['full_name']}[0m - Available: ${worker['is_available']} - Assigned Job: ${worker['assigned_job']} - Jobs: ${worker['number_of_jobs']}');
       }
 
-      final workers = List<Map<String, dynamic>>.from(response).map((worker) {
+      final workers = combined.map((worker) {
         return {
           'id': worker['id']?.toString(),
           'full_name': worker['full_name'] ?? worker['name'] ?? 'Unknown',
@@ -265,6 +323,7 @@ class ProductionService {
           'image': worker['image']?.toString() ?? '',
           'is_available': worker['is_available'] is bool ? worker['is_available'] : worker['is_available']?.toString().toLowerCase() == 'true',
           'assigned_job': worker['assigned_job']?.toString(),
+          'number_of_jobs': worker['number_of_jobs'],
         };
       }).toList();
 
@@ -276,127 +335,101 @@ class ProductionService {
   Future<void> assignWorkerToJob(String jobId, String workerId) async {
     try {
       print('Attempting to assign worker $workerId to job $jobId');
-      
-      // First, verify that the worker exists and check availability
+      // Fetch worker
       final workerResponse = await _supabase
           .from('employee')
-          .select()  // Select all fields for debugging
+          .select()
           .eq('id', workerId)
           .maybeSingle();
-      
       print('Worker response: $workerResponse');
-      
       if (workerResponse == null) {
         print('No worker found with ID: $workerId');
         throw Exception('Worker not found');
       }
-
-      // Print all fields for debugging
-      print('Worker fields: ${workerResponse.keys.join(', ')}');
-
-      // Check role - handle both possible values
-      String workerRole = workerResponse['role']?.toString() ?? '';
-      if (workerRole != 'prod_labour' && workerRole != 'Production Worker') {
-        print('Invalid role: $workerRole');
-        throw Exception('Invalid worker role: Worker must be a production worker (got: $workerRole)');
+      // Check number_of_jobs and is_available
+      int numberOfJobs = 0;
+      try {
+        numberOfJobs = int.parse(workerResponse['number_of_jobs'].toString());
+      } catch (_) {}
+      bool isAvailable = workerResponse['is_available'] == true;
+      // assigned_job is now an array
+      List<dynamic> assignedJobs = [];
+      if (workerResponse['assigned_job'] is List) {
+        assignedJobs = List<dynamic>.from(workerResponse['assigned_job']);
+      } else if (workerResponse['assigned_job'] != null) {
+        // If it's a single value, convert to array
+        assignedJobs = [workerResponse['assigned_job']];
       }
-
-      // Check worker availability - they must both be marked as available AND not assigned to a job
-      bool isAvailable = false;
-      if ((workerResponse['is_available'] is bool && workerResponse['is_available']) ||
-          (workerResponse['is_available']?.toString().toLowerCase() == 'true')) {
-        isAvailable = workerResponse['assigned_job'] == null;
+      // Only allow assignment if number_of_jobs < 4 and is_available is true
+      if (!isAvailable || numberOfJobs >= 4) {
+        throw Exception('Worker is not available for assignment (number_of_jobs: $numberOfJobs, is_available: $isAvailable)');
       }
-      
-      print('Worker availability: $isAvailable');
-
-      if (!isAvailable) {
-        final String workerName = workerResponse['full_name'] ?? workerResponse['name'] ?? 'Worker';
-        String errorMsg = '$workerName is not available for assignment';
-        if (workerResponse['assigned_job'] != null) {
-          errorMsg += ' (currently assigned to job ${workerResponse['assigned_job']})';
-        } else {
-          errorMsg += ' (marked as unavailable)';
-        }
-        throw Exception(errorMsg);
+      // Prevent duplicate assignment
+      if (assignedJobs.contains(jobId)) {
+        throw Exception('Worker is already assigned to this job');
       }
-
+      // Add jobId to assigned_job array
+      assignedJobs.add(jobId);
+      final newNumberOfJobs = numberOfJobs + 1;
+      final newIsAvailable = newNumberOfJobs >= 4 ? false : true;
       // Get current job data
       final jobResponse = await _supabase
           .from('jobs')
-          .select()  // Select all fields for debugging
+          .select()
           .eq('id', jobId)
           .maybeSingle();
-      
-      print('Job response: $jobResponse');
-      
       if (jobResponse == null) {
         throw Exception('Job not found');
       }
-
-      // Get or initialize production data
       Map<String, dynamic> productionData = jobResponse['production'] != null ? 
           Map<String, dynamic>.from(jobResponse['production']) : {};
-      
-      // Initialize workers list if it doesn't exist
       List<Map<String, dynamic>> workers = [];
       if (productionData.containsKey('workers') && productionData['workers'] is List) {
         workers = List<Map<String, dynamic>>.from(productionData['workers']);
       }
-      
-      print('Current production workers: $workers');
-      
-      // Check if worker is already assigned
       if (workers.any((w) => w['worker_id'] == workerId)) {
-        final String workerName = workerResponse['full_name'] ?? workerResponse['name'] ?? 'Worker';
-        throw Exception('$workerName is already assigned to this job');
+        throw Exception('Worker is already assigned to this job');
       }
-      
-      // Add new worker to the list
       workers.add({
-        'worker_id': workerId,  // Changed from 'id' to 'worker_id' to be more explicit
+        'worker_id': workerId,
         'status': 'assigned',
         'assigned_at': DateTime.now().toIso8601String()
       });
-
-      // Update production data
       productionData['workers'] = workers;
       productionData['status'] = 'labour_assigned';
       productionData['last_updated'] = DateTime.now().toIso8601String();
-
       print('Production data: $productionData');
-
       // Begin transaction
       try {
-        // Update the job first - send as Map for JSONB
+        // Update the job
         final updatedJob = await _supabase.from('jobs').update({
           'status': 'labour_assigned',
-          'production': productionData,  // Send as Map for JSONB column
+          'production': productionData,
         }).eq('id', jobId)
         .select()
         .single();
-        
         print('Job updated successfully: $updatedJob');
-        
-        // Then update the worker's availability and assigned job
+        // Update the worker: increment number_of_jobs, update assigned_job array, set is_available if needed
         final updatedWorker = await _supabase.from('employee').update({
-          'is_available': false,
-          'assigned_job': jobId  // Store the job ID directly
+          'is_available': newIsAvailable,
+          'number_of_jobs': newNumberOfJobs,
+          'assigned_job': assignedJobs
         }).eq('id', workerId)
         .select()
         .single();
-        
         print('Worker updated successfully: $updatedWorker');
         print('Successfully assigned worker $workerId to job $jobId');
-
       } catch (transactionError) {
         print('Error during transaction: $transactionError');
-        // If either update fails, try to rollback worker availability
+        // Rollback: remove jobId from assigned_job, decrement number_of_jobs, set is_available back
         try {
-          // Rollback worker status and assignment
+          assignedJobs.remove(jobId);
+          final rollbackNumberOfJobs = numberOfJobs;
+          final rollbackIsAvailable = numberOfJobs < 4;
           await _supabase.from('employee').update({
-            'is_available': true,
-            'assigned_job': null  // Clear the job assignment
+            'is_available': rollbackIsAvailable,
+            'number_of_jobs': rollbackNumberOfJobs,
+            'assigned_job': assignedJobs
           }).eq('id', workerId);
         } catch (rollbackError) {
           print('Error during rollback: $rollbackError');

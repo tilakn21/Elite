@@ -9,6 +9,7 @@ class Worker {
   final bool isAvailable;
   final bool assigned;
   final String? assignedJob;
+  final int numberOfJobs;
   
   Worker({
     required this.id,
@@ -20,7 +21,9 @@ class Worker {
     required this.isAvailable,
     this.assigned = false,
     this.assignedJob,
+    this.numberOfJobs = 0,
   }) : image = image ?? 'assets/images/avatars/default_avatar.png';
+
   factory Worker.fromJson(Map<String, dynamic> json) {
     // First check if the worker has an assigned job
     String? assignedJob = json['assigned_job']?.toString();
@@ -37,6 +40,16 @@ class Worker {
     // A worker is assigned if they have an assigned job
     bool assigned = assignedJob != null && assignedJob.isNotEmpty;
 
+    // Parse the number of jobs, defaulting to 0 if not present or invalid
+    int numberOfJobs = 0;
+    if (json['number_of_jobs'] != null) {
+      try {
+        numberOfJobs = int.parse(json['number_of_jobs'].toString());
+      } catch (_) {
+        numberOfJobs = 0;
+      }
+    }
+
     // Use local asset for avatar instead of network image
     return Worker(
       id: json['id'].toString(),
@@ -45,9 +58,10 @@ class Worker {
       role: json['role']?.toString() ?? 'prod_labour',
       branchId: json['branch_id'] != null ? int.tryParse(json['branch_id'].toString()) : null,
       image: 'assets/images/avatars/default_avatar.png',
-      isAvailable: isAvailable && !assigned, // Available only if marked available AND not assigned
+      isAvailable: isAvailable, // Now only backend logic determines availability
       assigned: assigned,
       assignedJob: assignedJob,
+      numberOfJobs: numberOfJobs,
     );
   }
 
@@ -62,6 +76,7 @@ class Worker {
       'image': image,
       'is_available': isAvailable,
       'assigned_job': assignedJob,
+      'number_of_jobs': numberOfJobs,
     };
   }
 
@@ -75,6 +90,7 @@ class Worker {
     bool? isAvailable,
     bool? assigned,
     String? assignedJob,
+    int? numberOfJobs,
   }) {
     return Worker(
       id: id ?? this.id,
@@ -86,6 +102,7 @@ class Worker {
       isAvailable: isAvailable ?? this.isAvailable,
       assigned: assigned ?? this.assigned,
       assignedJob: assignedJob ?? this.assignedJob,
+      numberOfJobs: numberOfJobs ?? this.numberOfJobs,
     );
   }
 }

@@ -5,6 +5,7 @@ import '../models/salesperson_job_details.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/salesperson_service.dart';
 
 class SalespersonDetailsScreen extends StatefulWidget {
   final String jobId;
@@ -548,6 +549,14 @@ class _SalespersonDetailsScreenState extends State<SalespersonDetailsScreen> {
                               // 1. set salesperson = details (with status: completed)
                               // 2. set status = 'site_visited'
                               await updateSalespersonJsonbAndStatus(widget.jobId, details, amountPaid, modeOfPayment, now, salespersonId);
+                              // Set salesperson as available in jobs_employee table
+                              try {
+                                // Import and use SalespersonService
+                                final salespersonService = SalespersonService();
+                                await salespersonService.setSalespersonAvailable(salespersonId);
+                              } catch (e) {
+                                // Optionally handle error (e.g., log or show a message)
+                              }
                               await showDialog(
                                 context: context,
                                 builder: (context) => AlertDialog(
@@ -583,9 +592,8 @@ class _SalespersonDetailsScreenState extends State<SalespersonDetailsScreen> {
   }
 
   Future<String> getCurrentSalespersonId() async {
-    // TODO: Replace with actual logic to get logged-in salesperson id
-    // For now, return a placeholder or fetch from your auth/session provider
-    return 'salesperson_123';
+    // For demo/testing, use a real id that exists in your employee table
+    return 'sal2001';
   }
 
   Future<List<String>> uploadImagesToSupabaseStorage(List<XFile> images, String jobId) async {

@@ -235,24 +235,31 @@ class _AssignLabourScreenState extends State<AssignLabourScreen> {  final Scroll
                                         thumbVisibility: true,
                                         child: ListView.builder(
                                           controller: _scrollController,
-                                          itemCount: workerProvider.workers.length,                                          itemBuilder: (context, index) {
-                                            final worker = workerProvider.workers[index];                                            return _workerTile(
+                                          itemCount: workerProvider.workers.length,
+                                          itemBuilder: (context, index) {
+                                            final worker = workerProvider.workers[index];
+                                            // Use only numberOfJobs and isAvailable for status and selection
+                                            return _workerTile(
                                               worker,
-                                              worker.assignedJob != null ? 'Assigned to Job ${worker.assignedJob}' : (worker.isAvailable ? 'Available' : 'Unavailable'),
+                                              worker.numberOfJobs >= 4
+                                                ? 'Unavailable (Max jobs reached)'
+                                                : (worker.isAvailable ? 'Available' : 'Unavailable'),
                                               selectedWorkers.contains(worker),
-                                              onSelect: (!worker.assigned && worker.isAvailable) ? () {
-                                                setState(() {
-                                                  if (selectedWorkers.contains(worker)) {
-                                                    selectedWorkers.remove(worker);
-                                                  } else {
-                                                    selectedWorkers.add(worker);
+                                              onSelect: (worker.numberOfJobs < 4 && worker.isAvailable)
+                                                ? () {
+                                                    setState(() {
+                                                      if (selectedWorkers.contains(worker)) {
+                                                        selectedWorkers.remove(worker);
+                                                      } else {
+                                                        selectedWorkers.add(worker);
+                                                      }
+                                                    });
                                                   }
-                                                });
-                                              } : null,
+                                                : null,
                                             );
                                           },
-                                        ),
-                                      );
+                                        ), // End of ListView.builder
+                                      ); // End of Scrollbar
                                     },
                                   ),
                                 ),
@@ -343,8 +350,8 @@ class _AssignLabourScreenState extends State<AssignLabourScreen> {  final Scroll
   }  Widget _workerTile(Worker worker, String status, bool selected, {VoidCallback? onSelect}) {
     // Determine status color based on worker's actual status
     Color statusColor;
-    if (worker.assigned) {
-      statusColor = Colors.orange; // Assigned workers
+    if (worker.numberOfJobs >= 4) {
+      statusColor = Colors.red; // Unavailable (max jobs)
     } else if (worker.isAvailable) {
       statusColor = Colors.green; // Available workers
     } else {
@@ -353,8 +360,8 @@ class _AssignLabourScreenState extends State<AssignLabourScreen> {  final Scroll
 
     // Determine the actual status text
     String statusText;
-    if (worker.assignedJob != null) {
-      statusText = 'Assigned to Job ${worker.assignedJob}';
+    if (worker.numberOfJobs >= 4) {
+      statusText = 'Unavailable (Max jobs reached)';
     } else if (worker.isAvailable) {
       statusText = 'Available';
     } else {
@@ -362,7 +369,7 @@ class _AssignLabourScreenState extends State<AssignLabourScreen> {  final Scroll
     }
 
     return InkWell(
-      onTap: (worker.assigned || !worker.isAvailable) ? null : onSelect, // Disable tap if worker is assigned or unavailable
+      onTap: (worker.numberOfJobs >= 4 || !worker.isAvailable) ? null : onSelect, // Disable tap if max jobs or unavailable
       child: Container(
         width: double.infinity,
         margin: const EdgeInsets.symmetric(vertical: 6),
@@ -401,10 +408,14 @@ class _AssignLabourScreenState extends State<AssignLabourScreen> {  final Scroll
                       fontWeight: FontWeight.w500,
                     ),
                   ),
+                  Text(
+                    'Jobs assigned: ${worker.numberOfJobs}',
+                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
                 ],
               ),
             ),
-            if (!worker.assigned && worker.isAvailable && onSelect != null)
+            if (worker.numberOfJobs < 4 && worker.isAvailable && onSelect != null)
               Icon(
                 selected ? Icons.check_circle : Icons.radio_button_unchecked,
                 color: selected ? const Color(0xFF57B9C6) : Colors.grey,

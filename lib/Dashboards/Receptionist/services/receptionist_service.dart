@@ -216,11 +216,30 @@ class ReceptionistService {
           .select()
           .single();
       final jobId = insertedJob['id'];
-      // Update assigned_job for the assigned salesperson
+      // Update assigned_jobs for the assigned salesperson (append to array safely)
       if (assignedSalesperson != null && jobId != null) {
+        // Fetch current assigned_jobs array and number_of_jobs
+        final employee = await supabase
+            .from('employee')
+            .select('assigned_job, number_of_jobs')
+            .eq('id', assignedSalesperson)
+            .single();
+        List<dynamic> currentJobs = employee['assigned_job'] ?? [];
+        int numberOfJobs = (employee['number_of_jobs'] ?? 0) as int;
+        // Ensure no duplicates and append
+        if (!currentJobs.contains(jobId)) {
+          currentJobs.add(jobId);
+          numberOfJobs += 1;
+        }
+        // If number_of_jobs >= 4, set is_available to false
+        bool isAvailable = numberOfJobs < 4;
         await supabase
             .from('employee')
-            .update({'assigned_job': jobId})
+            .update({
+              'assigned_job': currentJobs,
+              'number_of_jobs': numberOfJobs,
+              'is_available': isAvailable
+            })
             .eq('id', assignedSalesperson);
       }
       if (onJobAdded != null) {
@@ -240,9 +259,22 @@ class ReceptionistService {
     final supabase = Supabase.instance.client;
     final response = await supabase
         .from('employee')
-        .select('id, full_name, is_available')
+        .select('id, full_name, is_available, number_of_jobs')
         .ilike('id', 'sal%');
-    return List<Map<String, dynamic>>.from(response)
+    List<Map<String, dynamic>> employees = List<Map<String, dynamic>>.from(response);
+    // Sort: available first (ascending number_of_jobs), then unavailable
+    employees.sort((a, b) {
+      final aAvailable = a['is_available'] == true ? 0 : 1;
+      final bAvailable = b['is_available'] == true ? 0 : 1;
+      if (aAvailable != bAvailable) {
+        return aAvailable - bAvailable;
+      }
+      // If both have same availability, sort by number_of_jobs ascending
+      final aJobs = (a['number_of_jobs'] ?? 0) as int;
+      final bJobs = (b['number_of_jobs'] ?? 0) as int;
+      return aJobs.compareTo(bJobs);
+    });
+    return employees
         .map<Salesperson>((e) => Salesperson(
               id: e['id']?.toString() ?? '',
               name: e['full_name'] ?? '',
@@ -259,8 +291,21 @@ class ReceptionistService {
     final supabase = Supabase.instance.client;
     final response = await supabase
         .from('jobs')
-        .select('id, status, created_at, receptionist');
-    return List<Map<String, dynamic>>.from(response).map<JobRequest>((e) {
+        .select('id, status, created_at, receptionist, assigned_salesperson');
+    final jobs = List<Map<String, dynamic>>.from(response);
+    // Update salesperson availability in a detached microtask (never blocks UI)
+    Future.microtask(() async {
+      for (final job in jobs) {
+        final status = job['status']?.toString();
+        final assignedSalesperson = job['assigned_salesperson'];
+        if (assignedSalesperson != null && status != null && status.toLowerCase() != 'salesperson assigned') {
+          try {
+            await setSalespersonAvailable(assignedSalesperson);
+          } catch (_) {}
+        }
+      }
+    });
+    return jobs.map<JobRequest>((e) {
       final receptionist = e['receptionist'] as Map<String, dynamic>?;
       // Determine assigned: true if receptionist['status'] == 'completed', else false
       final receptionistStatus = receptionist?['status']?.toString().toLowerCase();
@@ -302,6 +347,21 @@ class ReceptionistService {
       await supabase
           .from('employee')
           .update({'is_available': false})
+          .eq('id', salespersonId);
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to update salesperson availability: \\${e.message}');
+    } catch (e) {
+      throw Exception('Failed to update salesperson availability: $e');
+    }
+  }
+
+  // Set is_available to true for a salesperson in Supabase
+  Future<void> setSalespersonAvailable(String salespersonId) async {
+    final supabase = Supabase.instance.client;
+    try {
+      await supabase
+          .from('employee')
+          .update({'is_available': true})
           .eq('id', salespersonId);
     } on PostgrestException catch (e) {
       throw Exception('Failed to update salesperson availability: \\${e.message}');
