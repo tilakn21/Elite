@@ -1224,13 +1224,21 @@ class JobDetailsDialog extends StatelessWidget {
   String _formatLabel(String label) {
     return label.replaceAll('_', ' ').split(' ').map((word) => 
       word.isEmpty ? word : word[0].toUpperCase() + word.substring(1)).join(' ');
-  }
- bool _isStageCompleted(String stageName, dynamic stageData) {
+  } bool _isStageCompleted(String stageName, dynamic stageData) {
   if (stageData == null) return false;
 
   String? status;
-  if ((stageName == 'design' || stageName == 'designer' || stageName == 'printing')) {
+  if (stageName == 'printing') {
     status = _getMostRecentStatus(stageData)?.toLowerCase();
+    return status == 'completed' || status == 'print_completed' || status == 'print_complete';
+  } else if (stageName == 'production') {
+    if (stageData is Map<String, dynamic>) {
+      status = stageData['status']?.toString().toLowerCase();
+    }
+    return ['completed', 'approved', 'done'].contains(status);
+  } else if (stageName == 'design' || stageName == 'designer') {
+    status = _getMostRecentStatus(stageData)?.toLowerCase();
+    return ['completed', 'approved', 'done'].contains(status);
   } else if (stageData is Map<String, dynamic>) {
     status = stageData['status']?.toString().toLowerCase();
   }
@@ -1242,9 +1250,23 @@ String _getStageStatus(String stageName, dynamic stageData, {bool log = false}) 
     return 'Pending';
   }
   if (stageData == null) {
+    if (stageName == 'printing') return 'Pending';
     return 'Pending';
+  }  if (stageName == 'printing') {
+    String? status = _getMostRecentStatus(stageData);
+    if (status == null) return 'Pending';
+    final s = status.toLowerCase();
+    if (s == 'completed' || s == 'print_completed' || s == 'print_complete') return 'Complete';
+    return 'In Progress';
   }
-  if (stageName == 'design' || stageName == 'designer' || stageName == 'printing') {
+  if (stageName == 'production') {
+    String? status;
+    if (stageData is Map<String, dynamic>) {
+      status = stageData['status']?.toString();
+    }
+    return status?.isNotEmpty == true ? _formatStatus(status!) : 'Pending';
+  }
+  if (stageName == 'design' || stageName == 'designer') {
     String? status = _getMostRecentStatus(stageData);
     if (status?.isNotEmpty == true) return _formatStatus(status!);
     if (stageData is Map<String, dynamic> && (stageData.containsKey('images') || stageData.containsKey('comments') || stageData.containsKey('submission_date'))) {

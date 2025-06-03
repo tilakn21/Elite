@@ -88,197 +88,203 @@ class JobStatusTable extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 20),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade100),
-                ),
-                child: DataTable(
-                  columnSpacing: 24,
-                  headingRowHeight: 48,
-                  dataRowHeight: 56,
-                  headingRowColor: MaterialStateColor.resolveWith(
-                    (states) => Colors.grey.shade50,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  border: TableBorder.all(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  columns: const [
-                    DataColumn(
-                      label: Text(
-                        'Job No.',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                          color: Color(0xFF6B7280),
-                        ),
-                      ),
+            SizedBox(
+              height: 300, // Set your desired fixed height here
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.vertical,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade100),
                     ),
-                    DataColumn(
-                      label: Text(
-                        'Job & Client',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                          color: Color(0xFF6B7280),
-                        ),
+                    child: DataTable(
+                      columnSpacing: 24,
+                      headingRowHeight: 48,
+                      dataRowHeight: 56,
+                      headingRowColor: MaterialStateColor.resolveWith(
+                        (states) => Colors.grey.shade50,
                       ),
-                    ),
-                    DataColumn(
-                      label: Text(
-                        'Date',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                          color: Color(0xFF6B7280),
-                        ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ),
-                    DataColumn(
-                      label: Text(
-                        'Action',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                          color: Color(0xFF6B7280),
-                        ),
+                      border: TableBorder.all(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ),
-                    DataColumn(
-                      label: Text(
-                        'Status',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                          color: Color(0xFF6B7280),
-                        ),
-                      ),
-                    ),
-                  ],
-                  rows: jobs.map((job) {
-                    return DataRow(
-                      cells: [
-                        DataCell(
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1673FF).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              job.no,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
-                                color: Color(0xFF1673FF),
-                              ),
-                            ),
-                          ),
-                        ),
-                        DataCell(
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                job.title,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                  color: Color(0xFF101C2C),
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                job.client,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        DataCell(
-                          Text(
-                            job.date,
-                            style: const TextStyle(
+                      columns: const [
+                        DataColumn(
+                          label: Text(
+                            'Job No.',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
                               fontSize: 13,
-                              color: Color(0xFF374151),
+                              color: Color(0xFF6B7280),
                             ),
                           ),
                         ),
-                        DataCell(
-                          InkWell(
-                            onTap: () {/* TODO: Navigate to job details */},
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.shade50,
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: Colors.blue.shade200),
-                              ),
-                              child: Text(
-                                'View Job',
-                                style: TextStyle(
-                                  color: Colors.blue.shade700,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 12,
-                                ),
-                              ),
+                        DataColumn(
+                          label: Text(
+                            'Job & Client',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: Color(0xFF6B7280),
                             ),
                           ),
                         ),
-                        DataCell(
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: job.status == 'Approved' 
-                                  ? Colors.green.shade50 
-                                  : Colors.orange.shade50,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: job.status == 'Approved' 
-                                    ? Colors.green.shade200 
-                                    : Colors.orange.shade200,
-                              ),
+                        DataColumn(
+                          label: Text(
+                            'Date',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: Color(0xFF6B7280),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  job.status == 'Approved' 
-                                      ? Icons.check_circle_rounded 
-                                      : Icons.schedule_rounded,
-                                  size: 12,
-                                  color: job.status == 'Approved' 
-                                      ? Colors.green.shade600 
-                                      : Colors.orange.shade600,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  job.status,
-                                  style: TextStyle(
-                                    color: job.status == 'Approved' 
-                                        ? Colors.green.shade700 
-                                        : Colors.orange.shade700,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
+                          ),
+                        ),
+                        DataColumn(
+                          label: Text(
+                            'Action',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: Color(0xFF6B7280),
+                            ),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Text(
+                            'Status',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: Color(0xFF6B7280),
                             ),
                           ),
                         ),
                       ],
-                    );
-                  }).toList(),
+                      rows: jobs.map((job) {
+                        return DataRow(
+                          cells: [
+                            DataCell(
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1673FF).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  job.no,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
+                                    color: Color(0xFF1673FF),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    job.title,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                      color: Color(0xFF101C2C),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    job.client,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                job.date,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF374151),
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              InkWell(
+                                onTap: () {/* TODO: Navigate to job details */},
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade50,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: Colors.blue.shade200),
+                                  ),
+                                  child: Text(
+                                    'View Job',
+                                    style: TextStyle(
+                                      color: Colors.blue.shade700,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: job.status == 'Approved' 
+                                      ? Colors.green.shade50 
+                                      : Colors.orange.shade50,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: job.status == 'Approved' 
+                                        ? Colors.green.shade200 
+                                        : Colors.orange.shade200,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      job.status == 'Approved' 
+                                          ? Icons.check_circle_rounded 
+                                          : Icons.schedule_rounded,
+                                      size: 12,
+                                      color: job.status == 'Approved' 
+                                          ? Colors.green.shade600 
+                                          : Colors.orange.shade600,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      job.status,
+                                      style: TextStyle(
+                                        color: job.status == 'Approved' 
+                                            ? Colors.green.shade700 
+                                            : Colors.orange.shade700,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
                 ),
               ),
             ),

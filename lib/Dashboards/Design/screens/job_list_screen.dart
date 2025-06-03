@@ -49,13 +49,28 @@ class _JobListScreenState extends State<JobListScreen>
   Widget build(BuildContext context) {
     final jobProvider = Provider.of<JobProvider>(context);
     final filteredJobs = jobProvider.jobs.where((job) {
+      // Determine display status based on latest draft in design JSONB
+      String displayStatus = job.displayStatus;
+      final design = job.design;
+      if (design is List && design.isNotEmpty) {
+        for (var i = design.length - 1; i >= 0; i--) {
+          final draft = design[i];
+          final status = draft is Map<String, dynamic> ? draft['status']?.toString().toLowerCase() : null;
+          if (status == 'pending_approval' || status == 'pending for approval') {
+            displayStatus = 'Pending for Approval';
+            break;
+          } else if (status == 'completed') {
+            displayStatus = 'Design Completed';
+            break;
+          }
+        }
+      }
       final matchesSearch = job.clientName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           job.jobNo.toLowerCase().contains(_searchQuery.toLowerCase());
       if (_selectedFilter == 'All') return matchesSearch;
-      // Map filter to displayStatus
-      if (_selectedFilter == 'Queued' && job.displayStatus == 'Queued') return matchesSearch;
-      if (_selectedFilter == 'Pending for Approval' && job.displayStatus == 'Pending for Approval') return matchesSearch;
-      if (_selectedFilter == 'Design Completed' && job.displayStatus == 'Design Completed') return matchesSearch;
+      if (_selectedFilter == 'Queued' && displayStatus == 'Queued') return matchesSearch;
+      if (_selectedFilter == 'Pending for Approval' && displayStatus == 'Pending for Approval') return matchesSearch;
+      if (_selectedFilter == 'Design Completed' && displayStatus == 'Design Completed') return matchesSearch;
       return false;
     }).toList();
 
@@ -319,8 +334,8 @@ class _JobListScreenState extends State<JobListScreen>
               child: CircularProgressIndicator(),
             ),
           ),
-      ],
-    );
+      
+      ]);
 
     if (widget.showNavigation) {
       return Scaffold(
@@ -358,8 +373,25 @@ class _JobListScreenState extends State<JobListScreen>
   }
 
   Widget _buildApprovedJobCard(BuildContext context, Job job) {
-    final statusColor = job.displayStatusColor;
-    final statusText = job.displayStatus;
+    // Determine display status and color based on latest draft
+    String statusText = job.displayStatus;
+    Color statusColor = job.displayStatusColor;
+    final design = job.design;
+    if (design is List && design.isNotEmpty) {
+      for (var i = design.length - 1; i >= 0; i--) {
+        final draft = design[i];
+        final status = draft is Map<String, dynamic> ? draft['status']?.toString().toLowerCase() : null;
+        if (status == 'pending_approval' || status == 'pending for approval') {
+          statusText = 'Pending for Approval';
+          statusColor = AppTheme.pendingColor;
+          break;
+        } else if (status == 'completed') {
+          statusText = 'Design Completed';
+          statusColor = AppTheme.approvedColor;
+          break;
+        }
+      }
+    }
     return InkWell(
       onTap: () {
         Navigator.push(
@@ -515,8 +547,25 @@ class _JobListScreenState extends State<JobListScreen>
 
   Widget _buildJobListItem(BuildContext context, Job job) {
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
-    final statusColor = job.displayStatusColor;
-    final statusText = job.displayStatus;
+    // Determine display status and color based on latest draft
+    String statusText = job.displayStatus;
+    Color statusColor = job.displayStatusColor;
+    final design = job.design;
+    if (design is List && design.isNotEmpty) {
+      for (var i = design.length - 1; i >= 0; i--) {
+        final draft = design[i];
+        final status = draft is Map<String, dynamic> ? draft['status']?.toString().toLowerCase() : null;
+        if (status == 'pending_approval' || status == 'pending for approval') {
+          statusText = 'Pending for Approval';
+          statusColor = AppTheme.pendingColor;
+          break;
+        } else if (status == 'completed') {
+          statusText = 'Design Completed';
+          statusColor = AppTheme.approvedColor;
+          break;
+        }
+      }
+    }
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,

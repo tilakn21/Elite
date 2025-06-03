@@ -243,8 +243,16 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       // Update the status column in jobs table to 'design'
       final supabase = Supabase.instance.client;
       await supabase.from('jobs').update({'status': 'design'}).eq('id', _job!.id);
+      // Re-fetch the job to update local state with new design JSONB
+      final jobProvider = Provider.of<JobProvider>(context, listen: false);
+      await jobProvider.fetchJobs();
+      final Job? updatedJob = jobProvider.getJobById(_job!.id);
       setState(() {
-        _job = _job!.copyWith(status: JobStatus.inProgress);
+        if (updatedJob != null) {
+          _job = updatedJob;
+        } else {
+          _job = _job!.copyWith(status: JobStatus.inProgress);
+        }
       });
       _uploadDraftKey.currentState?.clearFiles();
       _commentsController.clear();
@@ -857,6 +865,22 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
   }
 
   Widget _buildJobHeader() {
+    // Determine display status: if latest draft is pending approval, override
+    String displayStatus = _job!.displayStatus;
+    final design = _job!.design;
+    if (design is List && design.isNotEmpty) {
+      for (var i = design.length - 1; i >= 0; i--) {
+        final draft = design[i];
+        final status = draft is Map<String, dynamic> ? draft['status']?.toString().toLowerCase() : null;
+        if (status == 'pending_approval' || status == 'pending for approval') {
+          displayStatus = 'Pending for Approval';
+          break;
+        } else if (status == 'completed') {
+          displayStatus = 'Design Completed';
+          break;
+        }
+      }
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -875,7 +899,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
-                _job!.displayStatus,
+                displayStatus,
                 style: TextStyle(
                   color: _getStatusColor(_job!.status),
                   fontWeight: FontWeight.bold,
@@ -1182,32 +1206,31 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       ),
     );
   }  Widget _buildSiteVisitImages() {
-    // If job is in 'pending_approval' or 'completed' status, show the latest draft card above images
-    if (_job != null && (_job!.displayStatus == 'Pending for Approval' || _job!.displayStatus == 'Design Completed')) {
+    // If job is in queued or has a draft pending approval/completed, show appropriate UI
+    if (_job != null) {
       final design = _job!.design;
       Map<String, dynamic>? latestDraft;
+      String? latestStatus;
       if (design is List && design.isNotEmpty) {
-        // Find the most recent draft with status 'pending_approval', 'pending for approval', or 'completed'
         for (var i = design.length - 1; i >= 0; i--) {
           final draft = design[i];
           final status = draft is Map<String, dynamic> ? draft['status']?.toString().toLowerCase() : null;
-          if (_job!.displayStatus == 'Pending for Approval' && (status == 'pending_approval' || status == 'pending for approval')) {
+          if (status == 'pending_approval' || status == 'pending for approval' || status == 'completed') {
             latestDraft = Map<String, dynamic>.from(draft);
-            break;
-          } else if (_job!.displayStatus == 'Design Completed' && status == 'completed') {
-            latestDraft = Map<String, dynamic>.from(draft);
+            latestStatus = status;
             break;
           }
         }
       }
-      if (latestDraft != null) {
+      // If latest draft is pending approval, show draft with approve/upload buttons
+      if (latestDraft != null && (latestStatus == 'pending_approval' || latestStatus == 'pending for approval')) {
         final List images = latestDraft['images'] ?? [];
         final String comment = latestDraft['comments'] ?? '';
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Card(
-              color: _job!.displayStatus == 'Pending for Approval' ? Colors.yellow[50] : Colors.green[50],
+              color: Colors.yellow[50],
               margin: const EdgeInsets.only(bottom: 20),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               elevation: 2,
@@ -1216,10 +1239,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      _job!.displayStatus == 'Pending for Approval' ? 'Design Draft Pending Approval' : 'Design Completed',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                    ),
+                    Text('Design Draft Pending Approval', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 12),
                     if (images.isNotEmpty)
                       Wrap(
@@ -1249,45 +1269,98 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                       Text('Comment:', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold)),
                       Text(comment, style: Theme.of(context).textTheme.bodyMedium),
                     ],
-                    if (_job!.displayStatus == 'Pending for Approval') ...[
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: _approveJob,
-                              icon: const Icon(Icons.check_circle_outline),
-                              label: const Text('Approve Design'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.successColor,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 2,
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _approveJob,
+                            icon: const Icon(Icons.check_circle_outline),
+                            label: const Text('Approve Design'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.successColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 2,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _scrollToUploadDraftSection,
+                            icon: const Icon(Icons.upload_file),
+                            label: const Text('Upload Another Draft'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primaryColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 2,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            _buildSiteVisitImagesCard(),
+          ],
+        );
+      }
+      // If latest draft is completed, show completed UI
+      if (latestDraft != null && latestStatus == 'completed') {
+        final List images = latestDraft['images'] ?? [];
+        final String comment = latestDraft['comments'] ?? '';
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Card(
+              color: Colors.green[50],
+              margin: const EdgeInsets.only(bottom: 20),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Design Completed', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    if (images.isNotEmpty)
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: images.map<Widget>((imgUrl) => GestureDetector(
+                          onTap: () => _showImageDialog(imgUrl),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              imgUrl,
+                              width: 100,
+                              height: 100,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                width: 100,
+                                height: 100,
+                                color: Colors.grey[200],
+                                child: const Icon(Icons.broken_image, color: Colors.grey),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: _scrollToUploadDraftSection,
-                              icon: const Icon(Icons.upload_file),
-                              label: const Text('Upload Another Draft'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primaryColor,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 2,
-                              ),
-                            ),
-                          ),
-                        ],
+                        )).toList(),
                       ),
+                    if (comment.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Text('Comment:', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold)),
+                      Text(comment, style: Theme.of(context).textTheme.bodyMedium),
                     ],
                   ],
                 ),
@@ -1298,7 +1371,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         );
       }
     }
-    // Default: just show site visit images
+    // If job is queued or no draft, show upload draft UI only
     return _buildSiteVisitImagesCard();
   }
 

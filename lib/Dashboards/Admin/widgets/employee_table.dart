@@ -29,7 +29,7 @@ class EmployeeTable extends StatelessWidget {
                   Expanded(flex: 2, child: Text('Role', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF232B3E)))),
                   Expanded(flex: 2, child: Text('Date added', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF232B3E)))),
                   Expanded(flex: 1, child: Text('STATUS', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF232B3E)))),
-                  SizedBox(width: 40), // For action buttons
+                  SizedBox(width: 100), // For action buttons
                 ],
               ),
             ),

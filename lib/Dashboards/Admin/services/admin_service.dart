@@ -245,19 +245,53 @@ class AdminService {
       ];
     }
   }
-
   // Fetch all employees from Supabase
   Future<List<Employee>> getAllEmployees() async {
     try {
+      print('AdminService: Starting to fetch employees from Supabase');
       final response = await _supabase
           .from('employee')
           .select('id, full_name, phone, role, branch_id, created_at, is_available, assigned_job');
+      
+      print('AdminService: Received ${response.length} employees from Supabase');
+      
+      // Debug each employee's role
+      for (int i = 0; i < response.length; i++) {
+        final e = response[i];
+        print('AdminService: Employee ${e['id']} - role type: ${e['role']?.runtimeType}, value: ${e['role']}');
+      }
+      
       return response
-          .map<Employee>((e) => Employee.fromJson(e))
+          .map<Employee>((e) {
+            var role = e['role'];
+            if (role is List) {
+              print('AdminService: Converting List role to String for employee ${e['id']}: $role');
+              // If it's a list, take the first element
+              role = role.isNotEmpty ? role.first.toString() : "";
+            } else if (role != null && role is! String) {
+              print('AdminService: Converting ${role.runtimeType} role to String for employee ${e['id']}: $role');
+              // Convert any other type to string
+              role = role.toString();
+            } else if (role == null) {
+              print('AdminService: Role is null for employee ${e['id']}, using empty string');
+              role = "";
+            }
+            
+            try {
+              return Employee.fromJson({
+                ...e,
+                'role': role,
+              });
+            } catch (error) {
+              print('AdminService: Error creating Employee object for ${e['id']}: $error');
+              rethrow;
+            }
+          })
           .toList();
     } catch (e) {
       if (kDebugMode) {
         print('Error fetching employees: $e');
+        print('Error details: ${e.toString()}');
       }
       throw Exception('Failed to load employees: $e');
     }
@@ -340,12 +374,16 @@ class AdminService {
           .not('role', 'is', null);
       
       final roles = response
-          .map<String>((e) => e['role'] as String)
+          .map((e) => e['role'] as String?)
+          .whereType<String>()
           .toSet()
           .toList();
       
       // Add default roles if not present
-      const defaultRoles = ['Manager', 'Receptionist', 'Salesperson', 'design', 'Accountant', 'Production', 'Printing'];
+      const defaultRoles = [
+        'Manager', 'Receptionist', 'Salesperson', 'design', 'Accountant', 'Production', 'Printing',
+        'receptionist', 'salesperson', 'designer', 'accountant', 'production_manager', 'printing_manager', 'admin', 'prod_labour', 'print_labour', 'driver'
+      ];
       for (final role in defaultRoles) {
         if (!roles.contains(role)) {
           roles.add(role);
@@ -359,7 +397,10 @@ class AdminService {
         print('Error fetching employee roles: $e');
       }
       // Return default roles on error
-      return ['Manager', 'Receptionist', 'Salesperson', 'design', 'Accountant', 'Production', 'Printing'];
+      return [
+        'Manager', 'Receptionist', 'Salesperson', 'design', 'Accountant', 'Production', 'Printing',
+        'receptionist', 'salesperson', 'designer', 'accountant', 'production_manager', 'printing_manager', 'admin', 'prod_labour', 'print_labour', 'driver'
+      ];
     }
   }
 }
