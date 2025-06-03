@@ -663,6 +663,81 @@ class JobListTable extends StatelessWidget {
   }
 }
 
+// Utility class for consistent job stage logic
+class JobStageUtils {
+  static bool isStageCompleted(String stageName, dynamic stageData) {
+    if (stageData == null) return false;
+    String? status;
+    if (stageName == 'printing') {
+      status = getMostRecentStatus(stageData)?.toLowerCase();
+      return status == 'completed' || status == 'print_completed' || status == 'print_complete';
+    } else if (stageName == 'production') {
+      if (stageData is Map<String, dynamic>) {
+        // Prefer current_status, fallback to status
+        status = (stageData['current_status'] ?? stageData['status'])?.toString().toLowerCase();
+      }
+      return ['completed', 'approved', 'done', 'production_complete'].contains(status);
+    } else if (stageName == 'design' || stageName == 'designer') {
+      status = getMostRecentStatus(stageData)?.toLowerCase();
+      return ['completed', 'approved', 'done'].contains(status);
+    } else if (stageData is Map<String, dynamic>) {
+      status = stageData['status']?.toString().toLowerCase();
+    }
+    return ['completed', 'approved', 'done'].contains(status);
+  }
+
+  static String? getMostRecentStatus(dynamic stageData) {
+    if (stageData == null) return null;
+    if (stageData is List) {
+      if (stageData.isEmpty) return null;
+      Map<String, dynamic>? mostRecent;
+      DateTime? mostRecentDateTime;
+      for (final item in stageData) {
+        if (item is Map<String, dynamic> && item['submission_date'] != null && item['submission_time'] != null) {
+          try {
+            final dt = DateTime.parse(item['submission_date'] + ' ' + item['submission_time']);
+            if (mostRecentDateTime == null || dt.isAfter(mostRecentDateTime)) {
+              mostRecentDateTime = dt;
+              mostRecent = item;
+            }
+          } catch (_) {}
+        }
+      }
+      mostRecent ??= stageData.isNotEmpty ? stageData.last as Map<String, dynamic>? : null;
+      return mostRecent?['status']?.toString();
+    } else if (stageData is Map<String, dynamic>) {
+      final numericKeys = stageData.keys.where((k) => int.tryParse(k) != null).toList();
+      if (numericKeys.isNotEmpty) {
+        numericKeys.sort((a, b) => int.parse(a).compareTo(int.parse(b)));
+        Map<String, dynamic>? mostRecent;
+        DateTime? mostRecentDateTime;
+        for (final key in numericKeys) {
+          final submission = stageData[key] as Map<String, dynamic>?;
+          if (submission != null) {
+            if (submission['submission_date'] != null && submission['submission_time'] != null) {
+              try {
+                final dt = DateTime.parse(submission['submission_date'] + ' ' + submission['submission_time']);
+                if (mostRecentDateTime == null || dt.isAfter(mostRecentDateTime)) {
+                  mostRecentDateTime = dt;
+                  mostRecent = submission;
+                }
+              } catch (_) {
+                mostRecent = submission;
+              }
+            } else {
+              mostRecent = submission;
+            }
+          }
+        }
+        return mostRecent?['status']?.toString();
+      }
+      return stageData['status']?.toString();
+    }
+    return null;
+  }
+}
+
+// Update JobProgressIndicator to use JobStageUtils
 class JobProgressIndicator extends StatelessWidget {
   final AdminJob job;
 
@@ -670,16 +745,15 @@ class JobProgressIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Calculate progress based on truly completed stages
     int completedStages = 0;
     int totalStages = 6; // receptionist, salesperson, design, accountant, production, printing
 
-    if (_isStageCompleted('receptionist', job.receptionist)) completedStages++;
-    if (_isStageCompleted('salesperson', job.salesperson)) completedStages++;
-    if (_isStageCompleted('design', job.design)) completedStages++;
-    if (_isStageCompleted('accountant', job.accountant)) completedStages++;
-    if (_isStageCompleted('production', job.production)) completedStages++;
-    if (_isStageCompleted('printing', job.printing)) completedStages++;
+    if (JobStageUtils.isStageCompleted('receptionist', job.receptionist)) completedStages++;
+    if (JobStageUtils.isStageCompleted('salesperson', job.salesperson)) completedStages++;
+    if (JobStageUtils.isStageCompleted('design', job.design)) completedStages++;
+    if (JobStageUtils.isStageCompleted('accountant', job.accountant)) completedStages++;
+    if (JobStageUtils.isStageCompleted('production', job.production)) completedStages++;
+    if (JobStageUtils.isStageCompleted('printing', job.printing)) completedStages++;
 
     double progress = completedStages / totalStages;
 
@@ -703,22 +777,6 @@ class JobProgressIndicator extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  // Helper method to check if a stage is truly completed
-  bool _isStageCompleted(String stageName, Map<String, dynamic>? stageData) {
-    if (stageData == null) return false;
-    
-    // For design and printing stages, check if it's an array and look at status of first submission
-    if ((stageName == 'design' || stageName == 'printing') && stageData.containsKey('0')) {
-      final firstSubmission = stageData['0'] as Map<String, dynamic>?;
-      final s = firstSubmission?['status']?.toString().toLowerCase();
-      return s == 'approved' || s == 'completed' || s == 'done';
-    }
-    
-    // For other stages, check common completion indicators
-    final status = stageData['status']?.toString().toLowerCase();
-    return status == 'completed' || status == 'approved' || status == 'done';
   }
 }
 
@@ -919,12 +977,12 @@ class JobDetailsDialog extends StatelessWidget {
     int completedStages = 0;
     int totalStages = 6;
 
-    if (_isStageCompleted('receptionist', job.receptionist)) completedStages++;
-    if (_isStageCompleted('salesperson', job.salesperson)) completedStages++;
-    if (_isStageCompleted('design', job.design)) completedStages++;
-    if (_isStageCompleted('accountant', job.accountant)) completedStages++;
-    if (_isStageCompleted('production', job.production)) completedStages++;
-    if (_isStageCompleted('printing', job.printing)) completedStages++;
+    if (JobStageUtils.isStageCompleted('receptionist', job.receptionist)) completedStages++;
+    if (JobStageUtils.isStageCompleted('salesperson', job.salesperson)) completedStages++;
+    if (JobStageUtils.isStageCompleted('design', job.design)) completedStages++;
+    if (JobStageUtils.isStageCompleted('accountant', job.accountant)) completedStages++;
+    if (JobStageUtils.isStageCompleted('production', job.production)) completedStages++;
+    if (JobStageUtils.isStageCompleted('printing', job.printing)) completedStages++;
 
     double progress = completedStages / totalStages;
 
@@ -1174,6 +1232,32 @@ class JobDetailsDialog extends StatelessWidget {
         );
       }
     }
+    // Handle production stage: show current_status if present, else status, and display all production JSONB fields
+    if (stageName == 'production') {
+      String? status = (stageData['current_status'] ?? stageData['status'])?.toString();
+      List<Widget> details = [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: Text(
+            'Status: ' + (status?.isNotEmpty == true ? _formatStatus(status!) : 'Pending'),
+            style: TextStyle(
+              color: Colors.indigo[700],
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ];
+      // Show all key-value pairs except status/current_status
+      stageData.forEach((key, value) {
+        if (key == 'status' || key == 'current_status') return;
+        details.add(_buildDetailRow(_formatLabel(key), value?.toString() ?? 'N/A'));
+      });
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: details,
+      );
+    }
     // Handle other stage structures
     return Container(
       padding: const EdgeInsets.all(12),
@@ -1225,110 +1309,49 @@ class JobDetailsDialog extends StatelessWidget {
     return label.replaceAll('_', ' ').split(' ').map((word) => 
       word.isEmpty ? word : word[0].toUpperCase() + word.substring(1)).join(' ');
   } bool _isStageCompleted(String stageName, dynamic stageData) {
-  if (stageData == null) return false;
+    return JobStageUtils.isStageCompleted(stageName, stageData);
+  }
 
-  String? status;
-  if (stageName == 'printing') {
-    status = _getMostRecentStatus(stageData)?.toLowerCase();
-    return status == 'completed' || status == 'print_completed' || status == 'print_complete';
-  } else if (stageName == 'production') {
-    if (stageData is Map<String, dynamic>) {
-      status = stageData['status']?.toString().toLowerCase();
+  String _getStageStatus(String stageName, dynamic stageData, {bool log = false}) {
+    if (_isStageLocked(stageName, job)) {
+      return 'Pending';
     }
-    return ['completed', 'approved', 'done'].contains(status);
-  } else if (stageName == 'design' || stageName == 'designer') {
-    status = _getMostRecentStatus(stageData)?.toLowerCase();
-    return ['completed', 'approved', 'done'].contains(status);
-  } else if (stageData is Map<String, dynamic>) {
-    status = stageData['status']?.toString().toLowerCase();
-  }
-  return ['completed', 'approved', 'done'].contains(status);
-}
-
-String _getStageStatus(String stageName, dynamic stageData, {bool log = false}) {
-  if (_isStageLocked(stageName, job)) {
-    return 'Pending';
-  }
-  if (stageData == null) {
-    if (stageName == 'printing') return 'Pending';
-    return 'Pending';
-  }  if (stageName == 'printing') {
-    String? status = _getMostRecentStatus(stageData);
-    if (status == null) return 'Pending';
-    final s = status.toLowerCase();
-    if (s == 'completed' || s == 'print_completed' || s == 'print_complete') return 'Complete';
-    return 'In Progress';
-  }
-  if (stageName == 'production') {
+    if (stageData == null) {
+      if (stageName == 'printing') return 'Pending';
+      return 'Pending';
+    }
+    if (stageName == 'printing') {
+      String? status = _getMostRecentStatus(stageData);
+      if (status == null) return 'Pending';
+      final s = status.toLowerCase();
+      if (s == 'completed' || s == 'print_completed' || s == 'print_complete') return 'Complete';
+      return 'In Progress';
+    }
+    if (stageName == 'production') {
+      String? status;
+      if (stageData is Map<String, dynamic>) {
+        // Prefer current_status, fallback to status
+        status = (stageData['current_status'] ?? stageData['status'])?.toString();
+      }
+      return status?.isNotEmpty == true ? _formatStatus(status!) : 'Pending';
+    }
+    if (stageName == 'design' || stageName == 'designer') {
+      String? status = _getMostRecentStatus(stageData);
+      if (status?.isNotEmpty == true) return _formatStatus(status!);
+      if (stageData is Map<String, dynamic> && (stageData.containsKey('images') || stageData.containsKey('comments') || stageData.containsKey('submission_date'))) {
+        return 'Complete';
+      }
+      return 'Pending';
+    }
     String? status;
     if (stageData is Map<String, dynamic>) {
       status = stageData['status']?.toString();
     }
     return status?.isNotEmpty == true ? _formatStatus(status!) : 'Pending';
   }
-  if (stageName == 'design' || stageName == 'designer') {
-    String? status = _getMostRecentStatus(stageData);
-    if (status?.isNotEmpty == true) return _formatStatus(status!);
-    if (stageData is Map<String, dynamic> && (stageData.containsKey('images') || stageData.containsKey('comments') || stageData.containsKey('submission_date'))) {
-      return 'Complete';
-    }
-    return 'Pending';
-  }
-  String? status;
-  if (stageData is Map<String, dynamic>) {
-    status = stageData['status']?.toString();
-  }
-  return status?.isNotEmpty == true ? _formatStatus(status!) : 'Pending';
-}
 
-String? _getMostRecentStatus(dynamic stageData) {
-    if (stageData == null) return null;
-    if (stageData is List) {
-      if (stageData.isEmpty) return null;
-      Map<String, dynamic>? mostRecent;
-      DateTime? mostRecentDateTime;
-      for (final item in stageData) {
-        if (item is Map<String, dynamic> && item['submission_date'] != null && item['submission_time'] != null) {
-          try {
-            final dt = DateTime.parse(item['submission_date'] + ' ' + item['submission_time']);
-            if (mostRecentDateTime == null || dt.isAfter(mostRecentDateTime)) {
-              mostRecentDateTime = dt;
-              mostRecent = item;
-            }
-          } catch (_) {}
-        }
-      }
-      mostRecent ??= stageData.isNotEmpty ? stageData.last as Map<String, dynamic>? : null;
-      return mostRecent?['status']?.toString();
-    } else if (stageData is Map<String, dynamic>) {
-      final numericKeys = stageData.keys.where((k) => int.tryParse(k) != null).toList();
-      if (numericKeys.isNotEmpty) {
-        numericKeys.sort((a, b) => int.parse(a).compareTo(int.parse(b)));
-        Map<String, dynamic>? mostRecent;
-        DateTime? mostRecentDateTime;
-        for (final key in numericKeys) {
-          final submission = stageData[key] as Map<String, dynamic>?;
-          if (submission != null) {
-            if (submission['submission_date'] != null && submission['submission_time'] != null) {
-              try {
-                final dt = DateTime.parse(submission['submission_date'] + ' ' + submission['submission_time']);
-                if (mostRecentDateTime == null || dt.isAfter(mostRecentDateTime)) {
-                  mostRecentDateTime = dt;
-                  mostRecent = submission;
-                }
-              } catch (_) {
-                mostRecent = submission;
-              }
-            } else {
-              mostRecent = submission;
-            }
-          }
-        }
-        return mostRecent?['status']?.toString();
-      }
-      return stageData['status']?.toString();
-    }
-    return null;
+  String? _getMostRecentStatus(dynamic stageData) {
+    return JobStageUtils.getMostRecentStatus(stageData);
   }
 
   // Format status for display

@@ -59,7 +59,23 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
       ]);
 
       setState(() {
-        _roles = results[0] as List<String>;
+        // Only allow specific roles, case-insensitive, and remove duplicates
+        final allowedRoles = [
+          'receptionist',
+          'salesperson',
+          'designer',
+          'accountant',
+          'admin',
+          'prod_labour',
+          'print_labour',
+          'driver',
+        ];
+        final seen = <String>{};
+        _roles = (results[0] as List<String>)
+            .where((role) => allowedRoles.contains(role.toLowerCase()))
+            .map((role) => role.toLowerCase())
+            .where((role) => seen.add(role))
+            .toList();
         _branches = results[1] as List<Map<String, dynamic>>;
         _isLoading = false;
       });
@@ -242,7 +258,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                               ),
                               items: _roles.map((role) => DropdownMenuItem(
                                 value: role,
-                                child: Text(role),
+                                child: Text(role[0].toUpperCase() + role.substring(1)),
                               )).toList(),
                               onChanged: (value) {
                                 setState(() {
