@@ -187,18 +187,26 @@ class _SidebarButton extends StatelessWidget {
               : null,
           child: Row(
             children: [
-              Icon(
-                icon,
-                color: selected ? const Color(0xFF5A6CEA) : Colors.white,
-                size: isMobile ? 22 : 24,
+              Flexible(
+                flex: 0,
+                child: Icon(
+                  icon,
+                  color: selected ? const Color(0xFF5A6CEA) : Colors.white,
+                  size: isMobile ? 22 : 24,
+                ),
               ),
               const SizedBox(width: 10),
-              Text(
-                label,
-                style: TextStyle(
-                  color: selected ? const Color(0xFF5A6CEA) : Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: isMobile ? 15 : 16,
+              Flexible(
+                flex: 1,
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: selected ? const Color(0xFF5A6CEA) : Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: isMobile ? 15 : 16,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
               ),
             ],

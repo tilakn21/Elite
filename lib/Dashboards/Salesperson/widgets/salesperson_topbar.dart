@@ -24,16 +24,19 @@ class SalespersonTopBar extends StatelessWidget {
               tooltip: 'Open menu',
             ),
           if (!showMenu) const SizedBox(width: 32),
-          Text(
-            'Salesperson',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: isDashboard ? Color(0xFF1B2330) : Colors.white,
-              letterSpacing: 1.0,
+          Expanded(
+            child: Text(
+              'Salesperson',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: isDashboard ? Color(0xFF1B2330) : Colors.white,
+                letterSpacing: 1.0,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ),
-          const Spacer(),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white, size: 26),
             tooltip: 'Log Out',

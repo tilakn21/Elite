@@ -16,7 +16,7 @@ class ReceptionistService {
       status: JobRequestStatus.pending,
       dateAdded: DateTime.now().subtract(const Duration(days: 1)),
       subtitle: 'New kitchen design inquiry',
-      avatar: 'assets/images/avatars/avatar1.png', // Placeholder path
+      avatar: 'assets/images/avatars/default_avatar.png', // Placeholder path
       time: '10:30 AM',
       assigned: false,
     ),
@@ -28,7 +28,7 @@ class ReceptionistService {
       status: JobRequestStatus.approved,
       dateAdded: DateTime.now().subtract(const Duration(hours: 5)),
       subtitle: 'Approved for site visit',
-      avatar: 'assets/images/avatars/avatar2.png', // Placeholder path
+      avatar: 'assets/images/avatars/default_avatar.png', // Placeholder path
       time: '02:15 PM',
       assigned: true,
     ),
@@ -40,7 +40,7 @@ class ReceptionistService {
       status: JobRequestStatus.declined,
       dateAdded: DateTime.now().subtract(const Duration(days: 2)),
       subtitle: 'Not interested at this time',
-      avatar: 'assets/images/avatars/avatar3.png', // Placeholder path
+      avatar: 'assets/images/avatars/default_avatar.png', // Placeholder path
       time: '09:00 AM',
       assigned: false,
     ),

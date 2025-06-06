@@ -67,8 +67,7 @@ class DesignSidebar extends StatelessWidget {
               }
               onItemTapped(2);
             },
-          ),
-          _SidebarButton(
+          ),          _SidebarButton(
             icon: Icons.chat,
             label: 'Customer\nChats',
             selected: selectedIndex == 3,
@@ -77,6 +76,17 @@ class DesignSidebar extends StatelessWidget {
                 Navigator.of(context).pushReplacementNamed('/design/chats');
               }
               onItemTapped(3);
+            },
+          ),
+          _SidebarButton(
+            icon: Icons.calendar_today,
+            label: 'Calendar',
+            selected: selectedIndex == 4,
+            onTap: () {
+              if (ModalRoute.of(context)?.settings.name != '/design/calendar') {
+                Navigator.of(context).pushReplacementNamed('/design/calendar');
+              }
+              onItemTapped(4);
             },
           ),
           const Spacer(),

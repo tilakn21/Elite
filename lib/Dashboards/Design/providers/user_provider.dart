@@ -61,21 +61,21 @@ class UserProvider with ChangeNotifier {
         name: 'John Doe',
         email: 'john@elitesigns.com',
         role: 'Admin',
-        avatar: 'assets/images/avatar1.png',
+        avatar: 'assets/images/avatars/default_avatar.png',
       ),
       User(
         id: '2',
         name: 'Jane Smith',
         email: 'jane@elitesigns.com',
         role: 'Salesperson',
-        avatar: 'assets/images/avatar2.png',
+        avatar: 'assets/images/avatars/default_avatar.png',
       ),
       User(
         id: '3',
         name: 'Mike Johnson',
         email: 'mike@elitesigns.com',
         role: 'design',
-        avatar: 'assets/images/avatar3.png',
+        avatar: 'assets/images/avatars/default_avatar.png',
       ),
     ];
   }

@@ -61,6 +61,15 @@ class Sidebar extends StatelessWidget {
             if (isDrawer && onClose != null) onClose!();
           },
         ),
+        SidebarButton(
+          icon: Icons.calendar_today,
+          label: 'Calendar',
+          selected: selectedIndex == 4,
+          onTap: () {
+            Navigator.of(context).pushReplacementNamed('/receptionist/calendar');
+            if (isDrawer && onClose != null) onClose!();
+          },
+        ),
         const Spacer(),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),

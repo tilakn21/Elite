@@ -160,15 +160,15 @@ class DesignService {
   Future<List<app.User>> getUsers() async {
     await Future.delayed(const Duration(milliseconds: 500));
     return [
-      app.User(id: '1', name: 'John Doe', email: 'john@elitesigns.com', role: 'Admin', avatar: 'assets/images/avatar1.png'),
-      app.User(id: '2', name: 'Jane Smith', email: 'jane@elitesigns.com', role: 'Salesperson', avatar: 'assets/images/avatar2.png'),
-      app.User(id: '3', name: 'Mike Johnson', email: 'mike@elitesigns.com', role: 'design', avatar: 'assets/images/avatar3.png'),
+      app.User(id: '1', name: 'John Doe', email: 'john@elitesigns.com', role: 'Admin', avatar: 'assets/images/avatars/default_avatar.png'),
+      app.User(id: '2', name: 'Jane Smith', email: 'jane@elitesigns.com', role: 'Salesperson', avatar: 'assets/images/avatars/default_avatar.png'),
+      app.User(id: '3', name: 'Mike Johnson', email: 'mike@elitesigns.com', role: 'design', avatar: 'assets/images/avatars/default_avatar.png'),
     ];
   }
 
   Future<app.User?> getCurrentUser() async {
     await Future.delayed(const Duration(milliseconds: 300));
     // For mock, return the first user
-    return app.User(id: '1', name: 'John Doe', email: 'john@elitesigns.com', role: 'Admin', avatar: 'assets/images/avatar1.png');
+    return app.User(id: '1', name: 'John Doe', email: 'john@elitesigns.com', role: 'Admin', avatar: 'assets/images/avatars/default_avatar.png');
   }
 }

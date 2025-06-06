@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'Dashboards/Admin/screens/employee_management_screen.dart';
 import 'Dashboards/Admin/screens/admin_dashboard_screen.dart';
+import 'Dashboards/Admin/screens/admin_calendar_screen.dart';
 import 'package:provider/provider.dart';
 
 // Providers
@@ -32,6 +33,7 @@ import 'Dashboards/Accounts/providers/employee_provider.dart'; // Added for Acco
 import 'Dashboards/Design/screens/dashboard_screen.dart';
 import 'Dashboards/Design/screens/job_list_screen.dart';
 import 'Dashboards/Design/screens/active_chats_screen.dart';
+import 'Dashboards/Design/screens/design_calendar_screen.dart';
 
 // Receptionist Dashboard
 import 'Dashboards/Receptionist/screens/dashboard_screen.dart';
@@ -39,6 +41,7 @@ import 'Dashboards/Receptionist/screens/new_job_request_screen.dart';
 import 'Dashboards/Receptionist/screens/assign_salesperson_screen.dart';
 import 'Dashboards/Receptionist/screens/view_all_jobs_screen.dart';
 import 'Dashboards/Receptionist/screens/reimbursement_request_screen.dart';
+import 'Dashboards/Receptionist/screens/receptionist_calendar_screen.dart';
 //import 'Dashboards/Receptionist/screens/view_reimbursements_screen.dart';
 
 // Design Dashboard
@@ -53,6 +56,7 @@ import 'Dashboards/Production/screens/production_dashboard.dart';
 import 'Dashboards/Production/screens/production_job_list_screen.dart';
 import 'Dashboards/Production/screens/assign_labour_screen.dart';
 import 'Dashboards/Production/screens/update_job_status_screen.dart';
+import 'Dashboards/Production/screens/production_calendar_screen.dart';
 
 // Printing Dashboard
 import 'Dashboards/Printing/screens/printing_dashboard_screen.dart';
@@ -63,6 +67,7 @@ import 'Dashboards/Printing/screens/quality_check_screen.dart';
 import 'Dashboards/Accounts/screens/accounts_dashboard_screen.dart';
 import 'Dashboards/Accounts/screens/accounts_invoice_screen.dart';
 import 'Dashboards/Accounts/screens/accounts_employee_screen.dart';
+import 'Dashboards/Accounts/screens/accounts_calendar_screen.dart';
 
 // Utils
 import 'Dashboards/Design/utils/app_theme.dart';
@@ -129,33 +134,33 @@ class MyApp extends StatelessWidget {
             primary: const Color(0xFF1A237E),
             secondary: const Color(0xFF536DFE),
           ),
-          fontFamily: 'Poppins',
-        ),
-      home: const LoginScreen(),
-      //home: const SalespersonHomeScreen(),
-      routes: {
+          fontFamily: 'Poppins',        ),
+        home: const LoginScreen(),
+        //home: const SalespersonHomeScreen(),
+        routes: {
         '/admin/dashboard': (context) => AdminDashboardScreen(),
         '/admin/employees': (context) => const EmployeeManagementScreen(),
         '/admin/jobs': (context) => const JobListingScreen(),
+        '/admin/calendar': (context) => const AdminCalendarScreen(),
         '/login': (context) => const LoginScreen(),
-        '/receptionist/dashboard': (context) => const DashboardPage(),
-        '/receptionist/new-job-request': (context) =>
-            const NewJobRequestScreen(),        '/receptionist/assign-salesperson': (context) =>
-            const AssignSalespersonScreen(),
-        '/receptionist/view-all-jobs': (context) => const ViewAllJobsScreen(),
+        '/receptionist/dashboard': (context) => const DashboardPage(),        '/receptionist/new-job-request': (context) =>
+            const NewJobRequestScreen(),
+        '/receptionist/assign-salesperson': (context) =>
+            const AssignSalespersonScreen(),        '/receptionist/view-all-jobs': (context) => const ViewAllJobsScreen(),
         '/receptionist/reimbursement-request': (context) => const ReimbursementRequestScreen(),
+        '/receptionist/calendar': (context) => const ReceptionistCalendarScreen(),
         //'/receptionist/view-reimbursements': (context) => const ViewReimbursementsScreen(),
         '/salesperson/dashboard': (context) => const SalespersonHomeScreen(),
         '/salesperson/profile': (context) => const SalespersonProfileScreen(),
-        '/design/dashboard': (context) => const design.DashboardScreen(),
-        '/accounts/dashboard': (context) => const AccountsDashboardScreen(),
+        '/design/dashboard': (context) => const design.DashboardScreen(),        '/accounts/dashboard': (context) => const AccountsDashboardScreen(),
         '/accounts/invoice': (context) => const AccountsInvoiceScreen(),
         '/accounts/employee': (context) => const AccountsEmployeeScreen(),
-        '/production/dashboard': (context) => const ProductionDashboard(),
+        '/accounts/calendar': (context) => const AccountsCalendarScreen(),        '/production/dashboard': (context) => const ProductionDashboard(),
         '/production/joblist': (context) => const ProductionJobListScreen(),
         '/production/assignlabour': (context) => const AssignLabourScreen(),
         '/production/updatejobstatus': (context) =>
             const UpdateJobStatusScreen(),
+        '/production/calendar': (context) => const ProductionCalendarScreen(),
         '/printing/dashboard': (context) => const PrintingDashboardScreen(),
         '/printing/assignlabour': (context) =>
             const PrintingAssignLabourScreen(),
@@ -165,12 +170,13 @@ class MyApp extends StatelessWidget {
         //'reimbursement': (context) => const salesperson.ReimbursementRequestScreen(),
         //'/salesperson/reimbursement': (context) => const salesperson.ReimbursementRequestScreen(),
         //'/production/reimbursement': (context) => const ReimbursementRequestScreen(),
-        '/production/reimbursement_request': (context) => const ReimbursementRequestScreenNew(dashboardType: 'production'),
-        '/design/reimbursement_request': (context) => const ReimbursementRequestScreenNew(dashboardType: 'design'),
+        '/production/reimbursement_request': (context) => const ReimbursementRequestScreenNew(dashboardType: 'production'),        '/design/reimbursement_request': (context) => const ReimbursementRequestScreenNew(dashboardType: 'design'),
         '/design/joblist': (context) => const JobListScreen(),
         '/design/chats': (context) => const ActiveChatsScreen(),
+        '/design/calendar': (context) => const DesignCalendarScreen(),
+        '/salesperson/reimbursement': (context) => const ReimbursementRequestScreenNew(dashboardType: 'salesperson'),
       },
-      )
+      ),
     );
   }
 }

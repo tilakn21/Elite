@@ -86,23 +86,31 @@ class _ReimbursementRequestFormState extends State<ReimbursementRequestForm> {
                 SizedBox(height: 24),
               ],
               if (widget.showTitle) ...[
-                Row(
-                  children: [
-                    Icon(
-                      Icons.receipt_long,
-                      color: const Color(0xFF1B2330),
-                      size: isMobile ? 20 : 24,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'New Reimbursement Request',
-                      style: TextStyle(
-                        fontSize: isMobile ? 18 : 22,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF1B2330),
-                      ),
-                    ),
-                  ],
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    return Row(
+                      children: [
+                        Icon(
+                          Icons.receipt_long,
+                          color: const Color(0xFF1B2330),
+                          size: isMobile ? 20 : 24,
+                        ),
+                        SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'New Reimbursement Request',
+                            style: TextStyle(
+                              fontSize: isMobile ? 18 : 22,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF1B2330),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
                 SizedBox(height: isMobile ? 20 : 32),
               ],

@@ -49,7 +49,7 @@ class _SalespersonHomeScreenState extends State<SalespersonHomeScreen> {
             return SiteVisitItem(
               e['id']?.toString() ?? '',
               receptionist?['customerName'] ?? '',
-              'assets/images/avatar1.png', // Placeholder, update if you have avatar
+              'assets/images/avatars/default_avatar.png', // Placeholder, update if you have avatar
               receptionist?['dateOfVisit'] ?? '',
               // Determine submitted status based on salesperson.status
               (salesperson != null && (salesperson['status']?.toString().toLowerCase() == 'completed')),

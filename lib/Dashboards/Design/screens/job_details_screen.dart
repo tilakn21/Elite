@@ -170,9 +170,10 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           content: Text('Job status updated successfully'),
           backgroundColor: AppTheme.successColor,
         ),
-      );
-    }
-  }  Future<void> _submitForApproval() async {
+      );    }
+  }
+
+  Future<void> _submitForApproval() async {
     if (_job == null) return;
 
     // Check if comments are empty
@@ -356,28 +357,105 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       );
     }
   }
-
   @override
   Widget build(BuildContext context) {
     if (_isRefreshingJobs) {
-      return const Scaffold(
+      return Scaffold(
+        backgroundColor: AppTheme.backgroundColor,
         body: Stack(
           children: [
-            Opacity(
-              opacity: 0.5,
-              child: ModalBarrier(dismissible: false, color: Colors.black),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    AppTheme.backgroundColor,
+                    AppTheme.backgroundColor.withOpacity(0.8),
+                  ],
+                ),
+              ),
             ),
             Center(
-              child: CircularProgressIndicator(),
+              child: Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Loading job details...',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.textPrimaryColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
       );
     }
     if (_job == null) {
-      return const Scaffold(
+      return Scaffold(
+        backgroundColor: AppTheme.backgroundColor,
         body: Center(
-          child: CircularProgressIndicator(),
+          child: Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.work_outline,
+                  size: 48,
+                  color: Colors.grey[400],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Job not found',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: AppTheme.textPrimaryColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'The requested job could not be loaded.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.textSecondaryColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }
@@ -388,25 +466,130 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: Text('Job (${_job?.id ?? ''})'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+      appBar: _buildModernAppBar(context, isDesktop),
+      body: isDesktop
+          ? _buildDesktopLayout()
+          : isTablet
+              ? _buildTabletLayout()
+              : _buildMobileLayout(),
+    );
+  }
+
+  PreferredSizeWidget _buildModernAppBar(BuildContext context, bool isDesktop) {
+    return AppBar(
+      elevation: 0,
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      shadowColor: Colors.black.withOpacity(0.1),
+      leading: Container(
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: AppTheme.backgroundColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
         ),
-        actions: [
-          if (!isDesktop || !_showChatPanel)
-            IconButton(
-              icon: const Icon(Icons.chat_bubble_outline),
+        child: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+          onPressed: () => Navigator.pop(context),
+          color: AppTheme.textPrimaryColor,
+          tooltip: 'Back to jobs',
+        ),
+      ),
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.primaryColor.withOpacity(0.2)),
+            ),
+            child: Text(
+              'Job #${_job?.id ?? ''}',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: AppTheme.primaryColor,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _job?.clientName ?? '',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: AppTheme.textPrimaryColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  DateFormat('dd MMM yyyy • hh:mm a').format(_job?.dateAdded ?? DateTime.now()),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.textSecondaryColor,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        if (!isDesktop || !_showChatPanel)
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            child: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.accentColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.chat_bubble_outline, size: 18),
+              ),
               onPressed: _openChatWithCustomer,
               tooltip: 'Chat with customer',
+              color: AppTheme.accentColor,
             ),
-          IconButton(
-            icon: Icon(_isEditingDetails ? Icons.save : Icons.edit),
+          ),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          child: IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: (_isEditingDetails ? AppTheme.successColor : AppTheme.primaryColor).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                _isEditingDetails ? Icons.save : Icons.edit,
+                size: 18,
+                color: _isEditingDetails ? AppTheme.successColor : AppTheme.primaryColor,
+              ),
+            ),
             onPressed: _toggleEditMode,
             tooltip: _isEditingDetails ? 'Save changes' : 'Edit details',
           ),
-          PopupMenuButton<String>(
+        ),
+        Container(
+          margin: const EdgeInsets.only(right: 16, left: 4),
+          child: PopupMenuButton<String>(
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.textSecondaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.more_vert, size: 18),
+            ),
+            color: Colors.white,
+            elevation: 8,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             onSelected: (value) {
               switch (value) {
                 case 'approve':
@@ -421,27 +604,40 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'approve',
-                child: Text('Mark as Approved'),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle_outline, color: AppTheme.successColor, size: 20),
+                    const SizedBox(width: 12),
+                    const Text('Mark as Approved'),
+                  ],
+                ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'pending',
-                child: Text('Mark as Pending'),
+                child: Row(
+                  children: [
+                    Icon(Icons.pending_outlined, color: AppTheme.pendingColor, size: 20),
+                    const SizedBox(width: 12),
+                    const Text('Mark as Pending'),
+                  ],
+                ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'progress',
-                child: Text('Mark as In Progress'),
+                child: Row(
+                  children: [
+                    Icon(Icons.play_circle_outline, color: AppTheme.primaryColor, size: 20),
+                    const SizedBox(width: 12),
+                    const Text('Mark as In Progress'),
+                  ],
+                ),
               ),
             ],
           ),
-        ],
-      ),
-      body: isDesktop
-          ? _buildDesktopLayout()
-          : isTablet
-              ? _buildTabletLayout()
-              : _buildMobileLayout(),
+        ),
+      ],
     );
   }
 
@@ -477,35 +673,9 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                           const SizedBox(height: 28),
                           if (_job?.displayStatus != 'Design Completed') ...[
                             _buildUploadDraftDesign(),
+                            const SizedBox(height: 28),                            _buildComments(),
                             const SizedBox(height: 28),
-                            _buildComments(),
-                            const SizedBox(height: 28),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    onPressed: _submitForApproval,
-                                    icon: const Icon(Icons.upload_file),
-                                    label: const Text(
-                                      'Submit for Approval',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(vertical: 16),
-                                      backgroundColor: AppTheme.primaryColor,
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      elevation: 2,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                            _buildModernSubmitButton(),
                           ],
                         ],
                       ),
@@ -767,35 +937,9 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           const SizedBox(height: 24),
           if (_job?.displayStatus != 'Design Completed') ...[
             _buildUploadDraftDesign(),
+            const SizedBox(height: 24),            _buildComments(),
             const SizedBox(height: 24),
-            _buildComments(),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _submitForApproval,
-                    icon: const Icon(Icons.upload_file),
-                    label: const Text(
-                      'Submit for Approval',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: AppTheme.primaryColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 2,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            _buildModernSubmitButton(),
           ],
           const SizedBox(height: 24),
           // Customer and Salesperson info at the bottom
@@ -824,35 +968,9 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           const SizedBox(height: 20),
           if (_job?.displayStatus != 'Design Completed') ...[
             _buildUploadDraftDesign(),
+            const SizedBox(height: 20),            _buildComments(),
             const SizedBox(height: 20),
-            _buildComments(),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _submitForApproval,
-                    icon: const Icon(Icons.upload_file),
-                    label: const Text(
-                      'Submit for Approval',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: AppTheme.primaryColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 2,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            _buildModernSubmitButton(),
           ],
           const SizedBox(height: 16),
           // Customer and Salesperson info at the bottom
@@ -863,10 +981,12 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       ),
     );
   }
-
   Widget _buildJobHeader() {
     // Determine display status: if latest draft is pending approval, override
     String displayStatus = _job!.displayStatus;
+    Color statusColor = _getStatusColor(_job!.status);
+    IconData statusIcon = Icons.pending_outlined;
+    
     final design = _job!.design;
     if (design is List && design.isNotEmpty) {
       for (var i = design.length - 1; i >= 0; i--) {
@@ -874,118 +994,181 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         final status = draft is Map<String, dynamic> ? draft['status']?.toString().toLowerCase() : null;
         if (status == 'pending_approval' || status == 'pending for approval') {
           displayStatus = 'Pending for Approval';
+          statusColor = AppTheme.pendingColor;
+          statusIcon = Icons.pending_outlined;
           break;
         } else if (status == 'completed') {
           displayStatus = 'Design Completed';
+          statusColor = AppTheme.successColor;
+          statusIcon = Icons.check_circle_outline;
           break;
         }
       }
     }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'Job Details',
-                style: Theme.of(context).textTheme.displayMedium,
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: _getStatusColor(_job!.status).withAlpha(26),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                displayStatus,
-                style: TextStyle(
-                  color: _getStatusColor(_job!.status),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+
+    // Set appropriate icon for status
+    switch (_job!.status) {
+      case JobStatus.inProgress:
+        statusIcon = Icons.play_circle_outline;
+        break;
+      case JobStatus.approved:
+        statusIcon = Icons.check_circle_outline;
+        break;
+      case JobStatus.pending:
+        statusIcon = Icons.pending_outlined;
+        break;
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            statusColor.withOpacity(0.1),
+            statusColor.withOpacity(0.05),
+            Colors.white,
           ],
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Created on ${DateFormat('dd MMM yyyy').format(_job!.dateAdded)}',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondaryColor,
-              ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: statusColor.withOpacity(0.2),
+          width: 1,
         ),
-      ],
-    );
-  }
-  Widget _buildJobProgress() {
-    // Compute progress and status based on displayStatus
-    double progressValue = 0.0;
-    String progressStatus = 'Not Started';
-    String estimatedCompletion = 'N/A';
-    if (_job != null) {
-      switch (_job!.displayStatus) {
-        case 'Queued':
-          progressValue = 0.2;
-          progressStatus = 'Queued';
-          estimatedCompletion = DateFormat('dd/MM/yyyy')
-              .format(_job!.dateAdded.add(const Duration(days: 14)));
-          break;
-        case 'Pending for Approval':
-          progressValue = 0.7;
-          progressStatus = 'Pending for Approval';
-          estimatedCompletion = DateFormat('dd/MM/yyyy')
-              .format(_job!.dateAdded.add(const Duration(days: 7)));
-          break;
-        case 'Design Completed':
-          progressValue = 1.0;
-          progressStatus = 'Design Completed';
-          estimatedCompletion = DateFormat('dd/MM/yyyy').format(DateTime.now());
-          break;
-        default:
-          progressValue = 0.0;
-          progressStatus = _job!.displayStatus;
-          estimatedCompletion = 'N/A';
-      }
-    }
-    return Card(
-      margin: EdgeInsets.zero,
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        boxShadow: [
+          BoxShadow(
+            color: statusColor.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header row with title and status
             Row(
               children: [
-                const Icon(Icons.timeline_outlined, color: AppTheme.primaryColor, size: 28),
-                const SizedBox(width: 12),
-                Text(
-                  'Job Progress',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.work_outline,
+                    color: statusColor,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Job Details',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimaryColor,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Created on ${DateFormat('dd MMM yyyy • hh:mm a').format(_job!.dateAdded)}',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.textSecondaryColor,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: statusColor.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        statusIcon,
+                        color: statusColor,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        displayStatus,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            LinearProgressIndicator(
-              value: progressValue,
-              backgroundColor: Colors.grey[200],
-              color: AppTheme.accentColor,
-              minHeight: 8,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildProgressItem('Status', progressStatus),
-                _buildProgressItem('Estimated Completion', estimatedCompletion),
-                _buildProgressItem('Job Number', _job?.jobNo ?? ''),
-              ],
+            const SizedBox(height: 20),
+            
+            // Job info grid
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.8),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.grey.withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildJobInfoItem(
+                      'Client',
+                      _job!.clientName,
+                      Icons.person_outline,
+                      AppTheme.primaryColor,
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    color: Colors.grey.withOpacity(0.3),
+                  ),
+                  Expanded(
+                    child: _buildJobInfoItem(
+                      'Phone',
+                      _job!.phoneNumber,
+                      Icons.phone_outlined,
+                      AppTheme.accentColor,
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    color: Colors.grey.withOpacity(0.3),
+                  ),
+                  Expanded(
+                    child: _buildJobInfoItem(
+                      'Job ID',
+                      _job!.jobNo.isNotEmpty ? _job!.jobNo : _job!.id,
+                      Icons.tag,
+                      AppTheme.textSecondaryColor,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -993,90 +1176,553 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     );
   }
 
-  Widget _buildProgressItem(String label, String value) {
-    return Column(
+  Widget _buildJobInfoItem(String label, String value, IconData icon, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            color: color,
+            size: 20,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppTheme.textSecondaryColor,
+              fontWeight: FontWeight.w500,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: AppTheme.textPrimaryColor,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }  Widget _buildJobProgress() {
+    // Compute progress and status based on displayStatus
+    double progressValue = 0.0;
+    String progressStatus = 'Not Started';
+    String estimatedCompletion = 'N/A';
+    Color progressColor = AppTheme.textSecondaryColor;
+    IconData progressIcon = Icons.schedule_outlined;
+    
+    if (_job != null) {
+      switch (_job!.displayStatus) {
+        case 'Queued':
+          progressValue = 0.2;
+          progressStatus = 'Queued';
+          progressColor = AppTheme.pendingColor;
+          progressIcon = Icons.queue_outlined;
+          estimatedCompletion = DateFormat('dd/MM/yyyy')
+              .format(_job!.dateAdded.add(const Duration(days: 14)));
+          break;
+        case 'Pending for Approval':
+          progressValue = 0.7;
+          progressStatus = 'Pending for Approval';
+          progressColor = AppTheme.pendingColor;
+          progressIcon = Icons.pending_outlined;
+          estimatedCompletion = DateFormat('dd/MM/yyyy')
+              .format(_job!.dateAdded.add(const Duration(days: 7)));
+          break;
+        case 'Design Completed':
+          progressValue = 1.0;
+          progressStatus = 'Design Completed';
+          progressColor = AppTheme.successColor;
+          progressIcon = Icons.check_circle_outline;
+          estimatedCompletion = DateFormat('dd/MM/yyyy').format(DateTime.now());
+          break;
+        default:
+          progressValue = 0.0;
+          progressStatus = _job!.displayStatus;
+          progressColor = AppTheme.inProgressColor;
+          progressIcon = Icons.work_outline;
+          estimatedCompletion = 'N/A';
+      }
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            progressColor.withOpacity(0.02),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: progressColor.withOpacity(0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: progressColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.timeline_outlined,
+                    color: progressColor,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    'Job Progress',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: AppTheme.textPrimaryColor,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: progressColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: progressColor.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    '${(progressValue * 100).toInt()}%',
+                    style: TextStyle(
+                      color: progressColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            
+            // Enhanced progress bar
+            Container(
+              height: 12,
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: progressValue,
+                  backgroundColor: Colors.transparent,
+                  valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                  minHeight: 12,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            // Progress info grid
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: progressColor.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: progressColor.withOpacity(0.1),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildProgressItem(
+                      'Current Status',
+                      progressStatus,
+                      progressIcon,
+                      progressColor,
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    color: Colors.grey.withOpacity(0.3),
+                  ),
+                  Expanded(
+                    child: _buildProgressItem(
+                      'Estimated Completion',
+                      estimatedCompletion,
+                      Icons.calendar_today_outlined,
+                      AppTheme.accentColor,
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    color: Colors.grey.withOpacity(0.3),
+                  ),
+                  Expanded(
+                    child: _buildProgressItem(
+                      'Job Number',
+                      _job?.jobNo ?? 'N/A',
+                      Icons.numbers_outlined,
+                      AppTheme.textSecondaryColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProgressItem(String label, String value, IconData icon, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            color: color,
+            size: 20,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppTheme.textSecondaryColor,
+              fontWeight: FontWeight.w500,
+              fontSize: 12,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: AppTheme.textPrimaryColor,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }  Widget _buildCustomerInformation() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            AppTheme.primaryColor.withOpacity(0.02),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppTheme.primaryColor.withOpacity(0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.person_outline,
+                    color: AppTheme.primaryColor,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    'Customer Information',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: AppTheme.textPrimaryColor,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.successColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.verified_user_outlined,
+                    color: AppTheme.successColor,
+                    size: 18,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.8),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.grey.withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                children: [
+                  _buildModernInfoRow(
+                    'Client Name',
+                    _job!.clientName,
+                    Icons.person_outline,
+                    AppTheme.primaryColor,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildModernInfoRow(
+                    'Phone Number',
+                    _job!.phoneNumber,
+                    Icons.phone_outlined,
+                    AppTheme.accentColor,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildModernInfoRow(
+                    'Address',
+                    _job!.address,
+                    Icons.location_on_outlined,
+                    AppTheme.textSecondaryColor,
+                    maxLines: 2,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSalespersonInformation() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            AppTheme.accentColor.withOpacity(0.02),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppTheme.accentColor.withOpacity(0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.business_center_outlined,
+                    color: AppTheme.accentColor,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    'Assigned Salesperson',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: AppTheme.textPrimaryColor,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.successColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppTheme.successColor.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.check_circle_outline,
+                        color: AppTheme.successColor,
+                        size: 14,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Active',
+                        style: TextStyle(
+                          color: AppTheme.successColor,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.8),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.grey.withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                children: [
+                  _buildModernInfoRow(
+                    'Name',
+                    'Jane Smith', // This could be dynamic from job data
+                    Icons.person_outline,
+                    AppTheme.accentColor,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildModernInfoRow(
+                    'Phone Number',
+                    '+123 456-7890', // This could be dynamic from job data
+                    Icons.phone_outlined,
+                    AppTheme.primaryColor,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildModernInfoRow(
+                    'Department',
+                    'Sales Team',
+                    Icons.work_outline,
+                    AppTheme.textSecondaryColor,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernInfoRow(String label, String value, IconData icon, Color color, {int maxLines = 1}) {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.textSecondaryColor,
-              ),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            color: color,
+            size: 18,
+          ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: Theme.of(context).textTheme.titleMedium,
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppTheme.textSecondaryColor,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.textPrimaryColor,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+                maxLines: maxLines,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ],
     );
-  }
-  Widget _buildCustomerInformation() {
-    return Card(
-      margin: EdgeInsets.zero,
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.person_outlined, color: AppTheme.primaryColor, size: 28),
-                const SizedBox(width: 12),
-                Text(
-                  'Customer Information',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildInfoRow('Client Name', _job!.clientName),
-            const SizedBox(height: 12),
-            _buildInfoRow('Phone no.', _job!.phoneNumber),
-            const SizedBox(height: 12),
-            _buildInfoRow('Address', _job!.address),
-          ],
-        ),
-      ),
-    );
-  }
-  Widget _buildSalespersonInformation() {
-    return Card(
-      margin: EdgeInsets.zero,
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.business_center_outlined, color: AppTheme.primaryColor, size: 28),
-                const SizedBox(width: 12),
-                Text(
-                  'Assigned Salesperson Information',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildInfoRow('Name', 'Jane Smith'),
-            const SizedBox(height: 12),
-            _buildInfoRow('Phone no.', '+123 456-7890'),
-          ],
-        ),
-      ),
-    );
-  }  Widget _buildSiteVisitData() {
+  }Widget _buildSiteVisitData() {
     final Map<String, dynamic> salespersonData = _job?.salespersonData ?? {};
 
     // Helper to get a value or fallback
@@ -1112,26 +1758,26 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           if (parts.length >= 2) {
             final dateStr = parts[0];
             final timeStr = parts.sublist(1).join(' ');
-            
-            infoRows.add(_buildInfoRow(
+              infoRows.add(_buildInfoRow(
+              context,
               '${_beautifyKey(key)} (Date)', 
               dateStr,
               icon: Icons.calendar_today_outlined,
             ));
             infoRows.add(const SizedBox(height: 12));
             infoRows.add(_buildInfoRow(
+              context,
               '${_beautifyKey(key)} (Time)', 
               timeStr,
               icon: Icons.access_time,
             ));
-            infoRows.add(const Divider(height: 24));
-          } else {
-            infoRows.add(_buildInfoRow(_beautifyKey(key), getField(key)));
+            infoRows.add(const Divider(height: 24));          } else {
+            infoRows.add(_buildInfoRow(context, _beautifyKey(key), getField(key)));
             infoRows.add(const Divider(height: 24));
           }
         } catch (e) {
           // If parsing fails, just display as is
-          infoRows.add(_buildInfoRow(_beautifyKey(key), getField(key)));
+          infoRows.add(_buildInfoRow(context, _beautifyKey(key), getField(key)));
           infoRows.add(const Divider(height: 24));
         }
       } else {
@@ -1149,9 +1795,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           fieldIcon = Icons.description_outlined;
         } else if (key.toLowerCase().contains('price') || key.toLowerCase().contains('cost') || key.toLowerCase().contains('amount')) {
           fieldIcon = Icons.attach_money;
-        }
-        
-        infoRows.add(_buildInfoRow(_beautifyKey(key), getField(key), icon: fieldIcon));
+        }        
+        infoRows.add(_buildInfoRow(context, _beautifyKey(key), getField(key), icon: fieldIcon));
         // Use divider instead of simple spacing for better visual separation
         if (sortedKeys.last != key) {
           infoRows.add(const Divider(height: 24));
@@ -1467,86 +2112,206 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
             ),
           ],
         ),
-      ),
-    );
+      ),    );
   }
+
   Widget _buildUploadDraftDesign() {
-    return Card(
+    return Container(
       key: _uploadDraftSectionKey,
-      margin: EdgeInsets.zero,
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFFF8F9FA),
+            Color(0xFFFFFFFF),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFE3F2FD),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(Icons.upload_file_outlined, color: AppTheme.primaryColor, size: 28),
-                const SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFF2196F3),
+                        Color(0xFF1976D2),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.upload_file_outlined,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
                 Text(
                   'Upload Draft Design',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    fontSize: 20,
+                    fontSize: 22,
+                    color: const Color(0xFF1A1A1A),
                   ),
                 ),
               ],
-            ),            const SizedBox(height: 16),
-            UploadDraftWidget(
-              key: _uploadDraftKey,
-              jobId: widget.jobId,
-              comments: _commentsController.text,
+            ),
+            const SizedBox(height: 20),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFFE0E0E0),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: UploadDraftWidget(
+                  key: _uploadDraftKey,
+                  jobId: widget.jobId,
+                  comments: _commentsController.text,
+                ),
+              ),
             ),
           ],
-        ),
-      ),
+        ),      ),
     );
   }
+
   Widget _buildComments() {
-    return Card(
-      margin: EdgeInsets.zero,
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFFF8F9FA),
+            Color(0xFFFFFFFF),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFE3F2FD),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(Icons.comment_outlined, color: AppTheme.primaryColor, size: 28),
-                const SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFF2196F3),
+                        Color(0xFF1976D2),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.comment_outlined,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
                 Text(
                   'Comments',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    fontSize: 20,
+                    fontSize: 22,
+                    color: const Color(0xFF1A1A1A),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),            TextField(
-              controller: _commentsController,
-              maxLines: 5,
-              decoration: InputDecoration(
-                hintText: 'Add a comment...',
-                filled: true,
-                fillColor: Colors.grey[50],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
+            const SizedBox(height: 20),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFFE0E0E0),
+                  width: 1,
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: TextField(
+                controller: _commentsController,
+                maxLines: 5,
+                decoration: InputDecoration(
+                  hintText: 'Add your comments here...',
+                  hintStyle: TextStyle(
+                    color: Colors.grey[400],
+                    fontSize: 16,
+                  ),
+                  border: InputBorder.none,
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF2196F3),
+                      width: 2,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.all(20),
+                ),                style: const TextStyle(
+                  fontSize: 16,
+                  height: 1.5,
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                contentPadding: const EdgeInsets.all(16),
               ),
             ),
           ],
@@ -1555,6 +2320,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     );
   }
   Widget _buildInfoRow(
+    BuildContext context,
     String label,
     String value, {
     Color? valueColor,
@@ -1653,12 +2419,84 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         return AppTheme.inProgressColor;
     }
   }
-
   String _beautifyKey(String key) {
     // Convert camelCase or snake_case to Title Case for labels
     return key
         .replaceAllMapped(RegExp(r'([A-Z])'), (m) => ' ' + m.group(0)!)
         .replaceAll('_', ' ')
         .replaceFirstMapped(RegExp(r'^[a-z]'), (m) => m.group(0)!.toUpperCase());
+  }
+
+  Widget _buildModernSubmitButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF2196F3),
+            Color(0xFF1976D2),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2196F3).withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _submitForApproval,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.upload_file,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Submit for Approval',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -38,13 +38,20 @@ class AccountsSidebar extends StatelessWidget {
                   onTap: () {
                     Navigator.of(context).pushReplacementNamed('/accounts/dashboard');
                   },
-                ),
-                _SidebarButton(
+                ),                _SidebarButton(
                   icon: Icons.people,
                   label: 'Employee',
                   selected: selectedIndex == 2,
                   onTap: () {
                     Navigator.of(context).pushReplacementNamed('/accounts/employee');
+                  },
+                ),
+                _SidebarButton(
+                  icon: Icons.calendar_today,
+                  label: 'Calendar',
+                  selected: selectedIndex == 3,
+                  onTap: () {
+                    Navigator.of(context).pushReplacementNamed('/accounts/calendar');
                   },
                 ),
               ],
