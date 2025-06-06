@@ -182,7 +182,7 @@ class ProductionService {
       // Get current job data to preserve existing production information
       final jobResponse = await _supabase
           .from('jobs')
-          .select('production, status')
+          .select('production, status, accountant')
           .eq('id', jobId)
           .single();
       
@@ -224,7 +224,17 @@ class ProductionService {
       // Only run worker update logic if production.current_status is actually 'completed'
       final currentStatus = productionData['current_status'] != null ? productionData['current_status'].toString().toLowerCase() : null;
       if (newStatus == JobStatus.completed && currentStatus == 'completed') {
-        updateData['status'] = 'production_complete';
+        // --- Custom logic for delivery/payment status ---
+        final accountant = jobResponse['accountant'];
+        String? accountantStatus;
+        if (accountant != null && accountant is Map<String, dynamic>) {
+          accountantStatus = (accountant['status'] ?? '').toString().toLowerCase();
+        }
+        if (accountantStatus == 'completed' || accountantStatus == 'complete') {
+          updateData['status'] = 'out for delivery';
+        } else {
+          updateData['status'] = 'payment pending';
+        }
         productionData['completed_at'] = DateTime.now().toIso8601String();
 
         // --- Decrement number_of_jobs and update assigned_job for each worker in productionData['workers'] ---
@@ -267,7 +277,6 @@ class ProductionService {
           }
         }
       }
-      
       // Update the job
       await _supabase
           .from('jobs')

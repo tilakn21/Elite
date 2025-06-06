@@ -189,7 +189,7 @@ class _DesignCalendarScreenState extends State<DesignCalendarScreen> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    'Job #${job.jobNo}',
+                    'Job #${job.id}', // Use job_code (now mapped to id) instead of jobNo
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,

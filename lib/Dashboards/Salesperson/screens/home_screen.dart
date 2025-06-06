@@ -39,15 +39,16 @@ class _SalespersonHomeScreenState extends State<SalespersonHomeScreen> {
       final supabase = Supabase.instance.client;
       final response = await supabase
           .from('jobs')
-          .select()
+          .select('id, job_code, receptionist, salesperson')
           .filter('receptionist->>assignedSalesperson', 'eq', userId);
 
       visits = List<Map<String, dynamic>>.from(response)
           .map((e) {
             final receptionist = e['receptionist'] as Map<String, dynamic>?;
             final salesperson = e['salesperson'] as Map<String, dynamic>?;
+            final jobCode = e['job_code']?.toString() ?? e['id']?.toString() ?? '';
             return SiteVisitItem(
-              e['id']?.toString() ?? '',
+              jobCode, // Use job_code as siteId
               receptionist?['customerName'] ?? '',
               'assets/images/avatars/default_avatar.png', // Placeholder, update if you have avatar
               receptionist?['dateOfVisit'] ?? '',
@@ -222,7 +223,7 @@ class _SalespersonHomeScreenState extends State<SalespersonHomeScreen> {
                                                             Row(
                                                               children: [
                                                                 Text(
-                                                                  'Site ID: ',
+                                                                  'Job Number: ',
                                                                   style: TextStyle(
                                                                       fontSize: 13,
                                                                       color: Colors.grey.shade700),

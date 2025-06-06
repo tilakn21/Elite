@@ -132,4 +132,9 @@ class InvoiceProvider with ChangeNotifier {
     await _invoiceService.appendAccountantPaymentDetail(jobId: jobId, paymentDetail: paymentDetail);
     await fetchInvoices(); // Refresh data after update
   }
+
+  Future<void> updateJobStatusOutForDeliveryIfPaymentPending(String jobId) async {
+    await _invoiceService.updateJobStatusOutForDeliveryIfPaymentPending(jobId);
+    await fetchInvoices();
+  }
 }

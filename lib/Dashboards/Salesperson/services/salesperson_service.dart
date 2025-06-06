@@ -63,4 +63,32 @@ class SalespersonService {
   Future<bool> setCurrentSalespersonAvailable(String userId) async {
     return await setSalespersonAvailable(userId);
   }
+
+  // Fetch jobs for a salesperson, displaying job_code and sorting by most recent
+  Future<List<Map<String, dynamic>>> fetchJobsForSalesperson(String salespersonId) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+        .from('jobs')
+        .select('id, job_code, created_at, status, receptionist')
+        .eq('assigned_salesperson', salespersonId);
+      final jobs = List<Map<String, dynamic>>.from(response);
+      // Sort by created_at descending (most recent first)
+      jobs.sort((a, b) {
+        final aDate = a['created_at'] != null ? DateTime.tryParse(a['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0) : DateTime.fromMillisecondsSinceEpoch(0);
+        final bDate = b['created_at'] != null ? DateTime.tryParse(b['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0) : DateTime.fromMillisecondsSinceEpoch(0);
+        return bDate.compareTo(aDate);
+      });
+      // Map to only include job_code and other relevant info for display
+      return jobs.map((job) => {
+        'job_code': job['job_code'] ?? job['id'],
+        'created_at': job['created_at'],
+        'status': job['status'],
+        'receptionist': job['receptionist'],
+        'id': job['id'], // keep id for internal use if needed
+      }).toList();
+    } catch (e) {
+      return [];
+    }
+  }
 }

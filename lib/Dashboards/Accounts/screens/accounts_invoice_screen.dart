@@ -135,10 +135,13 @@ class _AccountsInvoiceScreenState extends State<AccountsInvoiceScreen> {
         await invoiceProvider.fetchInvoiceById(invoice.id);
       }
 
+      // --- NEW LOGIC: If job status is 'payment pending', set to 'out for delivery' ---
+      await invoiceProvider.updateJobStatusOutForDeliveryIfPaymentPending(invoice.id);
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Payment of ₹${paid.toStringAsFixed(2)} confirmed for ${invoice.clientName} (${invoice.invoiceNo})'),
+            content: Text('Payment of ₹${paid.toStringAsFixed(2)} confirmed for ${invoice.clientName} (${invoice.invoiceNo})'),
             backgroundColor: const Color(0xFF059669),
           ),
         );

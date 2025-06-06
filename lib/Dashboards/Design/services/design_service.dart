@@ -14,16 +14,26 @@ class DesignService {
       final supabase = Supabase.instance.client;
       final response = await supabase
           .from('jobs')
-          .select()
+          .select('*, job_code, created_at')
           .not('salesperson', 'is', null);
-      
-      // Map each job from Supabase to the Job model
-      return List<Map<String, dynamic>>.from(response)
-          .map((json) => Job.fromJson(json))
+      // Sort jobs by created_at descending (most recent first)
+      final jobsList = List<Map<String, dynamic>>.from(response);
+      jobsList.sort((a, b) {
+        final aDate = a['created_at'] != null ? DateTime.tryParse(a['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0) : DateTime.fromMillisecondsSinceEpoch(0);
+        final bDate = b['created_at'] != null ? DateTime.tryParse(b['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0) : DateTime.fromMillisecondsSinceEpoch(0);
+        return bDate.compareTo(aDate);
+      });
+      // Map each job from Supabase to the Job model, using job_code for display
+      return jobsList
+          .map((json) {
+            final jobCode = json['job_code']?.toString() ?? json['id']?.toString() ?? '';
+            final jobMap = Map<String, dynamic>.from(json);
+            jobMap['id'] = jobCode; // Use job_code for display instead of id
+            return Job.fromJson(jobMap);
+          })
           .toList();
     } catch (e) {
       print('Error fetching jobs from Supabase: $e');
-      // Re-throw the error to let the provider handle it
       throw Exception('Failed to fetch jobs from database: $e');
     }
   }
@@ -165,10 +175,25 @@ class DesignService {
       app.User(id: '3', name: 'Mike Johnson', email: 'mike@elitesigns.com', role: 'design', avatar: 'assets/images/avatars/default_avatar.png'),
     ];
   }
-
   Future<app.User?> getCurrentUser() async {
     await Future.delayed(const Duration(milliseconds: 300));
     // For mock, return the first user
     return app.User(id: '1', name: 'John Doe', email: 'john@elitesigns.com', role: 'Admin', avatar: 'assets/images/avatars/default_avatar.png');
+  }
+
+  Future<Map<String, dynamic>?> getEmployeeById(String employeeId) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('employee')
+          .select('*')
+          .eq('id', employeeId)
+          .maybeSingle();
+      
+      return response;
+    } catch (e) {
+      print('Error fetching employee by ID: $e');
+      throw Exception('Failed to fetch employee from database: $e');
+    }
   }
 }

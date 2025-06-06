@@ -120,4 +120,13 @@ class InvoiceService {
     // Update jobs table
     await _supabase.from('jobs').update({'accountant': accountant}).eq('id', jobId).select();
   }
+
+  Future<void> updateJobStatusOutForDeliveryIfPaymentPending(String jobId) async {
+    // Fetch current status from jobs table
+    final job = await _supabase.from('jobs').select('status').eq('id', jobId).single();
+    final String status = (job['status'] ?? '').toString().toLowerCase();
+    if (status == 'payment pending') {
+      await _supabase.from('jobs').update({'status': 'out for delivery'}).eq('id', jobId);
+    }
+  }
 }

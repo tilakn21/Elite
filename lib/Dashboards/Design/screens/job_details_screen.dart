@@ -43,6 +43,10 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
   double _progressValue = 0.0;
   String _progressStatus = 'Not Started';
   String _estimatedCompletion = 'N/A';
+  Map<String, dynamic>? _salespersonEmployeeData;
+  bool _isLoadingSalesperson = false;
+  
+  final DesignService _designService = DesignService();
 
   @override
   void initState() {
@@ -53,6 +57,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       setState(() => _isRefreshingJobs = false);
       _loadJobDetails();
       _loadActiveChat();
+      await _fetchAssignedSalespersonEmployee();
     });
   }
 
@@ -355,6 +360,50 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         curve: Curves.easeInOut,
         alignment: 0.1,
       );
+    }
+  }  Future<void> _fetchAssignedSalespersonEmployee() async {
+    if (_job == null) return;
+    
+    setState(() { _isLoadingSalesperson = true; });
+    
+    try {
+      // Get the assigned salesperson ID from the receptionist JSONB data
+      // The Job.fromJson method already extracts this data properly from the database
+      String? assignedSalespersonId;
+      
+      // First, try to get assignedSalesperson ID from the raw job data
+      // by directly querying the database for this specific job
+      final supabase = Supabase.instance.client;
+      final jobData = await supabase
+        .from('jobs')
+        .select('receptionist')
+        .eq('job_code', _job!.id) // job_code is used as the display ID
+        .maybeSingle();
+        
+      if (jobData != null && jobData['receptionist'] != null) {
+        final receptionist = jobData['receptionist'] as Map<String, dynamic>;
+        assignedSalespersonId = receptionist['assignedSalesperson']?.toString();
+      }
+      
+      if (assignedSalespersonId == null || assignedSalespersonId.isEmpty) {
+        setState(() {
+          _salespersonEmployeeData = null;
+        });
+        return;
+      }
+      
+      // Fetch employee details using the design service pattern
+      final employeeData = await _designService.getEmployeeById(assignedSalespersonId);
+      
+      setState(() {
+        _salespersonEmployeeData = employeeData;
+      });
+    } catch (e) {
+      setState(() {
+        _salespersonEmployeeData = null;
+      });
+    } finally {
+      setState(() { _isLoadingSalesperson = false; });
     }
   }
   @override
@@ -1161,7 +1210,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                   ),
                   Expanded(
                     child: _buildJobInfoItem(
-                      'Job ID',
+                      'Job Number',
                       _job!.jobNo.isNotEmpty ? _job!.jobNo : _job!.id,
                       Icons.tag,
                       AppTheme.textSecondaryColor,
@@ -1172,7 +1221,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
             ),
           ],
         ),
-      ),
+    )
     );
   }
 
@@ -1251,6 +1300,9 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       }
     }
 
+    // --- MODIFICATION: Display job_code (job number) in progress info grid ---
+    final String jobNumber = _job?.id ?? '-'; // _job!.id is set to job_code in Job.fromJson
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -1281,71 +1333,34 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           children: [
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: progressColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.timeline_outlined,
+                Icon(progressIcon, color: progressColor, size: 28),
+                const SizedBox(width: 12),
+                Text(
+                  progressStatus,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: progressColor,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    'Job Progress',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                      color: AppTheme.textPrimaryColor,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: progressColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: progressColor.withOpacity(0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Text(
-                    '${(progressValue * 100).toInt()}%',
-                    style: TextStyle(
-                      color: progressColor,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
-            
             // Enhanced progress bar
             Container(
               height: 12,
               decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(6),
                 child: LinearProgressIndicator(
                   value: progressValue,
-                  backgroundColor: Colors.transparent,
+                  backgroundColor: progressColor.withOpacity(0.1),
                   valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-                  minHeight: 12,
                 ),
               ),
             ),
             const SizedBox(height: 20),
-            
             // Progress info grid
             Container(
               padding: const EdgeInsets.all(16),
@@ -1359,47 +1374,17 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
               ),
               child: Row(
                 children: [
-                  Expanded(
-                    child: _buildProgressItem(
-                      'Current Status',
-                      progressStatus,
-                      progressIcon,
-                      progressColor,
-                    ),
-                  ),
-                  Container(
-                    width: 1,
-                    height: 40,
-                    color: Colors.grey.withOpacity(0.3),
-                  ),
-                  Expanded(
-                    child: _buildProgressItem(
-                      'Estimated Completion',
-                      estimatedCompletion,
-                      Icons.calendar_today_outlined,
-                      AppTheme.accentColor,
-                    ),
-                  ),
-                  Container(
-                    width: 1,
-                    height: 40,
-                    color: Colors.grey.withOpacity(0.3),
-                  ),
-                  Expanded(
-                    child: _buildProgressItem(
-                      'Job Number',
-                      _job?.jobNo ?? 'N/A',
-                      Icons.numbers_outlined,
-                      AppTheme.textSecondaryColor,
-                    ),
-                  ),
+                  // Job Number
+                  _buildProgressItem('Job Number', jobNumber, Icons.confirmation_number_outlined, progressColor),
+                  _buildProgressItem('Estimated Completion', estimatedCompletion, Icons.event_available, progressColor),
+                  _buildProgressItem('Progress', '${(progressValue * 100).toInt()}%', Icons.trending_up, progressColor),
                 ],
               ),
             ),
           ],
         ),
       ),
-    );
+    ); // <-- Add missing closing parenthesis for Container
   }
 
   Widget _buildProgressItem(String label, String value, IconData icon, Color color) {
@@ -1544,11 +1529,21 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
             ),
           ],
         ),
-      ),
-    );
+    ));
   }
 
   Widget _buildSalespersonInformation() {
+    // Use _salespersonEmployeeData if available, else fallback to old UI
+    if (_isLoadingSalesperson) {
+      return Center(child: CircularProgressIndicator());
+    }
+    if (_salespersonEmployeeData == null) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        child: Text('No assigned salesperson found.'),
+      );
+    }
+    final emp = _salespersonEmployeeData!;
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -1602,40 +1597,9 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                     ),
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppTheme.successColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppTheme.successColor.withOpacity(0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.check_circle_outline,
-                        color: AppTheme.successColor,
-                        size: 14,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Active',
-                        style: TextStyle(
-                          color: AppTheme.successColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 20),
-            
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -1650,21 +1614,21 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                 children: [
                   _buildModernInfoRow(
                     'Name',
-                    'Jane Smith', // This could be dynamic from job data
+                    emp['full_name'] ?? '-',
                     Icons.person_outline,
                     AppTheme.accentColor,
                   ),
                   const SizedBox(height: 16),
                   _buildModernInfoRow(
                     'Phone Number',
-                    '+123 456-7890', // This could be dynamic from job data
+                    emp['phone'] ?? '-',
                     Icons.phone_outlined,
                     AppTheme.primaryColor,
                   ),
                   const SizedBox(height: 16),
                   _buildModernInfoRow(
                     'Department',
-                    'Sales Team',
+                    emp['role'] ?? '-',
                     Icons.work_outline,
                     AppTheme.textSecondaryColor,
                   ),
@@ -1673,7 +1637,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
             ),
           ],
         ),
-      ),
+    )
     );
   }
 
@@ -2405,8 +2369,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
             ),
           ),
         ),
-      ),
-    );
+    ));
   }
 
   Color _getStatusColor(JobStatus status) {
@@ -2455,7 +2418,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+                           mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
@@ -2496,7 +2459,6 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
             ),
           ),
         ),
-      ),
-    );
+    ));
   }
 }

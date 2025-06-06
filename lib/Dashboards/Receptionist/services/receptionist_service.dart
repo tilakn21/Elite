@@ -291,7 +291,7 @@ class ReceptionistService {
     final supabase = Supabase.instance.client;
     final response = await supabase
         .from('jobs')
-        .select('id, status, created_at, receptionist, assigned_salesperson');
+        .select('id, job_code, status, created_at, receptionist, assigned_salesperson');
     final jobs = List<Map<String, dynamic>>.from(response);
     // Update salesperson availability in a detached microtask (never blocks UI)
     Future.microtask(() async {
@@ -305,14 +305,14 @@ class ReceptionistService {
         }
       }
     });
-    return jobs.map<JobRequest>((e) {
+    final jobRequests = jobs.map<JobRequest>((e) {
       final receptionist = e['receptionist'] as Map<String, dynamic>?;
-      // Determine assigned: true if receptionist['status'] == 'completed', else false
       final receptionistStatus = receptionist?['status']?.toString().toLowerCase();
       final isAssigned = receptionistStatus == 'completed';
+      final jobCode = e['job_code']?.toString() ?? e['id']?.toString() ?? '';
       return JobRequest(
         id: e['id']?.toString() ?? '',
-        name: receptionist?['customerName'] ?? '',
+        name: jobCode,
         phone: receptionist?['phone'] ?? '',
         email: receptionist?['createdBy'] ?? '',
         status: _parseJobStatus(e['status']),
@@ -324,6 +324,13 @@ class ReceptionistService {
         receptionistJson: receptionist,
       );
     }).toList();
+    // Sort by dateAdded descending (most recent first)
+    jobRequests.sort((a, b) {
+      final aDate = a.dateAdded ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bDate = b.dateAdded ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bDate.compareTo(aDate);
+    });
+    return jobRequests;
   }
 
   // Helper to parse job status from string
