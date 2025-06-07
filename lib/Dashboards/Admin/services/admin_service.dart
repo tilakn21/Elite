@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../models/admin_job.dart';
 import '../models/branch.dart';
 import '../models/sales_data.dart';
-import '../models/employee.dart'; // Import Employee model
+import '../models/employee.dart'; // Corrected import for Employee model
 import 'dart:convert';
 
 class AdminService {
@@ -62,8 +62,8 @@ class AdminService {
           final printing = parseJsonField(job['printing']);
 
           jobs.add(AdminJob(
-            no: job['id'].toString(),
-            title: receptionist?['shopName']?.toString() ?? 'Job ${job['id']}',
+            no: (job['job_code']?.toString() ?? '').isNotEmpty ? job['job_code'].toString() : job['id'].toString(), // Use job_code as job number
+            title: receptionist?['shopName']?.toString() ?? 'Job ${job['job_code'] ?? job['id']}',
             client: receptionist?['customerName']?.toString() ?? 'Unknown Client',
             date: DateTime.parse(job['created_at']).toString().substring(0, 10),
             status: job['status']?.toString() ?? 'Unknown',

@@ -126,7 +126,7 @@ class _JobRow extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: Text(
-                  '#${invoice.id}',
+                  invoice.invoiceNo, // Removed '#' from job number display
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
@@ -147,7 +147,7 @@ class _JobRow extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: Text(
-                  '\$${total.toStringAsFixed(2)}',
+                  '£${total.toStringAsFixed(2)}', // Changed to pound
                   textAlign: TextAlign.right,
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
@@ -159,7 +159,7 @@ class _JobRow extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: Text(
-                  '\$${paid.toStringAsFixed(2)}',
+                  '£${paid.toStringAsFixed(2)}', // Changed to pound
                   textAlign: TextAlign.right,
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
@@ -171,7 +171,7 @@ class _JobRow extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: Text(
-                  '\$${due.toStringAsFixed(2)}',
+                  '£${due.toStringAsFixed(2)}', // Changed to pound
                   textAlign: TextAlign.right,
                   style: TextStyle(
                     fontWeight: FontWeight.w600,

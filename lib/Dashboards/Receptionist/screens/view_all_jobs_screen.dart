@@ -203,7 +203,7 @@ class _JobRequestsTable extends StatelessWidget {
             child: Row(
               children: const [
                 Expanded(child: Text('Name', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFFBDBDBD), fontSize: 15))),
-                Expanded(child: Text('ID', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFFBDBDBD), fontSize: 15))),
+                Expanded(child: Text('Job Number', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFFBDBDBD), fontSize: 15))),
                 Expanded(child: Text('Phone number', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFFBDBDBD), fontSize: 15))),
                 Expanded(child: Text('Date added', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFFBDBDBD), fontSize: 15))),
                 Expanded(child: Text('STATUS', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFFBDBDBD), fontSize: 15))),
@@ -264,9 +264,8 @@ class _TableRowWidget extends StatelessWidget {
                                   fontWeight: FontWeight.bold,
                                   color: Color(0xFF1F2937),
                                 ),
-                              ),
-                              Text(
-                                'Job ID: ${row.id}',
+                              ),                              Text(
+                                'Job Number: ${row.receptionistJson?['jobNo'] ?? row.id}',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   color: Color(0xFF6B7280),
@@ -369,7 +368,7 @@ class _TableRowWidget extends StatelessWidget {
                 ],
               ),
             ),
-            Expanded(child: Text(row.id, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13))),
+            Expanded(child: Text(row.receptionistJson?['jobNo'] ?? row.id, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13))),
             Expanded(child: Text(row.phone, style: const TextStyle(fontSize: 13, color: Color(0xFF7B7B7B)))),
             Expanded(
               child: Column(

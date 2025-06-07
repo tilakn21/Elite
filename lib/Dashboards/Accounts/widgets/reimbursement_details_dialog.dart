@@ -169,7 +169,7 @@ class _ReimbursementDetailsDialogState extends State<ReimbursementDetailsDialog>
       );
     }
 
-    final currencyFormatter = NumberFormat.currency(locale: 'en_US', symbol: '\$');
+    final currencyFormatter = NumberFormat.currency(locale: 'en_GB', symbol: '£');
     final dateFormatter = DateFormat('MMM d, yyyy');
 
     return Dialog(

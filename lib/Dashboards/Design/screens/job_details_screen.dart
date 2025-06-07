@@ -1208,10 +1208,9 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                     height: 40,
                     color: Colors.grey.withOpacity(0.3),
                   ),
-                  Expanded(
-                    child: _buildJobInfoItem(
+                  Expanded(                    child: _buildJobInfoItem(
                       'Job Number',
-                      _job!.jobNo.isNotEmpty ? _job!.jobNo : _job!.id,
+                      _job!.jobNo.isNotEmpty ? _job!.jobNo : _job!.id, // Already uses job code
                       Icons.tag,
                       AppTheme.textSecondaryColor,
                     ),

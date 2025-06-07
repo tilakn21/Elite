@@ -60,8 +60,8 @@ class _AccountsDashboardScreenState extends State<AccountsDashboardScreen> {
       }
       final query = _searchQuery.toLowerCase();
       final matchesSearch = invoice.clientName.toLowerCase().contains(query) ||
-          invoice.id.toLowerCase().contains(query) ||
-          invoice.invoiceNo.toLowerCase().contains(query);
+          invoice.invoiceNo.toLowerCase().contains(query) || // Use job_code for search
+          invoice.id.toLowerCase().contains(query);
       return matchesTab && (query.isEmpty || matchesSearch);
     }).toList();
 

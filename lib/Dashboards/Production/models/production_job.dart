@@ -126,7 +126,9 @@ class ProductionJob {
 
     return ProductionJob(
       id: (json['id'] as Object).toString(),
-      jobNo: (json['id'] as Object).toString(), // Using id as job number
+      jobNo: (json['job_code'] != null && json['job_code'].toString().trim().isNotEmpty && json['job_code'].toString().toLowerCase() != 'null')
+          ? json['job_code'].toString()
+          : (json['id'] as Object).toString(),
       clientName: customerName,
       dueDate: dueDate,
       description: (designData['comments'] as String?) ?? (designData['description'] as String?) ?? 'No description',

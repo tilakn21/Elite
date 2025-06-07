@@ -470,7 +470,7 @@ class _SalespersonDetailsScreenState extends State<SalespersonDetailsScreen> {
                                               keyboardType: TextInputType.numberWithOptions(decimal: true),
                                               decoration: const InputDecoration(
                                                 labelText: 'Amount Paid',
-                                                prefixIcon: Icon(Icons.currency_rupee),
+                                                prefixIcon: Icon(Icons.currency_pound),
                                                 border: OutlineInputBorder(),
                                               ),
                                             ),

@@ -39,7 +39,7 @@ class AccountsInvoiceDetail extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Job ID: #${invoice!.id}', 
+                    Text('Job No: ${invoice!.invoiceNo}', 
                       style: const TextStyle(
                         fontWeight: FontWeight.bold, 
                         fontSize: 24, 
@@ -119,7 +119,7 @@ class AccountsInvoiceDetail extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '\$${(invoice!.accountantJson!['total_amount'] as num).toStringAsFixed(2)}',
+                          '£${(invoice!.accountantJson!['total_amount'] as num).toStringAsFixed(2)}',
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -164,7 +164,7 @@ class AccountsInvoiceDetail extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '\$${(invoice!.accountantJson!['amount_paid'] as num).toStringAsFixed(2)}',
+                          '£${(invoice!.accountantJson!['amount_paid'] as num).toStringAsFixed(2)}',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -186,7 +186,7 @@ class AccountsInvoiceDetail extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '\$${(invoice!.accountantJson!['amount_due'] as num).toStringAsFixed(2)}',
+                          '£${(invoice!.accountantJson!['amount_due'] as num).toStringAsFixed(2)}',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -229,7 +229,7 @@ class AccountsInvoiceDetail extends StatelessWidget {
                               const Icon(Icons.payments_outlined, size: 20, color: Color(0xFF6B7280)),
                               const SizedBox(width: 8),
                               Text(
-                                '\$${p['amount']}',
+                                '£${p['amount']}',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 16,

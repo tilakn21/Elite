@@ -21,7 +21,7 @@ class ProductionService {
       for (var record in response) {
         print('Raw Job Record:');
         print('Base Job Fields:');
-        print('  id: ${record['id']}');
+        print('  job_code: ${record['job_code']}'); // changed from id
         print('  status: ${record['status']}');
         print('  created_at: ${record['created_at']}');
         print('  production_workers: ${record['production_workers']}');
@@ -141,7 +141,12 @@ class ProductionService {
         processedRecord['designjsonb'] = designData;
         processedRecord['productionjsonb'] = productionData;
         processedRecord['status'] = computedStatus;
-
+        // --- MODIFICATION: Use job_code for jobNo field in ProductionJob ---
+        if (processedRecord.containsKey('job_code') && processedRecord['job_code'] != null && processedRecord['job_code'].toString().trim().isNotEmpty && processedRecord['job_code'].toString().toLowerCase() != 'null') {
+          processedRecord['jobNo'] = processedRecord['job_code'].toString();
+        } else if (processedRecord.containsKey('id')) {
+          processedRecord['jobNo'] = processedRecord['id'].toString();
+        }
         return ProductionJob.fromJson(processedRecord);
       }).toList());
 
@@ -149,7 +154,7 @@ class ProductionService {
       print('\n=== Mapped Production Jobs ===\n');
       for (var job in jobs) {
         print('Mapped Job:');
-        print('  Job No: ${job.jobNo}');
+        print('  Job No: ${job.jobNo}'); // already uses job_code
         print('  Client Name: ${job.clientName}');
         print('  Due Date: ${job.dueDate}');
         print('  Description: ${job.description}');
@@ -171,7 +176,12 @@ class ProductionService {
           .select('*, receptionist, salesperson, design, accountant, production')
           .eq('id', jobId)
           .single();
-      
+      // --- MODIFICATION: Use job_code for jobNo field in ProductionJob ---
+      if (response.containsKey('job_code') && response['job_code'] != null && response['job_code'].toString().trim().isNotEmpty && response['job_code'].toString().toLowerCase() != 'null') {
+        response['jobNo'] = response['job_code'].toString();
+      } else if (response.containsKey('id')) {
+        response['jobNo'] = response['id'].toString();
+      }
       return ProductionJob.fromJson(response);
     } catch (e) {
       print('Error fetching job details: $e');

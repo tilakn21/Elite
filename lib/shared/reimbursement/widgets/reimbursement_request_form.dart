@@ -142,7 +142,7 @@ class _ReimbursementRequestFormState extends State<ReimbursementRequestForm> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildInputField('Amount (\$)', _amountController,
+        _buildInputField('Amount (£)', _amountController,
           keyboardType: TextInputType.numberWithOptions(decimal: true),
           error: _invalidFields.contains('amount'),
           inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],

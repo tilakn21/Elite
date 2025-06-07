@@ -16,14 +16,12 @@ class InvoiceService {
     for (final job in response) {
       print('Job: ' + job.toString());
     }
-    // After mapping all jobs, check for due==0 and status!=completed, and update if needed
     final List<Invoice> invoices = response.map<Invoice>((job) {
       String statusStr = job['status']?.toString().toLowerCase() ?? '';
       final accountant = job['accountant'] as Map<String, dynamic>?;
       final double accountantDue = (accountant?['amount_due'] as num?)?.toDouble() ?? 0.0;
       final String accStatus = (accountant?['status'] as String?)?.toLowerCase() ?? '';
       if (accountant != null && accountantDue == 0 && accStatus != 'completed') {
-        // Fire and forget, do not await
         _supabase.from('jobs').update({
           'accountant': {
             ...accountant,
@@ -32,16 +30,13 @@ class InvoiceService {
         }).eq('id', job['id']).select();
         accountant['status'] = 'completed';
       }
-      // Map accountant JSONB fields
       final double accountantTotal = (accountant?['total_amount'] as num?)?.toDouble() ?? 0.0;
       final double accountantPaid = (accountant?['amount_paid'] as num?)?.toDouble() ?? 0.0;
       final List<dynamic> payments = (accountant != null && accountant['payments'] is List) ? List<dynamic>.from(accountant['payments']) : [];
-      // Get client name from receptionist jsonb if available
       String clientName = '';
       if (job['receptionist'] is Map<String, dynamic> && job['receptionist'] != null) {
         clientName = (job['receptionist']['customerName'] ?? '').toString();
       }
-      // Fix: fallback for issueDate and dueDate
       DateTime issueDate = DateTime.now();
       if (job['created_at'] != null) {
         try {
@@ -54,9 +49,11 @@ class InvoiceService {
           dueDate = DateTime.parse(job['due_date']);
         } catch (_) {}
       }
+      // Use job_code as job number, fallback to id
+      final jobCode = (job['job_code']?.toString() ?? '').isNotEmpty ? job['job_code'].toString() : job['id'].toString();
       return Invoice(
-        id: job['id'].toString(), // Use job id as job id
-        invoiceNo: job['id'].toString(), // Use job id for display
+        id: job['id'].toString(),
+        invoiceNo: jobCode, // Use job_code for display
         clientId: job['client_id']?.toString() ?? '',
         clientName: clientName.isNotEmpty ? clientName : (job['client_name']?.toString() ?? ''),
         issueDate: issueDate,
