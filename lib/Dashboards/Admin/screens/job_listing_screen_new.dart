@@ -457,182 +457,310 @@ class JobStatusFilterDropdown extends StatelessWidget {
 
 class JobListTable extends StatelessWidget {
   final List<AdminJob> jobs;
-
-  const JobListTable({Key? key, required this.jobs}) : super(key: key);
-
-  @override
+  const JobListTable({Key? key, required this.jobs}) : super(key: key);  @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        columnSpacing: 20,
-        headingRowHeight: 50,
-        dataRowHeight: 60,
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[200]!),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        headingRowColor: MaterialStateProperty.all(Colors.grey[50]),
-        columns: const [
-          DataColumn(
-            label: Expanded(
-              child: Text(
-                'Job ID',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-            ),
-          ),
-          DataColumn(
-            label: Expanded(
-              child: Text(
-                'Title & Client',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-            ),
-          ),
-          DataColumn(
-            label: Expanded(
-              child: Text(
-                'Date Created',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-            ),
-          ),
-          DataColumn(
-            label: Expanded(
-              child: Text(
-                'Status',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-            ),
-          ),
-          DataColumn(
-            label: Expanded(
-              child: Text(
-                'Progress',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-            ),
-          ),
-          DataColumn(
-            label: Expanded(
-              child: Text(
-                'Actions',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-            ),
+    final screenWidth = MediaQuery.of(context).size.width;    // Calculate table width to fit exactly: Job ID(100) + Title&Client(200) + Date(120) + Status(150) + Progress(120) + Actions(120) + spacing
+    final tableWidth = 100.0 + 200.0 + 120.0 + 150.0 + 120.0 + 120.0 + (8.0 * 5); // 810 + 40 = 850px
+    final containerWidth = screenWidth > 600 ? screenWidth - 320.0 : screenWidth - 40.0;
+    final finalTableWidth = tableWidth > containerWidth ? tableWidth : containerWidth;
+    
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
-        rows: jobs.map((job) {
-          return DataRow(
-            cells: [
-              DataCell(
-                Container(
-                  padding: const EdgeInsets.all(8),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: finalTableWidth,            child: DataTable(
+              columnSpacing: 8.0,
+              headingRowHeight: 56,
+              dataRowHeight: 64,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              headingRowColor: MaterialStateProperty.all(const Color(0xFFF8FAFC)),
+              dataRowColor: MaterialStateProperty.resolveWith<Color?>((Set<MaterialState> states) {
+                if (states.contains(MaterialState.hovered)) {
+                  return const Color(0xFFF1F5F9);
+                }
+                return Colors.white;
+              }),              columns: [
+              DataColumn(
+                label: SizedBox(
+                  width: 100,
                   child: Text(
-                    job.no,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                    'Job ID',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold, 
+                      fontSize: 15, 
+                      color: Color(0xFF1E293B),
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
               ),
-              DataCell(
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        job.title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        job.client,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey[600],
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              DataCell(
-                Container(
-                  padding: const EdgeInsets.all(8),
+              DataColumn(
+                label: SizedBox(
+                  width: 200,
                   child: Text(
-                    job.date,
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                ),
-              ),
-              DataCell(
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(job.status).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: _getStatusColor(job.status).withOpacity(0.3)),
-                    ),
-                    child: Text(
-                      job.status,
-                      style: TextStyle(
-                        color: _getStatusColor(job.status),
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
+                    'Title & Client',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold, 
+                      fontSize: 15, 
+                      color: Color(0xFF1E293B),
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
               ),
-              DataCell(
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  child: JobProgressIndicator(job: job),
+              DataColumn(
+                label: SizedBox(
+                  width: 120,
+                  child: Text(
+                    'Date Created',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold, 
+                      fontSize: 15, 
+                      color: Color(0xFF1E293B),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
                 ),
               ),
-              DataCell(
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.visibility, size: 18),
-                        onPressed: () {
-                          _showJobDetails(context, job);
-                        },
-                        tooltip: 'View Details',
-                        color: Colors.blue[600],
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.edit, size: 18),
-                        onPressed: () {
-                          // TODO: Navigate to edit job
-                        },
-                        tooltip: 'Edit Job',
-                        color: Colors.orange[600],
-                      ),
-                    ],
+              DataColumn(
+                label: SizedBox(
+                  width: 150,
+                  child: Text(
+                    'Status',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold, 
+                      fontSize: 15, 
+                      color: Color(0xFF1E293B),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+              DataColumn(
+                label: SizedBox(
+                  width: 120,
+                  child: Text(
+                    'Progress',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold, 
+                      fontSize: 15, 
+                      color: Color(0xFF1E293B),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+              DataColumn(
+                label: SizedBox(
+                  width: 120,
+                  child: Text(
+                    'Actions',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold, 
+                      fontSize: 15, 
+                      color: Color(0xFF1E293B),
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
               ),
             ],
-          );
-        }).toList(),
+            rows: jobs.map((job) {
+              return DataRow(                cells: [
+                  DataCell(
+                    SizedBox(
+                      width: 100,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF3B82F6).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFF3B82F6).withOpacity(0.2)),
+                          ),
+                          child: Text(
+                            job.no,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                              color: Color(0xFF3B82F6),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    SizedBox(
+                      width: 200,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              job.title,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                                color: Color(0xFF0F172A),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              job.client,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF64748B),
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    SizedBox(
+                      width: 120,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        child: Text(
+                          job.date,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF475569),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    SizedBox(
+                      width: 150,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(job.status).withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: _getStatusColor(job.status).withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _getStatusIcon(job.status),
+                                size: 12,
+                                color: _getStatusColor(job.status),
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  job.status,
+                                  style: TextStyle(
+                                    color: _getStatusColor(job.status),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    SizedBox(
+                      width: 120,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        child: JobProgressIndicator(job: job),
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    SizedBox(
+                      width: 120,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.blue.shade100),
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.visibility, size: 16),
+                                onPressed: () {
+                                  _showJobDetails(context, job);
+                                },
+                                tooltip: 'View Details',
+                                color: Colors.blue[700],
+                                padding: const EdgeInsets.all(6),
+                                constraints: const BoxConstraints(minHeight: 32, minWidth: 32),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade50,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.orange.shade100),
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.edit, size: 16),
+                                onPressed: () {
+                                  // TODO: Navigate to edit job
+                                },
+                                tooltip: 'Edit Job',
+                                color: Colors.orange[700],
+                                padding: const EdgeInsets.all(6),
+                                constraints: const BoxConstraints(minHeight: 32, minWidth: 32),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }).toList(),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -650,6 +778,23 @@ class JobListTable extends StatelessWidget {
         return Colors.red;
       default:
         return Colors.blue;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'approved':
+      case 'completed':
+        return Icons.check_circle;
+      case 'pending':
+        return Icons.schedule;
+      case 'in progress':
+        return Icons.autorenew;
+      case 'cancelled':
+      case 'rejected':
+        return Icons.cancel;
+      default:
+        return Icons.info;
     }
   }
 
@@ -1179,99 +1324,365 @@ class JobDetailsDialog extends StatelessWidget {
       )
       );
   }
-
   Widget _buildStageDetails(String stageName, Map<String, dynamic> stageData) {
-    // Enhanced: Handle design array structure with multiple submissions
-    if (stageName == 'design') {
-      if (stageData.isEmpty) {
-        return Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Text(
-            'No design submissions yet.',
-            style: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic),
-          ),
-        );
-      }
-      // If keys are numeric (as strings), sort and display all submissions
-      final keys = stageData.keys.where((k) => int.tryParse(k) != null).toList();
-      if (keys.isNotEmpty) {
-        keys.sort((a, b) => int.parse(a).compareTo(int.parse(b)));
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (final key in keys) ...[
-              Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                color: Colors.grey[50],
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Submission #${int.parse(key) + 1}',
-                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.pink[700])),
-                      const SizedBox(height: 6),
-                      if (stageData[key]['submission_date'] != null)
-                        _buildDetailRow('Submission Date', stageData[key]['submission_date']),
-                      if (stageData[key]['submission_time'] != null)
-                        _buildDetailRow('Submission Time', stageData[key]['submission_time']),
-                      if (stageData[key]['comments'] != null)
-                        _buildDetailRow('Comments', stageData[key]['comments']),
-                      if (stageData[key]['images'] != null)
-                        _buildDetailRow('Images',
-                            '${(stageData[key]['images'] as List).length} file(s)'),
-                      if (stageData[key]['status'] != null)
-                        _buildDetailRow('Status', _formatStatus(stageData[key]['status'])),
-                    ],
-                  ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: _buildStageSpecificContent(stageName, stageData),
+    );
+  }
+
+  Widget _buildStageSpecificContent(String stageName, Map<String, dynamic> stageData) {
+    switch (stageName.toLowerCase()) {
+      case 'receptionist':
+        return _buildReceptionistDetails(stageData);
+      case 'salesperson':
+        return _buildSalespersonDetails(stageData);
+      case 'design':
+        return _buildDesignDetails(stageData);
+      case 'accountant':
+        return _buildAccountantDetails(stageData);
+      case 'production':
+        return _buildProductionDetails(stageData);
+      case 'printing':
+        return _buildPrintingDetails(stageData);
+      default:
+        return _buildGenericDetails(stageData);
+    }
+  }
+
+  Widget _buildReceptionistDetails(Map<String, dynamic> data) {
+    if (data.isEmpty) return _buildEmptyState('No receptionist information available');
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Customer Information', Icons.person, Colors.purple),
+        const SizedBox(height: 12),
+        if (data['customerName'] != null)
+          _buildInfoTile('Customer Name', data['customerName'], Icons.person_outline),
+        if (data['phone'] != null)
+          _buildInfoTile('Phone Number', data['phone'], Icons.phone),
+        if (data['email'] != null)
+          _buildInfoTile('Email', data['email'], Icons.email),
+        if (data['shopName'] != null)
+          _buildInfoTile('Shop Name', data['shopName'], Icons.store),
+        if (data['streetAddress'] != null || data['town'] != null)
+          _buildInfoTile('Address', _buildFullAddress(data), Icons.location_on),
+        if (data['dateOfAppointment'] != null)
+          _buildInfoTile('Appointment Date', data['dateOfAppointment'], Icons.calendar_today),
+        if (data['assignedSalesperson'] != null)
+          _buildInfoTile('Assigned Salesperson', data['assignedSalesperson'], Icons.person_pin),
+        if (data['status'] != null)
+          _buildStatusTile('Status', data['status']),
+      ],
+    );
+  }
+
+  Widget _buildSalespersonDetails(Map<String, dynamic> data) {
+    if (data.isEmpty) return _buildEmptyState('No salesperson information available');
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Site Visit Information', Icons.handshake, Colors.blue),
+        const SizedBox(height: 12),
+        if (data['typeOfSign'] != null)
+          _buildInfoTile('Type of Sign', data['typeOfSign'], Icons.category),
+        if (data['material'] != null)
+          _buildInfoTile('Material', data['material'], Icons.construction),
+        if (data['timeForProduction'] != null)
+          _buildInfoTile('Production Time', data['timeForProduction'], Icons.access_time),
+        if (data['timeForFitting'] != null)
+          _buildInfoTile('Fitting Time', data['timeForFitting'], Icons.build),
+        if (data['signMeasurements'] != null)
+          _buildInfoTile('Sign Measurements', data['signMeasurements'], Icons.straighten),
+        if (data['extraDetails'] != null)
+          _buildInfoTile('Extra Details', data['extraDetails'], Icons.notes),
+        if (data['paymentAmount'] != null)
+          _buildInfoTile('Payment Amount', '£${data['paymentAmount']}', Icons.payment),
+        if (data['modeOfPayment'] != null)
+          _buildInfoTile('Payment Method', data['modeOfPayment'], Icons.credit_card),
+        if (data['images'] != null)
+          _buildInfoTile('Site Images', '${(data['images'] as List).length} file(s)', Icons.photo_library),
+        if (data['status'] != null)
+          _buildStatusTile('Status', data['status']),
+      ],
+    );
+  }
+
+  Widget _buildDesignDetails(Map<String, dynamic> data) {
+    if (data.isEmpty) return _buildEmptyState('No design submissions yet');
+    
+    // Handle numeric keys (multiple submissions)
+    final keys = data.keys.where((k) => int.tryParse(k) != null).toList();
+    if (keys.isNotEmpty) {
+      keys.sort((a, b) => int.parse(a).compareTo(int.parse(b)));
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle('Design Submissions', Icons.design_services, Colors.pink),
+          const SizedBox(height: 12),
+          for (final key in keys) ...[
+            Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.brush, color: Colors.pink[600], size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Draft #${int.parse(key) + 1}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.pink[700],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 16),
+                    if (data[key]['submission_date'] != null)
+                      _buildDetailRow('Submitted On', data[key]['submission_date']),
+                    if (data[key]['submission_time'] != null)
+                      _buildDetailRow('Time', data[key]['submission_time']),
+                    if (data[key]['comments'] != null)
+                      _buildDetailRow('Comments', data[key]['comments']),
+                    if (data[key]['images'] != null)
+                      _buildDetailRow('Design Files', '${(data[key]['images'] as List).length} file(s)'),
+                    if (data[key]['status'] != null)
+                      _buildStatusTile('Status', data[key]['status']),
+                  ],
                 ),
               ),
-            ],
+            ),
           ],
-        );
-      }
+        ],
+      );
     }
-    // Handle production stage: show current_status if present, else status, and display all production JSONB fields
-    if (stageName == 'production') {
-      String? status = (stageData['current_status'] ?? stageData['status'])?.toString();
-      List<Widget> details = [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8.0),
-          child: Text(
-            'Status: ' + (status?.isNotEmpty == true ? _formatStatus(status!) : 'Pending'),
+    
+    return _buildGenericDetails(data);
+  }
+
+  Widget _buildAccountantDetails(Map<String, dynamic> data) {
+    if (data.isEmpty) return _buildEmptyState('No accounting information available');
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Financial Information', Icons.account_balance, Colors.orange),
+        const SizedBox(height: 12),
+        if (data['totalAmount'] != null)
+          _buildInfoTile('Total Amount', '£${data['totalAmount']}', Icons.monetization_on),
+        if (data['amountPaid'] != null)
+          _buildInfoTile('Amount Paid', '£${data['amountPaid']}', Icons.payment),
+        if (data['remainingAmount'] != null)
+          _buildInfoTile('Remaining Amount', '£${data['remainingAmount']}', Icons.account_balance_wallet),
+        if (data['paymentMethod'] != null)
+          _buildInfoTile('Payment Method', data['paymentMethod'], Icons.credit_card),
+        if (data['invoiceNumber'] != null)
+          _buildInfoTile('Invoice Number', data['invoiceNumber'], Icons.receipt),
+        if (data['paymentDate'] != null)
+          _buildInfoTile('Payment Date', data['paymentDate'], Icons.date_range),
+        if (data['status'] != null)
+          _buildStatusTile('Status', data['status']),
+      ],
+    );
+  }
+
+  Widget _buildProductionDetails(Map<String, dynamic> data) {
+    if (data.isEmpty) return _buildEmptyState('No production information available');
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Production Information', Icons.precision_manufacturing, Colors.indigo),
+        const SizedBox(height: 12),
+        if (data['current_status'] != null || data['status'] != null)
+          _buildStatusTile('Production Status', data['current_status'] ?? data['status']),        if (data['assignedWorker'] != null)
+          _buildInfoTile('Assigned Worker', data['assignedWorker'], Icons.engineering),
+        if (data['startDate'] != null)
+          _buildInfoTile('Start Date', data['startDate'], Icons.play_arrow),
+        if (data['estimatedCompletion'] != null)
+          _buildInfoTile('Estimated Completion', data['estimatedCompletion'], Icons.schedule),
+        if (data['actualCompletion'] != null)
+          _buildInfoTile('Actual Completion', data['actualCompletion'], Icons.check_circle),
+        if (data['productionNotes'] != null)
+          _buildInfoTile('Production Notes', data['productionNotes'], Icons.note),
+        if (data['materials'] != null)
+          _buildInfoTile('Materials Used', data['materials'], Icons.inventory),
+      ],
+    );
+  }
+
+  Widget _buildPrintingDetails(Map<String, dynamic> data) {
+    if (data.isEmpty) return _buildEmptyState('No printing information available');
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Printing Information', Icons.print, Colors.teal),
+        const SizedBox(height: 12),
+        if (data['printStatus'] != null || data['status'] != null)
+          _buildStatusTile('Printing Status', data['printStatus'] ?? data['status']),
+        if (data['printType'] != null)
+          _buildInfoTile('Print Type', data['printType'], Icons.category),
+        if (data['printSize'] != null)
+          _buildInfoTile('Print Size', data['printSize'], Icons.aspect_ratio),
+        if (data['printQuantity'] != null)
+          _buildInfoTile('Quantity', data['printQuantity'], Icons.format_list_numbered),
+        if (data['printMaterial'] != null)
+          _buildInfoTile('Print Material', data['printMaterial'], Icons.texture),
+        if (data['printDate'] != null)
+          _buildInfoTile('Print Date', data['printDate'], Icons.date_range),
+        if (data['printNotes'] != null)
+          _buildInfoTile('Print Notes', data['printNotes'], Icons.note),
+      ],
+    );
+  }
+
+  Widget _buildGenericDetails(Map<String, dynamic> data) {
+    if (data.isEmpty) return _buildEmptyState('No information available');
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: data.entries.map((entry) {
+        if (entry.key == 'status') {
+          return _buildStatusTile('Status', entry.value?.toString() ?? 'N/A');
+        }
+        return _buildDetailRow(_formatLabel(entry.key), entry.value?.toString() ?? 'N/A');
+      }).toList(),
+    );
+  }
+
+  Widget _buildSectionTitle(String title, IconData icon, Color color) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey[800],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoTile(String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: Colors.grey[600]),
+          const SizedBox(width: 8),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: TextStyle(color: Colors.grey[800], fontSize: 13),
+                children: [
+                  TextSpan(
+                    text: '$label: ',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  TextSpan(text: value),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusTile(String label, String status) {
+    final color = _getStageStatusColor(status);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
+          const SizedBox(width: 8),
+          Text(
+            '$label: ',
             style: TextStyle(
-              color: Colors.indigo[700],
               fontWeight: FontWeight.w600,
+              color: Colors.grey[800],
               fontSize: 13,
             ),
           ),
-        ),
-      ];
-      // Show all key-value pairs except status/current_status
-      stageData.forEach((key, value) {
-        if (key == 'status' || key == 'current_status') return;
-        details.add(_buildDetailRow(_formatLabel(key), value?.toString() ?? 'N/A'));
-      });
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: details,
-      );
-    }
-    // Handle other stage structures
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: stageData.entries.map((entry) {
-          return _buildDetailRow(entry.key, entry.value?.toString() ?? 'N/A');
-        }).toList(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: color.withOpacity(0.3)),
+            ),
+            child: Text(
+              _formatStatus(status),
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _buildEmptyState(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Icon(Icons.info_outline, color: Colors.grey[400], size: 32),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _buildFullAddress(Map<String, dynamic> data) {
+    final parts = <String>[];
+    if (data['streetNumber'] != null) parts.add(data['streetNumber']);
+    if (data['streetAddress'] != null) parts.add(data['streetAddress']);
+    if (data['town'] != null) parts.add(data['town']);
+    if (data['postcode'] != null) parts.add(data['postcode']);
+    return parts.join(', ').isNotEmpty ? parts.join(', ') : 'N/A';
   }
 
   Widget _buildDetailRow(String label, String value) {
