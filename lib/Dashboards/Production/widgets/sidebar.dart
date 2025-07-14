@@ -61,9 +61,14 @@ class ProductionSidebar extends StatelessWidget {
             icon: Icons.receipt_long,
             label: 'Reimbursement',
             selected: selectedIndex == 3,
-            onTap: () {
+            onTap: () async {
+              // Fetch employee id (production id)
+              String employeeId = 'prod1001'; // TODO: Replace with authenticated id later
               if (ModalRoute.of(context)?.settings.name != '/production/reimbursement_request') {
-                Navigator.of(context).pushReplacementNamed('/production/reimbursement_request');
+                Navigator.of(context).pushReplacementNamed(
+                  '/production/reimbursement_request',
+                  arguments: {'employeeId': employeeId},
+                );
               }
               onItemTapped(3);
             },

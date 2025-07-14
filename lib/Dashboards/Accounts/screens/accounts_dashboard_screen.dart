@@ -7,7 +7,8 @@ import '../widgets/accounts_top_bar.dart';
 import '../widgets/accounts_job_table.dart';
 
 class AccountsDashboardScreen extends StatefulWidget {
-  const AccountsDashboardScreen({Key? key}) : super(key: key);
+  final String? accountantId;
+  const AccountsDashboardScreen({Key? key, this.accountantId}) : super(key: key);
 
   @override
   State<AccountsDashboardScreen> createState() => _AccountsDashboardScreenState();
@@ -69,11 +70,11 @@ class _AccountsDashboardScreenState extends State<AccountsDashboardScreen> {
       backgroundColor: const Color(0xFFF7F5FF),
       body: Row(
         children: [
-          const AccountsSidebar(selectedIndex: 0),
+          AccountsSidebar(selectedIndex: 0, accountantId: widget.accountantId),
           Expanded(
             child: Column(
               children: [
-                const AccountsTopBar(),
+                AccountsTopBar(accountantId: widget.accountantId),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 32),

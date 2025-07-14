@@ -23,6 +23,10 @@ class _PrintingAssignLabourScreenState extends State<PrintingAssignLabourScreen>
   void dispose() {
     _feedbackController.dispose();
     super.dispose();
+  }Future<void> _refreshJobs() async {
+    final printingJobProvider = Provider.of<PrintingJobProvider>(context, listen: false);
+    await printingJobProvider.refreshPrintingJobs();
+    setState(() {});
   }Future<void> _startPrinting(PrintingJob job) async {
     if (job.designImageUrl == null || job.designImageUrl!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -38,23 +42,21 @@ class _PrintingAssignLabourScreenState extends State<PrintingAssignLabourScreen>
       _isStartingPrint = true;
     });
 
+    // Show immediate message
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Print started'),
+        backgroundColor: Colors.blue,
+      ),
+    );
+
     try {
-      // Get the provider and use it to update the job status
       final printingJobProvider = Provider.of<PrintingJobProvider>(context, listen: false);
-      
-      // Start printing job and get the updated job with new status
-      final updatedJob = await printingJobProvider.startPrintingJob(job.id, job.designImageUrl!);
-      
+      await printingJobProvider.startPrintingJob(job.id, job.designImageUrl!);
+      await _refreshJobs();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Printing started successfully! Status: ${_getStatusDisplayText(updatedJob.status)}'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        
-        // Navigate back to printing dashboard
-        Navigator.pop(context);
+        // Redirect to printing dashboard
+        Navigator.of(context).pushNamedAndRemoveUntil('/printing/dashboard', (route) => false);
       }
     } catch (e) {
       if (mounted) {
@@ -80,20 +82,25 @@ class _PrintingAssignLabourScreenState extends State<PrintingAssignLabourScreen>
       _isCompletingPrint = true;
     });
 
+    // Show immediate message
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Print completed'),
+        backgroundColor: Colors.green,
+      ),
+    );
+
     try {
       // Get the provider and use it to update the job status
       final printingJobProvider = Provider.of<PrintingJobProvider>(context, listen: false);
       
       // Complete the printing job
-      final updatedJob = await printingJobProvider.completePrintingJob(job.id);
+      await printingJobProvider.completePrintingJob(job.id);
+      await _refreshJobs();
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Printing completed successfully! Status: ${_getStatusDisplayText(updatedJob.status)}'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        // Redirect to printing dashboard
+        Navigator.of(context).pushNamedAndRemoveUntil('/printing/dashboard', (route) => false);
       }
     } catch (e) {
       if (mounted) {
@@ -129,6 +136,14 @@ class _PrintingAssignLabourScreenState extends State<PrintingAssignLabourScreen>
       _isReprinting = true;
     });
 
+    // Show immediate message
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Reprint started'),
+        backgroundColor: Colors.amber,
+      ),
+    );
+
     try {
       // Get the provider and use it to update the job status
       final printingJobProvider = Provider.of<PrintingJobProvider>(context, listen: false);
@@ -137,18 +152,15 @@ class _PrintingAssignLabourScreenState extends State<PrintingAssignLabourScreen>
       final feedback = _feedbackController.text.isNotEmpty ? _feedbackController.text : null;
       
       // Reprint the job
-      final updatedJob = await printingJobProvider.reprintJob(job.id, job.designImageUrl!, feedback: feedback);
+      await printingJobProvider.reprintJob(job.id, job.designImageUrl!, feedback: feedback);
+      await _refreshJobs();
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Job sent for reprinting! Status: ${_getStatusDisplayText(updatedJob.status)}'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        
         // Clear feedback
         _feedbackController.clear();
+        
+        // Redirect to printing dashboard
+        Navigator.of(context).pushNamedAndRemoveUntil('/printing/dashboard', (route) => false);
       }
     } catch (e) {
       if (mounted) {
@@ -174,6 +186,14 @@ class _PrintingAssignLabourScreenState extends State<PrintingAssignLabourScreen>
       _isSubmittingReview = true;
     });
 
+    // Show immediate message
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Submitting for quality review'),
+        backgroundColor: Colors.blue,
+      ),
+    );
+
     try {
       // Get the provider and use it to update the job status
       final printingJobProvider = Provider.of<PrintingJobProvider>(context, listen: false);
@@ -182,18 +202,15 @@ class _PrintingAssignLabourScreenState extends State<PrintingAssignLabourScreen>
       final feedback = _feedbackController.text.isNotEmpty ? _feedbackController.text : null;
       
       // Submit for review
-      final updatedJob = await printingJobProvider.submitJobForReview(job.id, feedback: feedback);
+      await printingJobProvider.submitJobForReview(job.id, feedback: feedback);
+      await _refreshJobs();
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Job submitted as printed! Status: ${_getStatusDisplayText(updatedJob.status)}'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        
         // Clear feedback
         _feedbackController.clear();
+        
+        // Redirect to printing dashboard
+        Navigator.of(context).pushNamedAndRemoveUntil('/printing/dashboard', (route) => false);
       }
     } catch (e) {
       if (mounted) {

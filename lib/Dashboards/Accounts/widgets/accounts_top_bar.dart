@@ -1,7 +1,41 @@
 import 'package:flutter/material.dart';
+import '../services/accounts_service.dart';
 
-class AccountsTopBar extends StatelessWidget {
-  const AccountsTopBar({Key? key}) : super(key: key);
+class AccountsTopBar extends StatefulWidget {
+  final String? accountantId;
+  const AccountsTopBar({Key? key, this.accountantId}) : super(key: key);
+
+  @override
+  State<AccountsTopBar> createState() => _AccountsTopBarState();
+}
+
+class _AccountsTopBarState extends State<AccountsTopBar> {
+  String _accountantName = '';
+  String _accountantRole = '';
+  String _branchName = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAccountantAndBranch();
+  }
+
+  Future<void> _fetchAccountantAndBranch() async {
+    final service = AccountsService();
+    if (widget.accountantId == null || widget.accountantId!.isEmpty) return;
+    final details = await service.fetchAccountantDetails(accountantId: widget.accountantId);
+    String name = details?['full_name'] ?? '';
+    String role = details?['role'] ?? '';
+    String branchName = '';
+    if (details != null && details['branch_id'] != null) {
+      branchName = await service.fetchBranchName(int.parse(details['branch_id'].toString())) ?? '';
+    }
+    setState(() {
+      _accountantName = name;
+      _accountantRole = role;
+      _branchName = branchName;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,15 +50,29 @@ class AccountsTopBar extends StatelessWidget {
             children: [
               CircleAvatar(
                 backgroundColor: const Color(0xFF232B3E),
-                child: const Text('J', style: TextStyle(color: Colors.white)),
+                child: Text(
+                  _accountantName.isNotEmpty ? _accountantName[0] : '',
+                  style: const TextStyle(color: Colors.white),
+                ),
               ),
               const SizedBox(width: 8),
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text('John Doe', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF232B3E), fontSize: 14)),
-                  Text('Admin', style: TextStyle(color: Color(0xFF888FA6), fontSize: 12)),
+                children: [
+                  Text(
+                    _accountantName.isNotEmpty ? _accountantName : 'Accountant',
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF232B3E), fontSize: 14),
+                  ),
+                  Text(
+                    _accountantRole.isNotEmpty ? _accountantRole : 'Accountant',
+                    style: const TextStyle(color: Color(0xFF888FA6), fontSize: 12),
+                  ),
+                  if (_branchName.isNotEmpty)
+                    Text(
+                      'Branch: $_branchName',
+                      style: const TextStyle(color: Color(0xFF7DE2D1), fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
                 ],
               ),
             ],

@@ -4,9 +4,11 @@ import '../providers/job_request_provider.dart';
 import '../models/job_request.dart';
 import '../widgets/sidebar.dart';
 import '../widgets/topbar.dart';
+import '../services/receptionist_service.dart';
 
 class ViewAllJobsScreen extends StatefulWidget {
-  const ViewAllJobsScreen({Key? key}) : super(key: key);
+  final String? receptionistId;
+  const ViewAllJobsScreen({Key? key, this.receptionistId}) : super(key: key);
 
   @override
   State<ViewAllJobsScreen> createState() => _ViewAllJobsScreenState();
@@ -18,14 +20,57 @@ class _ViewAllJobsScreenState extends State<ViewAllJobsScreen> with WidgetsBindi
   String searchQuery = '';
   String selectedStatus = 'All';
 
+  String _receptionistName = '';
+  String _branchName = '';
+  String _receptionistId = ''; // Will be set from widget parameter
+
   @override
   void initState() {
     super.initState();
+    // Set receptionistId from widget parameter or use empty string if null
+    _receptionistId = widget.receptionistId ?? '';
+    print('[VIEW_JOBS] Using receptionist ID: $_receptionistId');
+    
     WidgetsBinding.instance.addObserver(this);
     // Refresh job requests when screen is opened
     Future.microtask(() {
       Provider.of<JobRequestProvider>(context, listen: false).fetchJobRequests();
     });
+    _fetchReceptionistAndBranch();
+  }
+
+  Future<void> _fetchReceptionistAndBranch() async {
+    if (_receptionistId.isEmpty) {
+      print('[VIEW_JOBS] Warning: Receptionist ID is empty');
+      setState(() {
+        _receptionistName = 'Unknown';
+        _branchName = 'Unknown';
+      });
+      return;
+    }
+    
+    final service = ReceptionistService();
+    try {
+      final details = await service.fetchReceptionistDetails(receptionistId: _receptionistId);
+      String name = details?['full_name'] ?? '';
+      String branchName = '';
+      
+      if (details != null && details['branch_id'] != null) {
+        branchName = await service.fetchBranchName(int.parse(details['branch_id'].toString())) ?? '';
+      }
+      
+      setState(() {
+        _receptionistName = name;
+        _branchName = branchName;
+      });
+      print('[VIEW_JOBS] Fetched details: name=$_receptionistName, branch=$_branchName');
+    } catch (e) {
+      print('[VIEW_JOBS] Error fetching receptionist details: $e');
+      setState(() {
+        _receptionistName = 'Error';
+        _branchName = 'Error';
+      });
+    }
   }
 
   @override
@@ -70,13 +115,14 @@ class _ViewAllJobsScreenState extends State<ViewAllJobsScreen> with WidgetsBindi
                 selectedIndex: 2,
                 isDrawer: true,
                 onClose: () => Navigator.of(context).pop(),
+                employeeId: _receptionistId,
               ),
             )
           : null,
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!isMobile) Sidebar(selectedIndex: 2),
+          if (!isMobile) Sidebar(selectedIndex: 2, employeeId: _receptionistId),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,6 +131,8 @@ class _ViewAllJobsScreenState extends State<ViewAllJobsScreen> with WidgetsBindi
                   isDashboard: false,
                   showMenu: isMobile,
                   onMenuTap: () => scaffoldKey.currentState?.openDrawer(),
+                  receptionistName: _receptionistName.isNotEmpty ? _receptionistName : 'Receptionist',
+                  branchName: _branchName.isNotEmpty ? _branchName : 'Branch',
                 ),
                 Expanded(
                   child: isLoading
@@ -361,14 +409,14 @@ class _TableRowWidget extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(row.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                      Text(row.subtitle ?? '', style: const TextStyle(fontSize: 11, color: Color(0xFFBDBDBD))),
+                      Text(row.subtitle ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      Text(row.phone, style: const TextStyle(fontSize: 11, color: Color(0xFFBDBDBD))),
                     ],
                   ),
                 ],
               ),
             ),
-            Expanded(child: Text(row.receptionistJson?['jobNo'] ?? row.id, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13))),
+            Expanded(child: Text(row.name, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13))),
             Expanded(child: Text(row.phone, style: const TextStyle(fontSize: 13, color: Color(0xFF7B7B7B)))),
             Expanded(
               child: Column(

@@ -6,7 +6,8 @@ import '../services/receptionist_service.dart';
 import '../models/job_request.dart';
 
 class ReceptionistCalendarScreen extends StatefulWidget {
-  const ReceptionistCalendarScreen({Key? key}) : super(key: key);
+  final String? receptionistId;
+  const ReceptionistCalendarScreen({Key? key, this.receptionistId}) : super(key: key);
 
   @override
   State<ReceptionistCalendarScreen> createState() => _ReceptionistCalendarScreenState();
@@ -20,12 +21,24 @@ class _ReceptionistCalendarScreenState extends State<ReceptionistCalendarScreen>
   final ReceptionistService _receptionistService = ReceptionistService();
   Map<DateTime, List<JobRequest>> _jobRequestsMap = {};
 
+  String _receptionistName = '';
+  String _branchName = '';
+  String _receptionistId = ''; // Will be set from widget parameter
+
+  final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+
   @override
   void initState() {
     super.initState();
+    // Set receptionistId from widget parameter or use empty string if null
+    _receptionistId = widget.receptionistId ?? '';
+    print('[CALENDAR] Using receptionist ID: $_receptionistId');
+    
     _selectedDay = DateTime.now();
     _loadJobRequests();
+    _fetchReceptionistAndBranch();
   }
+
   void _loadJobRequests() {
     _jobRequestsFuture = _receptionistService.fetchJobRequestsFromSupabase();
     _jobRequestsFuture.then((jobRequests) {
@@ -33,6 +46,39 @@ class _ReceptionistCalendarScreenState extends State<ReceptionistCalendarScreen>
         _jobRequestsMap = _groupJobRequestsByDate(jobRequests);
       });
     });
+  }
+
+  Future<void> _fetchReceptionistAndBranch() async {
+    if (_receptionistId.isEmpty) {
+      print('[CALENDAR] Warning: Receptionist ID is empty');
+      setState(() {
+        _receptionistName = 'Unknown';
+        _branchName = 'Unknown';
+      });
+      return;
+    }
+    
+    try {
+      final details = await _receptionistService.fetchReceptionistDetails(receptionistId: _receptionistId);
+      String name = details?['full_name'] ?? '';
+      String branchName = '';
+      
+      if (details != null && details['branch_id'] != null) {
+        branchName = await _receptionistService.fetchBranchName(int.parse(details['branch_id'].toString())) ?? '';
+      }
+      
+      setState(() {
+        _receptionistName = name;
+        _branchName = branchName;
+      });
+      print('[CALENDAR] Fetched details: name=$_receptionistName, branch=$_branchName');
+    } catch (e) {
+      print('[CALENDAR] Error fetching receptionist details: $e');
+      setState(() {
+        _receptionistName = 'Error';
+        _branchName = 'Error';
+      });
+    }
   }
 
   Map<DateTime, List<JobRequest>> _groupJobRequestsByDate(List<JobRequest> jobRequests) {
@@ -378,170 +424,173 @@ class _ReceptionistCalendarScreenState extends State<ReceptionistCalendarScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
     return Scaffold(
+      key: scaffoldKey,
       backgroundColor: const Color(0xFFF7F5FF),
-      body: SafeArea(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Sidebar(
-              selectedIndex: 4,
-            ),
-            Expanded(
-              child: Column(
-                children: [
-                  const TopBar(),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 28.0, right: 28.0, top: 20.0),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Reception Calendar',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 28,
-                                color: Color(0xFF232B3E),
-                              ),
+      body: Row(
+        children: [
+          if (!isMobile) Sidebar(selectedIndex: 4, employeeId: _receptionistId),
+          Expanded(
+            child: Column(
+              children: [
+                TopBar(
+                  isDashboard: false,
+                  showMenu: isMobile,
+                  onMenuTap: () => scaffoldKey.currentState?.openDrawer(),
+                  receptionistName: _receptionistName.isNotEmpty ? _receptionistName : 'Receptionist',
+                  branchName: _branchName.isNotEmpty ? _branchName : 'Branch',
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 28.0, right: 28.0, top: 20.0),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Reception Calendar',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 28,
+                              color: Color(0xFF232B3E),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Click on any date to view job requests for that day',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[600],
-                              ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Click on any date to view job requests for that day',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[600],
                             ),
-                            const SizedBox(height: 32),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
+                          ),
+                          const SizedBox(height: 32),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.all(24),
+                            child: TableCalendar<JobRequest>(
+                              key: ValueKey(_jobRequestsMap.hashCode),
+                              firstDay: DateTime.utc(2020, 1, 1),
+                              lastDay: DateTime.utc(2030, 12, 31),
+                              focusedDay: _focusedDay,
+                              calendarFormat: _calendarFormat,
+                              eventLoader: _getJobRequestsForDay,
+                              startingDayOfWeek: StartingDayOfWeek.monday,
+                              selectedDayPredicate: (day) {
+                                return isSameDay(_selectedDay, day);
+                              },
+                              onDaySelected: (selectedDay, focusedDay) {
+                                if (!isSameDay(_selectedDay, selectedDay)) {
+                                  setState(() {
+                                    _selectedDay = selectedDay;
+                                    _focusedDay = focusedDay;
+                                  });
+                                }
+                                _showJobRequestsDialog(selectedDay);
+                              },
+                              onFormatChanged: (format) {
+                                if (_calendarFormat != format) {
+                                  setState(() {
+                                    _calendarFormat = format;
+                                  });
+                                }
+                              },
+                              onPageChanged: (focusedDay) {
+                                _focusedDay = focusedDay;
+                              },
+                              calendarStyle: CalendarStyle(
+                                outsideDaysVisible: false,
+                                todayDecoration: BoxDecoration(
+                                  color: const Color(0xFF112233).withOpacity(0.7),
+                                  shape: BoxShape.circle,
+                                ),
+                                selectedDecoration: const BoxDecoration(
+                                  color: Color(0xFF112233),
+                                  shape: BoxShape.circle,
+                                ),
+                                markerDecoration: BoxDecoration(
+                                  color: Colors.teal[600],
+                                  shape: BoxShape.circle,
+                                ),
+                                markersMaxCount: 3,
+                                markersAnchor: 0.7,
+                                weekendTextStyle: TextStyle(
+                                  color: Colors.red[400],
+                                ),
+                                holidayTextStyle: TextStyle(
+                                  color: Colors.red[400],
+                                ),
                               ),
-                              padding: const EdgeInsets.all(24),
-                              child: TableCalendar<JobRequest>(
-                                key: ValueKey(_jobRequestsMap.hashCode),
-                                firstDay: DateTime.utc(2020, 1, 1),
-                                lastDay: DateTime.utc(2030, 12, 31),
-                                focusedDay: _focusedDay,
-                                calendarFormat: _calendarFormat,
-                                eventLoader: _getJobRequestsForDay,
-                                startingDayOfWeek: StartingDayOfWeek.monday,
-                                selectedDayPredicate: (day) {
-                                  return isSameDay(_selectedDay, day);
-                                },
-                                onDaySelected: (selectedDay, focusedDay) {
-                                  if (!isSameDay(_selectedDay, selectedDay)) {
-                                    setState(() {
-                                      _selectedDay = selectedDay;
-                                      _focusedDay = focusedDay;
-                                    });
-                                  }
-                                  _showJobRequestsDialog(selectedDay);
-                                },
-                                onFormatChanged: (format) {
-                                  if (_calendarFormat != format) {
-                                    setState(() {
-                                      _calendarFormat = format;
-                                    });
-                                  }
-                                },
-                                onPageChanged: (focusedDay) {
-                                  _focusedDay = focusedDay;
-                                },
-                                calendarStyle: CalendarStyle(
-                                  outsideDaysVisible: false,
-                                  todayDecoration: BoxDecoration(
-                                    color: const Color(0xFF112233).withOpacity(0.7),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  selectedDecoration: const BoxDecoration(
-                                    color: Color(0xFF112233),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  markerDecoration: BoxDecoration(
-                                    color: Colors.teal[600],
-                                    shape: BoxShape.circle,
-                                  ),
-                                  markersMaxCount: 3,
-                                  markersAnchor: 0.7,
-                                  weekendTextStyle: TextStyle(
-                                    color: Colors.red[400],
-                                  ),
-                                  holidayTextStyle: TextStyle(
-                                    color: Colors.red[400],
-                                  ),
+                              headerStyle: const HeaderStyle(
+                                formatButtonVisible: true,
+                                titleCentered: true,
+                                formatButtonShowsNext: false,
+                                formatButtonDecoration: BoxDecoration(
+                                  color: Color(0xFF112233),
+                                  borderRadius: BorderRadius.all(Radius.circular(12.0)),
                                 ),
-                                headerStyle: const HeaderStyle(
-                                  formatButtonVisible: true,
-                                  titleCentered: true,
-                                  formatButtonShowsNext: false,
-                                  formatButtonDecoration: BoxDecoration(
-                                    color: Color(0xFF112233),
-                                    borderRadius: BorderRadius.all(Radius.circular(12.0)),
-                                  ),
-                                  formatButtonTextStyle: TextStyle(
-                                    color: Colors.white,
-                                  ),
-                                  leftChevronIcon: Icon(
-                                    Icons.chevron_left,
-                                    color: Color(0xFF112233),
-                                  ),
-                                  rightChevronIcon: Icon(
-                                    Icons.chevron_right,
-                                    color: Color(0xFF112233),
-                                  ),
+                                formatButtonTextStyle: TextStyle(
+                                  color: Colors.white,
                                 ),
-                                calendarBuilders: CalendarBuilders(
-                                  markerBuilder: (context, day, events) {
-                                    if (events.isNotEmpty) {
-                                      return Positioned(
-                                        right: 1,
-                                        bottom: 1,
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            color: Colors.teal[600],
-                                            shape: BoxShape.circle,
-                                          ),
-                                          width: 16,
-                                          height: 16,
-                                          child: Center(
-                                            child: Text(
-                                              '${events.length}',
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                              ),
+                                leftChevronIcon: Icon(
+                                  Icons.chevron_left,
+                                  color: Color(0xFF112233),
+                                ),
+                                rightChevronIcon: Icon(
+                                  Icons.chevron_right,
+                                  color: Color(0xFF112233),
+                                ),
+                              ),
+                              calendarBuilders: CalendarBuilders(
+                                markerBuilder: (context, day, events) {
+                                  if (events.isNotEmpty) {
+                                    return Positioned(
+                                      right: 1,
+                                      bottom: 1,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.teal[600],
+                                          shape: BoxShape.circle,
+                                        ),
+                                        width: 16,
+                                        height: 16,
+                                        child: Center(
+                                          child: Text(
+                                            '${events.length}',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
                                             ),
                                           ),
                                         ),
-                                      );
-                                    }
-                                    return null;
-                                  },
-                                ),
+                                      ),
+                                    );
+                                  }
+                                  return null;
+                                },
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

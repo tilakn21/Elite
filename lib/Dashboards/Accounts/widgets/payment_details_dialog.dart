@@ -195,7 +195,7 @@ class PaymentDetailsDialog extends StatelessWidget {
                         child: Column(
                           children: [
                             Text(
-                              '\$${payment.amount.toStringAsFixed(2)}',
+                              '£${payment.amount.toStringAsFixed(2)}',
                               style: const TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,

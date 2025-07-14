@@ -206,7 +206,7 @@ class _EmployeeRow extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: Text(
-                  '\$${payment.amount.toStringAsFixed(2)}',
+                  '\£${payment.amount.toStringAsFixed(2)}',
                   textAlign: TextAlign.right,
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,

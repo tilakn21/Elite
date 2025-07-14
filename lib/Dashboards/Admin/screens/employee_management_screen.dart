@@ -6,6 +6,7 @@ import '../widgets/admin_top_bar.dart';
 import '../services/admin_service.dart';
 import '../models/employee.dart';
 import 'add_employee_screen.dart';
+import 'edit_employee_screen.dart';
 
 class EmployeeManagementScreen extends StatefulWidget {
   const EmployeeManagementScreen({Key? key}) : super(key: key);
@@ -37,6 +38,52 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
       MaterialPageRoute(
         builder: (context) => AddEmployeeScreen(
           onEmployeeAdded: _refreshEmployees,
+        ),
+      ),
+    );
+  }
+
+  // Show delete confirmation dialog
+  void _confirmDeleteEmployee(Employee employee) {
+    final parentContext = context; // Capture before dialog
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Delete'),
+        content: Text('Are you sure you want to delete \\${employee.fullName}?'),
+        actions: [
+          TextButton(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          TextButton(
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            onPressed: () async {
+              Navigator.of(context).pop();
+              try {
+                await _adminService.deleteEmployee(employee.id);
+                ScaffoldMessenger.of(parentContext).showSnackBar(
+                  SnackBar(content: Text('\\${employee.fullName} has been deleted')),
+                );
+                _refreshEmployees();
+              } catch (e) {
+                ScaffoldMessenger.of(parentContext).showSnackBar(
+                  SnackBar(content: Text('Error deleting employee: \\${e.toString()}')),
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+  // Navigate to edit employee screen
+  void _editEmployee(Employee employee) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => EditEmployeeScreen(
+          employee: employee,
+          onEmployeeUpdated: _refreshEmployees,
         ),
       ),
     );
@@ -76,9 +123,8 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
                       child: SingleChildScrollView(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'User Management',
+                          children: [                            const Text(
+                              'Employee Management',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 28,
@@ -92,7 +138,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 0),
                               child: TextField(
                                 decoration: InputDecoration(
-                                  hintText: 'Search employees by name, email, or role...',
+                                  hintText: 'Search employees by name, email, phone, or role...',
                                   prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
                                   filled: true,
                                   fillColor: Colors.white,
@@ -180,14 +226,17 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
                                       if (selectedRole != 'All') {
                                         employees = employees.where((e) => e.role == selectedRole).toList();
                                       }
-                                      if (searchQuery.isNotEmpty) {
-                                        employees = employees.where((e) =>
+                                      if (searchQuery.isNotEmpty) {                                        employees = employees.where((e) =>
                                           e.fullName.toLowerCase().contains(searchQuery.toLowerCase()) ||
                                           e.phone.toLowerCase().contains(searchQuery.toLowerCase()) ||
-                                          e.role.toLowerCase().contains(searchQuery.toLowerCase())
+                                          e.role.toLowerCase().contains(searchQuery.toLowerCase()) ||
+                                          e.email.toLowerCase().contains(searchQuery.toLowerCase())
                                         ).toList();
-                                      }
-                                      return EmployeeTable(employees: employees);
+                                      }                                      return EmployeeTable(
+                                        employees: employees,
+                                        onEmployeeDeleted: _confirmDeleteEmployee,
+                                        onEmployeeUpdated: _editEmployee,
+                                      );
                                     },
                                   ),
                                 ],

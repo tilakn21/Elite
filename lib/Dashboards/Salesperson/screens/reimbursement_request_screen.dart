@@ -13,7 +13,8 @@ import '../services/salesperson_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ReimbursementRequestScreen extends StatefulWidget {
-  const ReimbursementRequestScreen({Key? key}) : super(key: key);
+  final String? salespersonId;
+  const ReimbursementRequestScreen({Key? key, this.salespersonId}) : super(key: key);
 
   @override
   State<ReimbursementRequestScreen> createState() => _ReimbursementRequestScreenState();
@@ -34,17 +35,29 @@ class _ReimbursementRequestScreenState extends State<ReimbursementRequestScreen>
   final Set<String> _invalidFields = {};
   bool _isUploading = false;
   final SalespersonService _salespersonService = SalespersonService();
+  String? _salespersonId;
 
   @override
   void initState() {
     super.initState();
-    _fetchAndSetEmployeeName();
+    // Extract ID from widget or route arguments
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map && args['receptionistId'] != null) {
+        setState(() {
+          _salespersonId = args['receptionistId'] as String?;
+        });
+      } else if (widget.salespersonId != null) {
+        _salespersonId = widget.salespersonId;
+      }
+      _fetchAndSetEmployeeName();
+    });
   }
 
   Future<void> _fetchAndSetEmployeeName() async {
-    // Use the authenticated user's id from Supabase
-    final user = Supabase.instance.client.auth.currentUser;
-    final userId = user?.id ?? 'sal2003'; // fallback for dev/testing only
+    // Only use the passed-in _salespersonId, never fallback
+    final userId = _salespersonId;
+    if (userId == null) return;
     final name = await _salespersonService.fetchSalespersonNameById(userId);
     setState(() {
       _empNameController.text = name ?? '';
@@ -74,11 +87,12 @@ class _ReimbursementRequestScreenState extends State<ReimbursementRequestScreen>
           ? Drawer(
               child: SalespersonSidebar(
                 selectedRoute: 'reimbursement',
+                salespersonId: _salespersonId,
                 onItemSelected: (route) {
                   if (route == 'home') {
-                    Navigator.of(context).pushReplacementNamed('/salesperson/dashboard');
+                    Navigator.of(context).pushReplacementNamed('/salesperson/dashboard', arguments: {'receptionistId': _salespersonId});
                   } else if (route == 'profile') {
-                    Navigator.of(context).pushReplacementNamed('/salesperson/profile');
+                    Navigator.of(context).pushReplacementNamed('/salesperson/profile', arguments: {'receptionistId': _salespersonId});
                   } else if (route == 'reimbursement') {
                     Navigator.of(context).pop();
                   }
@@ -91,11 +105,12 @@ class _ReimbursementRequestScreenState extends State<ReimbursementRequestScreen>
           if (!isMobile)
             SizedBox(width: 240, child: SalespersonSidebar(
               selectedRoute: 'reimbursement',
+              salespersonId: _salespersonId,
               onItemSelected: (route) {
                 if (route == 'home') {
-                  Navigator.of(context).pushReplacementNamed('/salesperson/dashboard');
+                  Navigator.of(context).pushReplacementNamed('/salesperson/dashboard', arguments: {'receptionistId': _salespersonId});
                 } else if (route == 'profile') {
-                  Navigator.of(context).pushReplacementNamed('/salesperson/profile');
+                  Navigator.of(context).pushReplacementNamed('/salesperson/profile', arguments: {'receptionistId': _salespersonId});
                 } else if (route == 'reimbursement') {
                   // Already here
                 }
@@ -454,8 +469,19 @@ class _ReimbursementRequestScreenState extends State<ReimbursementRequestScreen>
         debugPrint('[Form] Attempting to access ReimbursementProvider');
         final provider = Provider.of<ReimbursementProvider>(context, listen: false);
         debugPrint('[Form] Provider accessed successfully');
-        final user = Supabase.instance.client.auth.currentUser;
-        final empId = user?.id ?? 'sal2003';
+        final empId = _salespersonId;
+        if (empId == null) {
+          setState(() {
+            _isUploading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('No salesperson ID provided.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
         final empName = _empNameController.text.trim();
         final amount = double.tryParse(_amountController.text.trim()) ?? 0.0;
         final purpose = _purposeController.text.trim();
@@ -472,7 +498,7 @@ class _ReimbursementRequestScreenState extends State<ReimbursementRequestScreen>
           status: ReimbursementStatus.pending,
         );
         await provider.addReimbursementRequest(reimbursement, receiptImage: _receiptImage);
-        debugPrint('[Form] Reimbursement request submitted');
+        debugPrint('[Form] Reimbursement request submitted for $empId');
         setState(() {
           _isUploading = false;
           _clearForm();

@@ -7,7 +7,16 @@ class TopBar extends StatelessWidget {
   final bool isDashboard;
   final bool showMenu;
   final VoidCallback? onMenuTap;
-  const TopBar({Key? key, this.isDashboard = false, this.showMenu = false, this.onMenuTap}) : super(key: key);
+  final String receptionistName;
+  final String branchName;
+  const TopBar({
+    Key? key,
+    this.isDashboard = false,
+    this.showMenu = false,
+    this.onMenuTap,
+    this.receptionistName = 'John Doe',
+    this.branchName = 'Demo Branch',
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -45,8 +54,7 @@ class TopBar extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              // TODO: Replace with actual branch name from employee table after auth
-              'Branch: Demo Branch',
+              'Branch: ' + branchName,
               style: const TextStyle(
                 color: Color(0xFF1B2330),
                 fontWeight: FontWeight.w600,
@@ -66,7 +74,9 @@ class TopBar extends StatelessWidget {
               CircleAvatar(
                 backgroundColor: Colors.white,
                 radius: 20,
-                child: Text('J', style: TextStyle(color: sidebarColor, fontWeight: FontWeight.bold, fontSize: 18)),
+                child: Text(
+                  receptionistName.isNotEmpty ? receptionistName[0] : 'J',
+                  style: TextStyle(color: sidebarColor, fontWeight: FontWeight.bold, fontSize: 18)),
               ),
               const SizedBox(width: 10),
               Column(
@@ -74,7 +84,7 @@ class TopBar extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Name row
-                  Text('John Doe', style: TextStyle(fontWeight: FontWeight.normal, fontSize: 13, color: Colors.white)),
+                  Text(receptionistName, style: TextStyle(fontWeight: FontWeight.normal, fontSize: 13, color: Colors.white)),
                   Text('Receptionist', style: TextStyle(fontWeight: FontWeight.w400, fontSize: 11, color: Colors.white)),
                 ],
               ),

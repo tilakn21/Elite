@@ -4,7 +4,7 @@ import '../models/job.dart';
 import '../utils/app_theme.dart';
 import '../screens/job_details_screen.dart';
 
-class JobListCard extends StatelessWidget {
+class JobListCard extends StatefulWidget {
   final List<Job> jobs;
 
   const JobListCard({
@@ -13,87 +13,169 @@ class JobListCard extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<JobListCard> createState() => _JobListCardState();
+}
+
+class _JobListCardState extends State<JobListCard> {
+  String _selectedFilter = 'All';
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  List<String> get _filters => [
+        'All',
+        'Queued',
+        'Pending for Approval',
+        'Design Completed',
+      ];
+
+  String _getDisplayStatus(Job job) {
+    String displayStatus = 'Queued';
+    final design = job.design;
+    if (design is List && design.isNotEmpty) {
+      for (var i = design.length - 1; i >= 0; i--) {
+        final draft = design[i];
+        final status = draft is Map<String, dynamic> ? draft['status']?.toString().toLowerCase() : null;
+        if (status == 'pending_approval' || status == 'pending for approval') {
+          displayStatus = 'Pending for Approval';
+          break;
+        } else if (status == 'completed') {
+          displayStatus = 'Design Completed';
+          break;
+        }
+      }
+    }
+    return displayStatus;
+  }
+
+  List<Job> get _filteredJobs {
+    return widget.jobs.where((job) {
+      final displayStatus = _getDisplayStatus(job);
+      final matchesSearch = job.clientName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          job.jobNo.toLowerCase().contains(_searchQuery.toLowerCase());
+      if (_selectedFilter == 'All') return matchesSearch;
+      if (_selectedFilter == 'Queued' && displayStatus == 'Queued') return matchesSearch;
+      if (_selectedFilter == 'Pending for Approval' && displayStatus == 'Pending for Approval') return matchesSearch;
+      if (_selectedFilter == 'Design Completed' && displayStatus == 'Design Completed') return matchesSearch;
+      return false;
+    }).toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
-    return GestureDetector(
-      onTap: () {
-        Navigator.pushNamed(context, '/design/job-list');
-      },
-      child: Card(
-        margin: EdgeInsets.zero,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0).copyWith(bottom: 23.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Job List',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18,
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0).copyWith(bottom: 23.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Job List',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                  ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
                     ),
-              ),
-              const SizedBox(height: 20),
-              if (jobs.isNotEmpty && !isMobile)
-                _buildApprovedJobsSection(context),
-              if (jobs.isNotEmpty && !isMobile) const SizedBox(height: 24),
-              if (!isMobile) _buildJobListHeader(context),
-              if (!isMobile)
-                const Divider(height: 1, thickness: 1, color: Color(0xFFEEEEEE)),
-              const SizedBox(height: 12),
-              jobs.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.work_outline,
-                              size: 48,
-                              color: Colors.grey[300],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No jobs available',
-                              style:
-                                  Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                        color: AppTheme.textSecondaryColor,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxHeight: jobs.length > 4 ? 400 : jobs.length * 80.0,
-                      ),
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        physics: const BouncingScrollPhysics(),
-                        itemCount: jobs.length > 4 ? 4 : jobs.length,
-                        separatorBuilder: (context, index) => const Divider(
-                            height: 1, thickness: 1, color: Color(0xFFEEEEEE)),
-                        itemBuilder: (context, index) {
-                          final job = jobs[index];
-                          return _buildJobListItem(context, job,
-                              isMobile: isMobile);
-                        },
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (value) => setState(() => _searchQuery = value),
+                      decoration: InputDecoration(
+                        hintText: 'Search jobs...',
+                        prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       ),
                     ),
-            ],
-          ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedFilter,
+                      items: _filters
+                          .map((filter) => DropdownMenuItem(
+                                value: filter,
+                                child: Text(filter),
+                              ))
+                          .toList(),
+                      onChanged: (value) => setState(() => _selectedFilter = value!),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (!isMobile) _buildJobListHeader(context),
+            if (!isMobile)
+              const Divider(height: 1, thickness: 1, color: Color(0xFFEEEEEE)),
+            const SizedBox(height: 12),
+            _filteredJobs.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.work_outline,
+                            size: 48,
+                            color: Colors.grey[300],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No jobs available',
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                  color: AppTheme.textSecondaryColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: _filteredJobs.length > 4 ? 400 : _filteredJobs.length * 80.0,
+                    ),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: _filteredJobs.length > 4 ? 4 : _filteredJobs.length,
+                      separatorBuilder: (context, index) => const Divider(
+                          height: 1, thickness: 1, color: Color(0xFFEEEEEE)),
+                      itemBuilder: (context, index) {
+                        final job = _filteredJobs[index];
+                        return _buildJobListItem(context, job, isMobile: isMobile);
+                      },
+                    ),
+                  ),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildApprovedJobsSection(BuildContext context) {
-    final approvedJobs = jobs.where((job) => job.displayStatus == 'Approved').toList();
+    final approvedJobs = widget.jobs.where((job) => job.displayStatus == 'Approved').toList();
 
     if (approvedJobs.isEmpty) {
       return const SizedBox.shrink();
@@ -284,8 +366,19 @@ class JobListCard extends StatelessWidget {
       {bool isMobile = false}) {
     final dateFormat =
         isMobile ? DateFormat('dd/MM/yy') : DateFormat('dd/MM/yyyy\nhh:mm a');
-    final statusColor = job.displayStatusColor;
-    final statusText = job.displayStatus;
+    final displayStatus = _getDisplayStatus(job);
+    Color statusColor;
+    switch (displayStatus) {
+      case 'Pending for Approval':
+        statusColor = AppTheme.inProgressColor;
+        break;
+      case 'Design Completed':
+        statusColor = Colors.green;
+        break;
+      default:
+        statusColor = AppTheme.pendingColor;
+    }
+    final statusText = displayStatus;
 
     if (isMobile) {
       // Mobile layout - card style

@@ -2,6 +2,8 @@ import '../models/job_request.dart';
 import '../models/salesperson.dart';
 import 'package:uuid/uuid.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 
 class ReceptionistService {
   final Uuid _uuid = const Uuid();
@@ -166,7 +168,7 @@ class ReceptionistService {
     return null;
   }
 
-  // Add a new job to Supabase (jobs table)
+  // Add a new job to Supabase, now with branch_id logic
   Future<void> addJobToSupabase({
     required String customerName,
     required String phone,
@@ -183,8 +185,20 @@ class ReceptionistService {
     Map<String, dynamic>? accountant, // <-- add this
     void Function()? onJobAdded, // callback after job is added
   }) async {
+    print('[SUPABASE_JOB] Creating job with receptionist ID: $createdBy');
     final supabase = Supabase.instance.client;
     final now = DateTime.now().toUtc().toIso8601String();
+    // --- Fetch branch_id for authenticated receptionist ---
+    final branchResult = await supabase
+        .from('employee')
+        .select('branch_id')
+        .eq('id', createdBy)
+        .maybeSingle();
+    print('[SUPABASE_JOB] Branch result: $branchResult for ID: $createdBy');
+    
+    final int? branchId = branchResult != null ? int.tryParse(branchResult['branch_id'].toString()) : null;
+    print('[SUPABASE_JOB] Branch ID: $branchId');
+    // --- END ---
     final receptionistJson = {
       'customerName': customerName,
       'phone': phone,
@@ -199,8 +213,6 @@ class ReceptionistService {
       'assignedSalesperson': assignedSalesperson,
       'createdBy': createdBy,
       'createdAt': now,
-      // Add status as completed for receptionist jsonb
-      'status': 'completed',
     };
     try {
       // Insert job and get the created job's id
@@ -209,6 +221,7 @@ class ReceptionistService {
         'created_at': now,
         'receptionist': receptionistJson,
         if (accountant != null) 'accountant': accountant, // <-- include accountant if provided
+        if (branchId != null) 'branch_id': branchId, // <-- include branch_id in jobs table
       };
       final insertedJob = await supabase
           .from('jobs')
@@ -242,15 +255,9 @@ class ReceptionistService {
             })
             .eq('id', assignedSalesperson);
       }
-      if (onJobAdded != null) {
-        onJobAdded();
-      }
-      // Fetch jobs again after adding
-      await fetchJobRequestsFromSupabase();
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to add job: \\${e.message}');
+      if (onJobAdded != null) onJobAdded();
     } catch (e) {
-      throw Exception('Failed to add job: $e');
+      rethrow;
     }
   }
 
@@ -375,5 +382,42 @@ class ReceptionistService {
     } catch (e) {
       throw Exception('Failed to update salesperson availability: $e');
     }
+  }
+
+  /// Fetch receptionist's name, role, and branch_id from employee table
+  Future<Map<String, dynamic>?> fetchReceptionistDetails({required String receptionistId}) async {
+    final supabase = Supabase.instance.client;
+    final String id = receptionistId;
+    final result = await supabase
+        .from('employee')
+        .select('full_name, role, branch_id')
+        .eq('id', id)
+        .maybeSingle();
+    return result;
+  }
+
+  /// Fetch branch name from branches table using branch_id
+  Future<String?> fetchBranchName(int branchId) async {
+    final supabase = Supabase.instance.client;
+    final result = await supabase
+        .from('branches')
+        .select('name')
+        .eq('id', branchId)
+        .maybeSingle();
+    return result != null ? result['name'] as String? : null;
+  }
+
+  /// Authenticate employee by ID and password (hashed)
+  static Future<Map<String, dynamic>?> loginWithIdAndPassword(String empId, String password) async {
+    final supabase = Supabase.instance.client;
+    // Hash the password (assuming SHA256, update if you use a different hash)
+    final hashedPassword = sha256.convert(utf8.encode(password)).toString();
+    final result = await supabase
+        .from('employee')
+        .select('id, full_name, role, branch_id')
+        .eq('id', empId)
+        .eq('password', hashedPassword)
+        .maybeSingle();
+    return result;
   }
 }

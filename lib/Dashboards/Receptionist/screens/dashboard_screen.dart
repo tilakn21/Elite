@@ -11,12 +11,14 @@ import '../models/job_request.dart';
 import '../models/salesperson.dart';
 import '../providers/job_request_provider.dart';
 import '../providers/salesperson_provider.dart';
+import '../services/receptionist_service.dart';
 
 class DashboardPage extends StatefulWidget {
-  const DashboardPage({Key? key}) : super(key: key);
+  final String? receptionistId;
+  const DashboardPage({Key? key, this.receptionistId}) : super(key: key);
 
-  static Route<dynamic> route() =>
-      MaterialPageRoute(builder: (_) => const DashboardPage());
+  static Route<dynamic> route({String? receptionistId}) =>
+      MaterialPageRoute(builder: (_) => DashboardPage(receptionistId: receptionistId));
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
@@ -25,15 +27,57 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserver {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
+  String _receptionistName = '';
+  String _branchName = '';
+  String _receptionistId = ''; // Will be set from widget parameter
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Set receptionistId from widget parameter, or use empty string if null
+    _receptionistId = widget.receptionistId ?? '';
+    print('[DASHBOARD] Using receptionist ID: $_receptionistId');
     // Refresh job requests and salespersons when screen is opened
     Future.microtask(() {
       Provider.of<JobRequestProvider>(context, listen: false).fetchJobRequests();
       Provider.of<SalespersonProvider>(context, listen: false).fetchSalespersons();
     });
+    _fetchReceptionistAndBranch();
+  }
+
+  Future<void> _fetchReceptionistAndBranch() async {
+    if (_receptionistId.isEmpty) {
+      print('[DASHBOARD] Warning: Receptionist ID is empty');
+      setState(() {
+        _receptionistName = 'Unknown';
+        _branchName = 'Unknown';
+      });
+      return;
+    }
+    
+    final service = ReceptionistService();
+    try {
+      final details = await service.fetchReceptionistDetails(receptionistId: _receptionistId);
+      String name = details?['full_name'] ?? '';
+      String branchName = '';
+      
+      if (details != null && details['branch_id'] != null) {
+        branchName = await service.fetchBranchName(int.parse(details['branch_id'].toString())) ?? '';
+      }
+      
+      setState(() {
+        _receptionistName = name;
+        _branchName = branchName;
+      });
+      print('[DASHBOARD] Fetched details: name=$_receptionistName, branch=$_branchName');
+    } catch (e) {
+      print('[DASHBOARD] Error fetching receptionist details: $e');
+      setState(() {
+        _receptionistName = 'Error';
+        _branchName = 'Error';
+      });
+    }
   }
 
   @override
@@ -68,13 +112,14 @@ class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserv
                 selectedIndex: 0,
                 isDrawer: true,
                 onClose: () => Navigator.of(context).pop(),
+                employeeId: _receptionistId,
               ),
             )
           : null,
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!isMobile) Sidebar(selectedIndex: 0),
+          if (!isMobile) Sidebar(selectedIndex: 0, employeeId: _receptionistId.isNotEmpty ? _receptionistId : 'unknown'),
           Expanded(
             child: Column(
               children: [
@@ -82,6 +127,8 @@ class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserv
                   isDashboard: true,
                   showMenu: isMobile,
                   onMenuTap: () => scaffoldKey.currentState?.openDrawer(),
+                  receptionistName: _receptionistName.isNotEmpty ? _receptionistName : 'Receptionist',
+                  branchName: _branchName.isNotEmpty ? _branchName : 'Branch',
                 ),
                 const SizedBox(height: 8),
                 Expanded(

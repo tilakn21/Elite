@@ -159,7 +159,7 @@ class JobListCard extends StatelessWidget {
                                 cells: [
                                   DataCell(
                                     Text(
-                                      'JOB-${job.jobNo.padLeft(3, '0')}',
+                                      '${job.jobNo.padLeft(3, '0')}',
                                       style: const TextStyle(
                                         fontWeight: FontWeight.w500,
                                         fontSize: 13,

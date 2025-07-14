@@ -7,9 +7,11 @@ import '../widgets/sidebar.dart';
 import '../widgets/topbar.dart';
 import '../models/employee_reimbursement.dart';
 import '../providers/reimbursement_provider.dart';
+import '../services/receptionist_service.dart';
 
 class ReimbursementRequestScreen extends StatefulWidget {
-  const ReimbursementRequestScreen({Key? key}) : super(key: key);
+  final String? receptionistId;
+  const ReimbursementRequestScreen({Key? key, this.receptionistId}) : super(key: key);
 
   @override
   State<ReimbursementRequestScreen> createState() => _ReimbursementRequestScreenState();
@@ -32,12 +34,52 @@ class _ReimbursementRequestScreenState extends State<ReimbursementRequestScreen>
   
   final Set<String> _invalidFields = {};
   bool _isUploading = false;
-  
+  String _receptionistName = '';
+  String _branchName = '';
+  String _receptionistId = ''; // Will be set from widget parameter
+
   @override
   void initState() {
     super.initState();
-    // Pre-fill employee name (in real app, get from auth/session)
-    _empNameController.text = 'John Doe'; // TODO: Replace with actual logged-in user
+    // Set receptionistId from widget parameter or use empty string if null
+    _receptionistId = widget.receptionistId ?? '';
+    print('[REIMBURSEMENT] Using receptionist ID: $_receptionistId');
+    _fetchReceptionistAndBranch();
+  }
+
+  Future<void> _fetchReceptionistAndBranch() async {
+    if (_receptionistId.isEmpty) {
+      print('[REIMBURSEMENT] Warning: Receptionist ID is empty');
+      setState(() {
+        _receptionistName = 'Unknown';
+        _branchName = 'Unknown';
+      });
+      return;
+    }
+    
+    final service = ReceptionistService();
+    try {
+      final details = await service.fetchReceptionistDetails(receptionistId: _receptionistId);
+      String name = details?['full_name'] ?? '';
+      String branchName = '';
+      
+      if (details != null && details['branch_id'] != null) {
+        branchName = await service.fetchBranchName(int.parse(details['branch_id'].toString())) ?? '';
+      }
+      
+      setState(() {
+        _receptionistName = name;
+        _branchName = branchName;
+        _empNameController.text = name; // Pre-fill the employee name
+      });
+      print('[REIMBURSEMENT] Fetched details: name=$_receptionistName, branch=$_branchName');
+    } catch (e) {
+      print('[REIMBURSEMENT] Error fetching receptionist details: $e');
+      setState(() {
+        _receptionistName = 'Error';
+        _branchName = 'Error';
+      });
+    }
   }
 
   @override
@@ -66,12 +108,13 @@ class _ReimbursementRequestScreenState extends State<ReimbursementRequestScreen>
                 selectedIndex: 3, // Reimbursement screen index
                 isDrawer: true,
                 onClose: () => Navigator.of(context).pop(),
+                employeeId: _receptionistId,
               ),
             )
           : null,
       body: Row(
         children: [
-          if (!isMobile) Sidebar(selectedIndex: 3),
+          if (!isMobile) Sidebar(selectedIndex: 3, employeeId: _receptionistId),
           Expanded(
             child: Column(
               children: [
@@ -79,6 +122,8 @@ class _ReimbursementRequestScreenState extends State<ReimbursementRequestScreen>
                   isDashboard: false,
                   showMenu: isMobile,
                   onMenuTap: () => scaffoldKey.currentState?.openDrawer(),
+                  receptionistName: _receptionistName.isNotEmpty ? _receptionistName : 'Receptionist',
+                  branchName: _branchName.isNotEmpty ? _branchName : 'Branch',
                 ),
                 Expanded(
                   child: Center(
@@ -574,7 +619,7 @@ class _ReimbursementRequestScreenState extends State<ReimbursementRequestScreen>
     debugPrint('[Reimbursement] All validations passed. Creating reimbursement object...');
     // Create reimbursement request
     final reimbursement = EmployeeReimbursement(
-      empId: 'sal2001', // TODO: Get from actual auth/session
+      empId: _receptionistId, // Use the correct receptionist ID
       empName: _empNameController.text.trim(),
       amount: double.parse(_amountController.text.trim()),
       reimbursementDate: _selectedDate!,
@@ -612,7 +657,7 @@ class _ReimbursementRequestScreenState extends State<ReimbursementRequestScreen>
       _invalidFields.clear();
     });
     // Pre-fill employee name again
-    _empNameController.text = 'John Doe';
+    _empNameController.text = _receptionistName;
   }
 }
 

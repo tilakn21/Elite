@@ -143,19 +143,97 @@ class MyApp extends StatelessWidget {
         '/admin/jobs': (context) => const JobListingScreen(),
         '/admin/calendar': (context) => const AdminCalendarScreen(),
         '/login': (context) => const LoginScreen(),
-        '/receptionist/dashboard': (context) => const DashboardPage(),        '/receptionist/new-job-request': (context) =>
-            const NewJobRequestScreen(),
+        '/receptionist/dashboard': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? receptionistId;
+          if (args is Map && args['receptionistId'] != null) {
+            receptionistId = args['receptionistId'] as String?;
+          }
+          return DashboardPage(receptionistId: receptionistId);
+        },
+        '/receptionist/new-job-request': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? receptionistId;
+          if (args is Map && args['receptionistId'] != null) {
+            receptionistId = args['receptionistId'] as String?;
+          }
+          return NewJobRequestScreen(receptionistId: receptionistId);
+        },
         '/receptionist/assign-salesperson': (context) =>
-            const AssignSalespersonScreen(),        '/receptionist/view-all-jobs': (context) => const ViewAllJobsScreen(),
-        '/receptionist/reimbursement-request': (context) => const ReimbursementRequestScreen(),
-        '/receptionist/calendar': (context) => const ReceptionistCalendarScreen(),
+            const AssignSalespersonScreen(),        '/receptionist/view-all-jobs': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? receptionistId;
+          if (args is Map && args['receptionistId'] != null) {
+            receptionistId = args['receptionistId'] as String?;
+          }
+          return ViewAllJobsScreen(receptionistId: receptionistId);
+        },
+        '/receptionist/reimbursement-request': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? receptionistId;
+          if (args is Map && args['receptionistId'] != null) {
+            receptionistId = args['receptionistId'] as String?;
+          }
+          return ReimbursementRequestScreen(receptionistId: receptionistId);
+        },
+        '/receptionist/calendar': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? receptionistId;
+          if (args is Map && args['receptionistId'] != null) {
+            receptionistId = args['receptionistId'] as String?;
+          }
+          return ReceptionistCalendarScreen(receptionistId: receptionistId);
+        },
         //'/receptionist/view-reimbursements': (context) => const ViewReimbursementsScreen(),
-        '/salesperson/dashboard': (context) => const SalespersonHomeScreen(),
-        '/salesperson/profile': (context) => const SalespersonProfileScreen(),
-        '/design/dashboard': (context) => const design.DashboardScreen(),        '/accounts/dashboard': (context) => const AccountsDashboardScreen(),
-        '/accounts/invoice': (context) => const AccountsInvoiceScreen(),
-        '/accounts/employee': (context) => const AccountsEmployeeScreen(),
-        '/accounts/calendar': (context) => const AccountsCalendarScreen(),        '/production/dashboard': (context) => const ProductionDashboard(),
+        '/salesperson/dashboard': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? salespersonId;
+          if (args is Map && args['receptionistId'] != null) {
+            salespersonId = args['receptionistId'] as String?;
+          }
+          return SalespersonHomeScreen(salespersonId: salespersonId);
+        },
+        '/salesperson/profile': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? salespersonId;
+          if (args is Map && args['receptionistId'] != null) {
+            salespersonId = args['receptionistId'] as String?;
+          }
+          return SalespersonProfileScreen(salespersonId: salespersonId);
+        },
+        '/design/dashboard': (context) => const design.DashboardScreen(),        '/accounts/dashboard': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? accountantId;
+          if (args is Map && args['accountantId'] != null) {
+            accountantId = args['accountantId'] as String?;
+          }
+          return AccountsDashboardScreen(accountantId: accountantId);
+        },
+        '/accounts/invoice': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? accountantId;
+          if (args is Map && args['accountantId'] != null) {
+            accountantId = args['accountantId'] as String?;
+          }
+          return AccountsInvoiceScreen(accountantId: accountantId);
+        },
+        '/accounts/employee': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? accountantId;
+          if (args is Map && args['accountantId'] != null) {
+            accountantId = args['accountantId'] as String?;
+          }
+          return AccountsEmployeeScreen(accountantId: accountantId);
+        },
+        '/accounts/calendar': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? accountantId;
+          if (args is Map && args['accountantId'] != null) {
+            accountantId = args['accountantId'] as String?;
+          }
+          return AccountsCalendarScreen(accountantId: accountantId);
+        },
+        '/production/dashboard': (context) => const ProductionDashboard(),
         '/production/joblist': (context) => const ProductionJobListScreen(),
         '/production/assignlabour': (context) => const AssignLabourScreen(),
         '/production/updatejobstatus': (context) =>

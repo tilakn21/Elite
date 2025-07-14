@@ -19,12 +19,14 @@ class _DesignCalendarScreenState extends State<DesignCalendarScreen> {
   late Future<List<Job>> _jobsFuture;
   final DesignService _designService = DesignService();
   Map<DateTime, List<Job>> _jobsMap = {};
+  String? _designerId;
 
   @override
   void initState() {
     super.initState();
     _selectedDay = DateTime.now();
     _loadJobs();
+    _fetchDesignerId();
   }
 
   void _loadJobs() {
@@ -33,6 +35,13 @@ class _DesignCalendarScreenState extends State<DesignCalendarScreen> {
       setState(() {
         _jobsMap = _groupJobsByDate(jobs);
       });
+    });
+  }
+
+  Future<void> _fetchDesignerId() async {
+    final user = await DesignService().getCurrentUser();
+    setState(() {
+      _designerId = user?.id;
     });
   }
 
@@ -187,9 +196,8 @@ class _DesignCalendarScreenState extends State<DesignCalendarScreen> {
                   decoration: BoxDecoration(
                     color: const Color(0xFF101C2C),
                     borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    'Job #${job.id}', // Use job_code (now mapped to id) instead of jobNo
+                  ),                  child: Text(
+                    'Job #${job.jobCode}', // Use job_code for display
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -362,181 +370,183 @@ class _DesignCalendarScreenState extends State<DesignCalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    void handleSidebarTap(int index) {
+      switch (index) {
+        case 0:
+          Navigator.of(context).pushReplacementNamed('/design/dashboard', arguments: {'employeeId': _designerId});
+          break;
+        case 1:
+          Navigator.of(context).pushReplacementNamed('/design/joblist', arguments: {'employeeId': _designerId});
+          break;
+        case 2:
+          Navigator.of(context).pushReplacementNamed('/design/reimbursement_request', arguments: {'employeeId': _designerId});
+          break;
+        case 3:
+          Navigator.of(context).pushReplacementNamed('/design/chats', arguments: {'employeeId': _designerId});
+          break;
+        case 4:
+          // Already on calendar
+          break;
+      }
+    }
     return Scaffold(
       backgroundColor: const Color(0xFFF7F5FF),
-      body: SafeArea(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            DesignSidebar(
-              selectedIndex: 4,
-              onItemTapped: (index) {
-                if (index == 0) {
-                  Navigator.pushReplacementNamed(context, '/design/dashboard');
-                } else if (index == 1) {
-                  Navigator.pushReplacementNamed(context, '/design/joblist');
-                } else if (index == 2) {
-                  Navigator.pushReplacementNamed(context, '/design/reimbursement_request');
-                } else if (index == 3) {
-                  Navigator.pushReplacementNamed(context, '/design/chats');
-                }
-                // index 4 (Calendar) - stay on current page
-              },
-            ),
-            Expanded(
-              child: Column(
-                children: [
-                  const DesignTopBar(),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 28.0, right: 28.0, top: 20.0),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Design Calendar',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 28,
-                                color: Color(0xFF232B3E),
-                              ),
+      body: Row(
+        children: [
+          DesignSidebar(selectedIndex: 4, onItemTapped: handleSidebarTap, employeeId: _designerId),
+          Expanded(
+            child: Column(
+              children: [
+                const DesignTopBar(),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 28.0, right: 28.0, top: 20.0),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Design Calendar',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 28,
+                              color: Color(0xFF232B3E),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Click on any date to view scheduled design jobs',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[600],
-                              ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Click on any date to view scheduled design jobs',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[600],
                             ),
-                            const SizedBox(height: 32),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
+                          ),
+                          const SizedBox(height: 32),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.all(24),
+                            child: TableCalendar<Job>(
+                              firstDay: DateTime.utc(2020, 1, 1),
+                              lastDay: DateTime.utc(2030, 12, 31),
+                              focusedDay: _focusedDay,
+                              calendarFormat: _calendarFormat,
+                              eventLoader: _getJobsForDay,
+                              startingDayOfWeek: StartingDayOfWeek.monday,
+                              selectedDayPredicate: (day) {
+                                return isSameDay(_selectedDay, day);
+                              },
+                              onDaySelected: (selectedDay, focusedDay) {
+                                if (!isSameDay(_selectedDay, selectedDay)) {
+                                  setState(() {
+                                    _selectedDay = selectedDay;
+                                    _focusedDay = focusedDay;
+                                  });
+                                }
+                                _showJobsDialog(selectedDay);
+                              },
+                              onFormatChanged: (format) {
+                                if (_calendarFormat != format) {
+                                  setState(() {
+                                    _calendarFormat = format;
+                                  });
+                                }
+                              },
+                              onPageChanged: (focusedDay) {
+                                _focusedDay = focusedDay;
+                              },
+                              calendarStyle: CalendarStyle(
+                                outsideDaysVisible: false,
+                                todayDecoration: BoxDecoration(
+                                  color: const Color(0xFF101C2C).withOpacity(0.7),
+                                  shape: BoxShape.circle,
+                                ),
+                                selectedDecoration: const BoxDecoration(
+                                  color: Color(0xFF101C2C),
+                                  shape: BoxShape.circle,
+                                ),
+                                markerDecoration: BoxDecoration(
+                                  color: Colors.deepPurple[600],
+                                  shape: BoxShape.circle,
+                                ),
+                                markersMaxCount: 3,
+                                markersAnchor: 0.7,
+                                weekendTextStyle: TextStyle(
+                                  color: Colors.red[400],
+                                ),
+                                holidayTextStyle: TextStyle(
+                                  color: Colors.red[400],
+                                ),
                               ),
-                              padding: const EdgeInsets.all(24),
-                              child: TableCalendar<Job>(
-                                firstDay: DateTime.utc(2020, 1, 1),
-                                lastDay: DateTime.utc(2030, 12, 31),
-                                focusedDay: _focusedDay,
-                                calendarFormat: _calendarFormat,
-                                eventLoader: _getJobsForDay,
-                                startingDayOfWeek: StartingDayOfWeek.monday,
-                                selectedDayPredicate: (day) {
-                                  return isSameDay(_selectedDay, day);
-                                },
-                                onDaySelected: (selectedDay, focusedDay) {
-                                  if (!isSameDay(_selectedDay, selectedDay)) {
-                                    setState(() {
-                                      _selectedDay = selectedDay;
-                                      _focusedDay = focusedDay;
-                                    });
-                                  }
-                                  _showJobsDialog(selectedDay);
-                                },
-                                onFormatChanged: (format) {
-                                  if (_calendarFormat != format) {
-                                    setState(() {
-                                      _calendarFormat = format;
-                                    });
-                                  }
-                                },
-                                onPageChanged: (focusedDay) {
-                                  _focusedDay = focusedDay;
-                                },
-                                calendarStyle: CalendarStyle(
-                                  outsideDaysVisible: false,
-                                  todayDecoration: BoxDecoration(
-                                    color: const Color(0xFF101C2C).withOpacity(0.7),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  selectedDecoration: const BoxDecoration(
-                                    color: Color(0xFF101C2C),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  markerDecoration: BoxDecoration(
-                                    color: Colors.deepPurple[600],
-                                    shape: BoxShape.circle,
-                                  ),
-                                  markersMaxCount: 3,
-                                  markersAnchor: 0.7,
-                                  weekendTextStyle: TextStyle(
-                                    color: Colors.red[400],
-                                  ),
-                                  holidayTextStyle: TextStyle(
-                                    color: Colors.red[400],
-                                  ),
+                              headerStyle: const HeaderStyle(
+                                formatButtonVisible: true,
+                                titleCentered: true,
+                                formatButtonShowsNext: false,
+                                formatButtonDecoration: BoxDecoration(
+                                  color: Color(0xFF101C2C),
+                                  borderRadius: BorderRadius.all(Radius.circular(12.0)),
                                 ),
-                                headerStyle: const HeaderStyle(
-                                  formatButtonVisible: true,
-                                  titleCentered: true,
-                                  formatButtonShowsNext: false,
-                                  formatButtonDecoration: BoxDecoration(
-                                    color: Color(0xFF101C2C),
-                                    borderRadius: BorderRadius.all(Radius.circular(12.0)),
-                                  ),
-                                  formatButtonTextStyle: TextStyle(
-                                    color: Colors.white,
-                                  ),
-                                  leftChevronIcon: Icon(
-                                    Icons.chevron_left,
-                                    color: Color(0xFF101C2C),
-                                  ),
-                                  rightChevronIcon: Icon(
-                                    Icons.chevron_right,
-                                    color: Color(0xFF101C2C),
-                                  ),
+                                formatButtonTextStyle: TextStyle(
+                                  color: Colors.white,
                                 ),
-                                calendarBuilders: CalendarBuilders(
-                                  markerBuilder: (context, day, events) {
-                                    if (events.isNotEmpty) {
-                                      return Positioned(
-                                        right: 1,
-                                        bottom: 1,
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            color: Colors.deepPurple[600],
-                                            shape: BoxShape.circle,
-                                          ),
-                                          width: 16,
-                                          height: 16,
-                                          child: Center(
-                                            child: Text(
-                                              '${events.length}',
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                              ),
+                                leftChevronIcon: Icon(
+                                  Icons.chevron_left,
+                                  color: Color(0xFF101C2C),
+                                ),
+                                rightChevronIcon: Icon(
+                                  Icons.chevron_right,
+                                  color: Color(0xFF101C2C),
+                                ),
+                              ),
+                              calendarBuilders: CalendarBuilders(
+                                markerBuilder: (context, day, events) {
+                                  if (events.isNotEmpty) {
+                                    return Positioned(
+                                      right: 1,
+                                      bottom: 1,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.deepPurple[600],
+                                          shape: BoxShape.circle,
+                                        ),
+                                        width: 16,
+                                        height: 16,
+                                        child: Center(
+                                          child: Text(
+                                            '${events.length}',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
                                             ),
                                           ),
                                         ),
-                                      );
-                                    }
-                                    return null;
-                                  },
-                                ),
+                                      ),
+                                    );
+                                  }
+                                  return null;
+                                },
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -613,11 +613,32 @@ class _SalespersonDetailsScreenState extends State<SalespersonDetailsScreen> {
     return urls;
   }
 
+  Future<String> _getJobUuid(String jobIdOrCode) async {
+    final supabase = Supabase.instance.client;
+    // If it's already a UUID, return as is
+    final uuidRegex = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12} ?$');
+    if (uuidRegex.hasMatch(jobIdOrCode)) {
+      return jobIdOrCode;
+    }
+    // Otherwise, look up by job_code
+    final result = await supabase
+        .from('jobs')
+        .select('id')
+        .eq('job_code', jobIdOrCode)
+        .maybeSingle();
+    if (result == null || result['id'] == null) {
+      throw Exception('Could not find job with code: $jobIdOrCode');
+    }
+    return result['id'] as String;
+  }
+
   Future<void> updateSalespersonJsonbAndStatus(String jobId, Map<String, dynamic> details, double amountPaid, String modeOfPayment, DateTime paymentDateTime, String receivedBy) async {
     final supabase = Supabase.instance.client;
     try {
+      // Ensure we have a valid UUID for the job
+      final uuid = await _getJobUuid(jobId);
       // Upload images and get URLs
-      final imageUrls = await uploadImagesToSupabaseStorage(_images, jobId);
+      final imageUrls = await uploadImagesToSupabaseStorage(_images, uuid);
       final detailsWithUrls = Map<String, dynamic>.from(details);
       detailsWithUrls['images'] = imageUrls;
       // Update salesperson JSONB and status column
@@ -627,23 +648,14 @@ class _SalespersonDetailsScreenState extends State<SalespersonDetailsScreen> {
             'salesperson': detailsWithUrls,
             'status': 'site_visited',
           })
-          .eq('id', jobId)
+          .eq('id', uuid)
           .select();
       // Update accounts JSONB: add payment info
-      final job = await supabase.from('jobs').select('accountant').eq('id', jobId).single();
+      final job = await supabase.from('jobs').select('accountant').eq('id', uuid).single();
       Map<String, dynamic> accountant = {};
       if (job['accountant'] != null) {
         accountant = Map<String, dynamic>.from(job['accountant']);
       }
-      // Payment logic
-      final prevPaid = (accountant['amount_paid'] ?? 0).toDouble();
-      final prevDue = (accountant['amount_due'] ?? 0).toDouble();
-      final totalAmount = (accountant['total_amount'] ?? 0).toDouble();
-      final newPaid = prevPaid + amountPaid;
-      final newDue = (prevDue - amountPaid).clamp(0, totalAmount);
-      accountant['amount_paid'] = newPaid;
-      accountant['amount_due'] = newDue;
-      // Add payment record
       final paymentRecord = {
         'amount': amountPaid,
         'mode': modeOfPayment,
@@ -659,7 +671,7 @@ class _SalespersonDetailsScreenState extends State<SalespersonDetailsScreen> {
       await supabase
           .from('jobs')
           .update({'accountant': accountant})
-          .eq('id', jobId)
+          .eq('id', uuid)
           .select();
     } catch (e) {
       throw Exception('Failed to update job: $e');

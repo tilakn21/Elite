@@ -4,12 +4,12 @@ import '../providers/job_provider.dart';
 import '../providers/chat_provider.dart';
 import '../utils/app_theme.dart';
 import '../widgets/job_list_card.dart';
-import '../widgets/active_chats_card.dart';
 import '../widgets/calendar_card.dart';
 import '../widgets/sidebar.dart';
 import '../widgets/design_top_bar.dart';
 import 'job_list_screen.dart';
 import 'active_chats_screen.dart';
+import '../services/design_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -21,10 +21,24 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen>
     with AutomaticKeepAliveClientMixin {
   int _selectedIndex = 0;
+  String? _designerId;
 
   void _onSidebarTap(int index) {
     setState(() {
       _selectedIndex = index;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDesignerId();
+  }
+
+  Future<void> _fetchDesignerId() async {
+    final user = await DesignService().getCurrentUser();
+    setState(() {
+      _designerId = user?.id;
     });
   }
 
@@ -51,7 +65,10 @@ class _DashboardScreenState extends State<DashboardScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 DesignSidebar(
-                    selectedIndex: _selectedIndex, onItemTapped: _onSidebarTap),
+                  selectedIndex: _selectedIndex,
+                  onItemTapped: _onSidebarTap,
+                  employeeId: _designerId,
+                ),
                 Expanded(
                   child: _buildSelectedView(_selectedIndex, context, jobProvider,
                       chatProvider, isDesktop, isTablet, isMobile),
@@ -111,30 +128,17 @@ class _DashboardScreenState extends State<DashboardScreen>
 
               const SizedBox(height: 24),
 
-              // Second row - Active Chats and Calendar
+              // Second row - Calendar only (Active Chats card removed)
               if (isMobile) ...[
-                // Mobile layout - Stack widgets vertically
-                SizedBox(
-                  width: constraints.maxWidth,
-                  child: ActiveChatsCard(chats: chatProvider.activeChats),
-                ),
-                const SizedBox(height: 16),
                 SizedBox(
                   width: constraints.maxWidth,
                   child: const CalendarCard(),
                 ),
               ] else ...[
-                // Tablet/Desktop layout - Side by side
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Left column - Active Chats
-                    Expanded(
-                      flex: isDesktop ? 1 : 1,
-                      child: ActiveChatsCard(chats: chatProvider.activeChats),
-                    ),
-                    const SizedBox(width: 16),
-                    // Right column - Calendar
+                    // Only Calendar
                     Expanded(
                       flex: isDesktop ? 1 : 1,
                       child: const CalendarCard(),

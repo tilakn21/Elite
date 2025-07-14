@@ -158,7 +158,7 @@ class _ViewReimbursementsScreenState extends State<ViewReimbursementsScreen> {
               SizedBox(height: 12),
               _StatCard(
                 title: 'Total Approved Amount',
-                value: '\$${provider.totalApprovedAmount.toStringAsFixed(2)}',
+                value: '\₤${provider.totalApprovedAmount.toStringAsFixed(2)}',
                 icon: Icons.monetization_on,
                 color: Colors.green,
               ),
@@ -185,7 +185,7 @@ class _ViewReimbursementsScreenState extends State<ViewReimbursementsScreen> {
               Expanded(
                 child: _StatCard(
                   title: 'Total Approved Amount',
-                  value: '\$${provider.totalApprovedAmount.toStringAsFixed(2)}',
+                  value: '\₤${provider.totalApprovedAmount.toStringAsFixed(2)}',
                   icon: Icons.monetization_on,
                   color: Colors.green,
                 ),
@@ -555,7 +555,7 @@ class _MobileReimbursementCard extends StatelessWidget {
           ),
           SizedBox(height: 8),
           Text(
-            '\$${reimbursement.amount.toStringAsFixed(2)}',
+            '\₤${reimbursement.amount.toStringAsFixed(2)}',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -653,7 +653,7 @@ class _DesktopReimbursementRow extends StatelessWidget {
             Expanded(
               flex: 1,
               child: Text(
-                '\$${reimbursement.amount.toStringAsFixed(2)}',
+                '\₤${reimbursement.amount.toStringAsFixed(2)}',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
@@ -921,7 +921,7 @@ class _DesktopReimbursementRow extends StatelessWidget {
                           child: Column(
                             children: [
                               Text(
-                                '\$${reimbursement.amount.toStringAsFixed(2)}',
+                                '\₤${reimbursement.amount.toStringAsFixed(2)}',
                                 style: TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
@@ -1092,7 +1092,7 @@ class _DesktopReimbursementRow extends StatelessWidget {
       case ReimbursementStatus.rejected:
         return Icons.cancel;
       case ReimbursementStatus.paid:
-        return Icons.attach_money;
+        return Icons.currency_pound;
     }
   }
 }

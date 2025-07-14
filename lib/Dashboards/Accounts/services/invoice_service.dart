@@ -116,6 +116,10 @@ class InvoiceService {
     accountant['status'] = paymentDetail['status'] ?? 'completed';
     // Update jobs table
     await _supabase.from('jobs').update({'accountant': accountant}).eq('id', jobId).select();
+    // If payment is completed (amount_due == 0), update the jobs.amount column
+    if (newDue == 0) {
+      await _supabase.from('jobs').update({'amount': newPaid}).eq('id', jobId);
+    }
   }
 
   Future<void> updateJobStatusOutForDeliveryIfPaymentPending(String jobId) async {

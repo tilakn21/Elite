@@ -110,7 +110,7 @@ class AdminSidebar extends StatelessWidget {
             },
           ),
           _SidebarButton(
-            icon: Icons.attach_money,
+            icon: Icons.currency_pound,
             label: 'Reimbursements',
             selected: selectedIndex == 5,
             onTap: () {

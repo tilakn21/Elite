@@ -17,6 +17,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
   
   // Form controllers
   final _fullNameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _assignedJobController = TextEditingController();
   
@@ -42,6 +43,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
   @override
   void dispose() {
     _fullNameController.dispose();
+    _emailController.dispose();
     _phoneController.dispose();
     _assignedJobController.dispose();
     super.dispose();
@@ -107,6 +109,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
       await _adminService.addEmployee(
         fullName: _fullNameController.text.trim(),
         phone: _phoneController.text.trim(),
+        email: _emailController.text.trim(),
         role: _selectedRole!,
         branchId: _selectedBranchId!,
         isAvailable: _isAvailable,
@@ -114,6 +117,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
             ? null 
             : _assignedJobController.text.trim(),
       );
+      _clearFormFields();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -131,10 +135,18 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error adding employee: $e'),
-            backgroundColor: Colors.red,
+        _clearFormFields();
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Error'),
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
           ),
         );
       }
@@ -145,12 +157,35 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
     }
   }
 
+  void _clearFormFields() {
+    _fullNameController.clear();
+    _emailController.clear();
+    _phoneController.clear();
+    _assignedJobController.clear();
+    setState(() {
+      _selectedRole = null;
+      _selectedBranchId = null;
+      _isAvailable = true;
+    });
+  }
+
   String? _validateFullName(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Full name is required';
     }
     if (value.trim().length < 2) {
       return 'Full name must be at least 2 characters';
+    }
+    return null;
+  }
+
+  String? _validateEmail(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Email is required';
+    }
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+    if (!emailRegex.hasMatch(value.trim())) {
+      return 'Please enter a valid email address';
     }
     return null;
   }
@@ -230,6 +265,31 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                             ),
                             const SizedBox(height: 20),
                             
+                            // Email Field
+                            TextFormField(
+                              controller: _emailController,
+                              decoration: InputDecoration(
+                                labelText: 'Email',
+                                hintText: 'Enter employee email',
+                                prefixIcon: const Icon(Icons.email),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Email is required';
+                                }
+                                final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+');
+                                if (!emailRegex.hasMatch(value.trim())) {
+                                  return 'Please enter a valid email address';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 20),
+                            
                             // Phone Field
                             TextFormField(
                               controller: _phoneController,
@@ -278,10 +338,19 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                              ),
-                              items: _branches.map((branch) => DropdownMenuItem<int>(
+                              ),                              items: _branches.map((branch) => DropdownMenuItem<int>(
                                 value: branch['id'] as int,
-                                child: Text('${branch['name']} - ${branch['location']}'),
+                                child: Container(
+                                  constraints: BoxConstraints(maxWidth: 300),
+                                  child: Tooltip(
+                                    message: '${branch['name']} - ${branch['location']}',
+                                    child: Text(
+                                      '${branch['name']} - ${branch['location']}',
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                  ),
+                                ),
                               )).toList(),
                               onChanged: (value) {
                                 setState(() {

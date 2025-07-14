@@ -187,7 +187,10 @@ class _ProductionCalendarScreenState extends State<ProductionCalendarScreen> {
               } else if (index == 2) {
                 Navigator.of(context).pushReplacementNamed('/production/joblist');
               } else if (index == 3) {
-                Navigator.of(context).pushReplacementNamed('/production/reimbursement');
+                Navigator.of(context).pushReplacementNamed(
+                  '/production/reimbursement_request',
+                  arguments: {'employeeId': 'prod1001'},
+                );
               } else if (index == 4) {
                 // Already on Calendar
               }

@@ -51,8 +51,10 @@ class _ProductionJobListScreenState extends State<ProductionJobListScreen> {
               } else if (index == 2) {
                 // Already on Job List
               } else if (index == 3) {
-                Navigator.of(context)
-                    .pushReplacementNamed('/production/reimbursement');
+                Navigator.of(context).pushReplacementNamed(
+                  '/production/reimbursement_request',
+                  arguments: {'employeeId': 'prod1001'},
+                );
               }
             },
           ),

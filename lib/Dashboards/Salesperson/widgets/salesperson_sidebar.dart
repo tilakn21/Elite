@@ -4,11 +4,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class SalespersonSidebar extends StatelessWidget {
   final String selectedRoute;
   final Function(String) onItemSelected;
+  final String? salespersonId;
 
   const SalespersonSidebar({
     Key? key,
     required this.selectedRoute,
     required this.onItemSelected,
+    this.salespersonId,
   }) : super(key: key);
 
   @override
@@ -75,7 +77,13 @@ class SalespersonSidebar extends StatelessWidget {
                     icon: Icons.apps,
                     label: 'Home',
                     selected: selectedRoute == 'home',
-                    onTap: () => onItemSelected('home'),
+                    onTap: () {
+                      Navigator.of(context).pushReplacementNamed(
+                        '/salesperson/dashboard',
+                        arguments: {'receptionistId': salespersonId},
+                      );
+                      onItemSelected('home');
+                    },
                     isMobile: isMobile,
                   ),
                   const SizedBox(height: 20),
@@ -83,15 +91,29 @@ class SalespersonSidebar extends StatelessWidget {
                     icon: Icons.person,
                     label: 'Profile',
                     selected: selectedRoute == 'profile',
-                    onTap: () => onItemSelected('profile'),
+                    onTap: () {
+                      Navigator.of(context).pushReplacementNamed(
+                        '/salesperson/profile',
+                        arguments: {'receptionistId': salespersonId},
+                      );
+                      onItemSelected('profile');
+                    },
                     isMobile: isMobile,
                   ),
                   const SizedBox(height: 20),
                   _SidebarButton(
-                    icon: Icons.attach_money,
+                    icon: Icons.currency_pound,
                     label: 'Reimbursement',
                     selected: selectedRoute == 'reimbursement',
-                    onTap: () => onItemSelected('reimbursement'),
+                    onTap: () {
+                      // Fetch employee id (salesperson id)
+                      String employeeId = 'sal2003'; // TODO: Replace with authenticated id later
+                      Navigator.of(context).pushReplacementNamed(
+                        '/salesperson/reimbursement',
+                        arguments: {'employeeId': employeeId},
+                      );
+                      onItemSelected('reimbursement');
+                    },
                     isMobile: isMobile,
                   ),
 

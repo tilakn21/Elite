@@ -7,15 +7,19 @@ import '../providers/chat_provider.dart';
 import '../models/chat.dart';
 import '../utils/app_theme.dart';
 import '../services/design_service.dart'; // Add this import
+import '../widgets/sidebar.dart';
+import '../widgets/design_top_bar.dart';
 
 class ChatScreen extends StatefulWidget {
   final String customerId;
   final String customerName;
+  final String? designerId;
 
   const ChatScreen({
     Key? key,
     required this.customerId,
     required this.customerName,
+    this.designerId,
   }) : super(key: key);
 
   @override
@@ -29,12 +33,25 @@ class _ChatScreenState extends State<ChatScreen> {
   List<File> _selectedImages = [];
   bool _showImagePreview = false;
   bool _isUploading = false;
+  String? _designerId;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadOrCreateChat();
+    if (widget.designerId != null) {
+      _designerId = widget.designerId;
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _fetchDesignerId();
+      });
+    }
+    _loadOrCreateChat();
+  }
+
+  Future<void> _fetchDesignerId() async {
+    final user = await DesignService().getCurrentUser();
+    setState(() {
+      _designerId = user?.id;
     });
   }
 
@@ -387,165 +404,140 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_designerId == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: Row(
-          children: [
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: Colors.grey[200],
-              child: Text(
-                widget.customerName.substring(0, 1),
-                style: const TextStyle(
-                  color: AppTheme.primaryColor,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      body: Row(
+        children: [
+          DesignSidebar(selectedIndex: 3, onItemTapped: (_) {}, employeeId: _designerId),
+          Expanded(
+            child: Column(
               children: [
-                Text(
-                  widget.customerName,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  DateFormat('dd MMM, HH:mm').format(DateTime.now()),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.normal,
-                  ),
-                ),
+                const DesignTopBar(),
+                _chat == null
+                    ? const Center(child: CircularProgressIndicator())
+                    : Column(
+                        children: [
+                          // Chat messages
+                          Expanded(
+                            child: _chat!.messages.isEmpty
+                                ? Center(
+                                    child: Text(
+                                      'No messages yet. Start the conversation!',
+                                      style:
+                                          Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                                color: AppTheme.textSecondaryColor,
+                                              ),
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    controller: _scrollController,
+                                    padding: const EdgeInsets.all(16),
+                                    itemCount: _chat!.messages.length,
+                                    itemBuilder: (context, index) {
+                                      final message = _chat!.messages[index];
+                                      final isAdmin = message.senderId == 'admin';
+
+                                      return _buildMessageBubble(
+                                        message: message.message,
+                                        time: message.timestamp,
+                                        isAdmin: isAdmin,
+                                        imageUrls: message.imageUrls,
+                                      );
+                                    },
+                                  ),
+                          ),
+
+                          // Image preview
+                          _buildImagePreview(),
+
+                          // Message input
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              border: Border(
+                                top: BorderSide(color: AppTheme.dividerColor),
+                              ),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                // Attachment button
+                                IconButton(
+                                  icon: const Icon(Icons.attach_file),
+                                  onPressed: _isUploading ? null : _pickImages,
+                                  color: AppTheme.primaryColor,
+                                  tooltip: 'Attach images',
+                                ),
+                                const SizedBox(width: 8),
+                                // Message input field
+                                Expanded(
+                                  child: TextField(
+                                    controller: _messageController,
+                                    enabled: !_isUploading,
+                                    minLines: 1,
+                                    maxLines: 5,
+                                    decoration: InputDecoration(
+                                      hintText: 'Write a message...',
+                                      hintStyle: TextStyle(color: Colors.grey[400]),
+                                      filled: true,
+                                      fillColor: Colors.grey[100],
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 8,
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(24),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                      suffixIcon: _isUploading
+                                          ? Padding(
+                                              padding: const EdgeInsets.all(8.0),
+                                              child: SizedBox(
+                                                width: 20,
+                                                height: 20,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                                    AppTheme.primaryColor,
+                                                  ),
+                                                ),
+                                              ),
+                                            )
+                                          : null,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                // Send button
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryColor,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: IconButton(
+                                    icon: const Icon(Icons.send),
+                                    color: Colors.white,
+                                    onPressed: _isUploading ? null : _sendMessage,
+                                    tooltip: 'Send message',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                // ...existing code...
               ],
             ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: () {},
           ),
         ],
       ),
-      body: _chat == null
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                // Chat messages
-                Expanded(
-                  child: _chat!.messages.isEmpty
-                      ? Center(
-                          child: Text(
-                            'No messages yet. Start the conversation!',
-                            style:
-                                Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                      color: AppTheme.textSecondaryColor,
-                                    ),
-                          ),
-                        )
-                      : ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _chat!.messages.length,
-                          itemBuilder: (context, index) {
-                            final message = _chat!.messages[index];
-                            final isAdmin = message.senderId == 'admin';
-
-                            return _buildMessageBubble(
-                              message: message.message,
-                              time: message.timestamp,
-                              isAdmin: isAdmin,
-                              imageUrls: message.imageUrls,
-                            );
-                          },
-                        ),
-                ),
-
-                // Image preview
-                _buildImagePreview(),
-
-                // Message input
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    border: Border(
-                      top: BorderSide(color: AppTheme.dividerColor),
-                    ),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // Attachment button
-                      IconButton(
-                        icon: const Icon(Icons.attach_file),
-                        onPressed: _isUploading ? null : _pickImages,
-                        color: AppTheme.primaryColor,
-                        tooltip: 'Attach images',
-                      ),
-                      const SizedBox(width: 8),
-                      // Message input field
-                      Expanded(
-                        child: TextField(
-                          controller: _messageController,
-                          enabled: !_isUploading,
-                          minLines: 1,
-                          maxLines: 5,
-                          decoration: InputDecoration(
-                            hintText: 'Write a message...',
-                            hintStyle: TextStyle(color: Colors.grey[400]),
-                            filled: true,
-                            fillColor: Colors.grey[100],
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(24),
-                              borderSide: BorderSide.none,
-                            ),
-                            suffixIcon: _isUploading
-                                ? Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(
-                                          AppTheme.primaryColor,
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                : null,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Send button
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryColor,
-                          shape: BoxShape.circle,
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.send),
-                          color: Colors.white,
-                          onPressed: _isUploading ? null : _sendMessage,
-                          tooltip: 'Send message',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
     );
   }
 }

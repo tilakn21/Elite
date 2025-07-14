@@ -8,7 +8,8 @@ import '../providers/invoice_provider.dart';
 import 'package:intl/intl.dart';
 
 class AccountsInvoiceScreen extends StatefulWidget {
-  const AccountsInvoiceScreen({super.key});
+  final String? accountantId;
+  const AccountsInvoiceScreen({Key? key, this.accountantId}) : super(key: key);
 
   @override
   State<AccountsInvoiceScreen> createState() => _AccountsInvoiceScreenState();
@@ -20,7 +21,7 @@ class _AccountsInvoiceScreenState extends State<AccountsInvoiceScreen> {
     String modeOfPayment = 'Cash';
     final List<String> paymentModes = ['Cash', 'Bank Transfer', 'UPI', 'Cheque', 'Card'];
     // Use a demo accountant name for now; replace with authenticated user name in future
-    final String demoAccountantName = 'Demo Accountant'; // TODO: Replace with authenticated user name
+    final String demoAccountantName = widget.accountantId ?? 'Demo Accountant'; // Use authenticated user name if available
     final TextEditingController receivedByController = TextEditingController(text: demoAccountantName);
     final now = DateTime.now();
     final dateStr = DateFormat('yyyy-MM-dd – kk:mm').format(now);
@@ -164,12 +165,12 @@ class _AccountsInvoiceScreenState extends State<AccountsInvoiceScreen> {
       backgroundColor: const Color(0xFFF7F5FF),
       body: Row(
         children: [
-          const AccountsSidebar(selectedIndex: 1),
+          AccountsSidebar(selectedIndex: 1, accountantId: widget.accountantId),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const AccountsTopBar(),
+                AccountsTopBar(accountantId: widget.accountantId),
                 Expanded(
                   child: SingleChildScrollView(
                     child: Center(

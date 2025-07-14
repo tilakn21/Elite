@@ -5,10 +5,10 @@ import '../services/receptionist_service.dart';
 import 'package:provider/provider.dart';
 import '../providers/salesperson_provider.dart';
 import '../providers/job_request_provider.dart';
-import '../models/job_request.dart';
 
 class NewJobRequestScreen extends StatefulWidget {
-  const NewJobRequestScreen({Key? key}) : super(key: key);
+  final String? receptionistId;
+  const NewJobRequestScreen({Key? key, this.receptionistId}) : super(key: key);
 
   @override
   State<NewJobRequestScreen> createState() => _NewJobRequestScreenState();
@@ -17,13 +17,55 @@ class NewJobRequestScreen extends StatefulWidget {
 class _NewJobRequestScreenState extends State<NewJobRequestScreen> {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
+  String _receptionistName = '';
+  String _branchName = '';
+  String _receptionistId = ''; // Will be set from widget parameter
+
   @override
   void initState() {
     super.initState();
+    // Set receptionistId from widget parameter or use empty string if null
+    _receptionistId = widget.receptionistId ?? '';
+    print('[NEW_JOB] Using receptionist ID: $_receptionistId');
     // Refresh job requests when screen is opened
     Future.microtask(() {
       Provider.of<JobRequestProvider>(context, listen: false).fetchJobRequests();
     });
+    _fetchReceptionistAndBranch();
+  }
+
+  Future<void> _fetchReceptionistAndBranch() async {
+    if (_receptionistId.isEmpty) {
+      print('[NEW_JOB] Warning: Receptionist ID is empty');
+      setState(() {
+        _receptionistName = 'Unknown';
+        _branchName = 'Unknown';
+      });
+      return;
+    }
+    
+    final service = ReceptionistService();
+    try {
+      final details = await service.fetchReceptionistDetails(receptionistId: _receptionistId);
+      String name = details?['full_name'] ?? '';
+      String branchName = '';
+      
+      if (details != null && details['branch_id'] != null) {
+        branchName = await service.fetchBranchName(int.parse(details['branch_id'].toString())) ?? '';
+      }
+      
+      setState(() {
+        _receptionistName = name;
+        _branchName = branchName;
+      });
+      print('[NEW_JOB] Fetched details: name=$_receptionistName, branch=$_branchName');
+    } catch (e) {
+      print('[NEW_JOB] Error fetching receptionist details: $e');
+      setState(() {
+        _receptionistName = 'Error';
+        _branchName = 'Error';
+      });
+    }
   }
 
   @override
@@ -36,17 +78,17 @@ class _NewJobRequestScreenState extends State<NewJobRequestScreen> {
       key: scaffoldKey,
       backgroundColor: const Color(0xFFF6F3FE),
       drawer: isMobile
-          ? Drawer(
-              child: Sidebar(
+          ? Drawer(              child: Sidebar(
                 selectedIndex: 1,
                 isDrawer: true,
                 onClose: () => Navigator.of(context).pop(),
+                employeeId: _receptionistId.isNotEmpty ? _receptionistId : 'unknown',
               ),
             )
           : null,
       body: Row(
         children: [
-          if (!isMobile) Sidebar(selectedIndex: 1),
+          if (!isMobile) Sidebar(selectedIndex: 1, employeeId: _receptionistId.isNotEmpty ? _receptionistId : 'unknown'),
           Expanded(
             child: Column(
               children: [
@@ -54,6 +96,8 @@ class _NewJobRequestScreenState extends State<NewJobRequestScreen> {
                   isDashboard: false,
                   showMenu: isMobile,
                   onMenuTap: () => scaffoldKey.currentState?.openDrawer(),
+                  receptionistName: _receptionistName.isNotEmpty ? _receptionistName : 'Receptionist',
+                  branchName: _branchName.isNotEmpty ? _branchName : 'Branch',
                 ),
                 Expanded(
                   child: Center(
@@ -80,7 +124,7 @@ class _NewJobRequestScreenState extends State<NewJobRequestScreen> {
                               ),
                           ],
                         ),
-                        child: _JobRequestForm(isMobile: isMobile),
+                        child: _JobRequestForm(isMobile: isMobile, receptionistId: _receptionistId),
                       ),
                     ),
                   ),
@@ -96,7 +140,8 @@ class _NewJobRequestScreenState extends State<NewJobRequestScreen> {
 
 class _JobRequestForm extends StatefulWidget {
   final bool isMobile;
-  const _JobRequestForm({this.isMobile = false});
+  final String receptionistId;
+  const _JobRequestForm({this.isMobile = false, required this.receptionistId});
   @override
   State<_JobRequestForm> createState() => _JobRequestFormState();
 }
@@ -124,13 +169,13 @@ class _JobRequestFormState extends State<_JobRequestForm> {
   String? _submitMessage;
   final ReceptionistService _receptionistService = ReceptionistService();
   final _formKey = GlobalKey<FormState>();
-  String? _validationError;
   // Track invalid fields for highlighting
   Set<String> _invalidFields = {};
-
   @override
   void initState() {
     super.initState();
+    // Debug print to check if we get the correct ID
+    print('[JOB_FORM] Received receptionist ID: ${widget.receptionistId}');
     // Set date of appointment to today (read-only)
     final now = DateTime.now();
     dateOfAppointmentController.text = "${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}";
@@ -167,20 +212,6 @@ class _JobRequestFormState extends State<_JobRequestForm> {
     super.dispose();
   }
 
-  Future<void> _pickDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) {
-      setState(() {
-        dateController.text = "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
-      });
-    }
-  }
-
   Future<void> _pickTime(BuildContext context) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
@@ -205,11 +236,8 @@ class _JobRequestFormState extends State<_JobRequestForm> {
         dateOfVisitController.text = "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
       });
     }
-  }
-
-  Future<void> _submitJobRequest() async {
+  }  Future<void> _submitJobRequest() async {
     setState(() {
-      _validationError = null;
       _invalidFields.clear();
     });
     if (!_validateForm()) {
@@ -218,10 +246,16 @@ class _JobRequestFormState extends State<_JobRequestForm> {
     setState(() {
       _isSubmitting = true;
       _submitMessage = null;
-    });
-    try {
-      // TODO: Replace with actual logged-in user id
-      const String createdBy = 'receptionist-uid';
+    });    try {
+      // Get receptionistId directly from the widget
+      final String receptionistId = widget.receptionistId;
+      
+      if (receptionistId.isEmpty) {
+        throw Exception('Receptionist ID is missing. Please log in again.');
+      }
+      
+      print('[JOB_REQUEST] Using receptionist ID for job creation: $receptionistId');
+      
       // Prepare accountant JSONB
       final String totalAmountText = totalAmountController.text.trim();
       final double? totalAmount = double.tryParse(totalAmountText);
@@ -229,8 +263,7 @@ class _JobRequestFormState extends State<_JobRequestForm> {
         'total_amount': totalAmount ?? 0,
         'amount_paid': 0,
         'amount_due': totalAmount ?? 0,
-      };
-      // Upload job to Supabase
+      };      // Upload job to Supabase
       await _receptionistService.addJobToSupabase(
         customerName: nameController.text.trim(),
         phone: phoneController.text.trim(),
@@ -243,7 +276,7 @@ class _JobRequestFormState extends State<_JobRequestForm> {
         dateOfVisit: dateOfVisitController.text.trim(),
         timeOfVisit: timeController.text.trim(),
         assignedSalesperson: selectedSalespersonId,
-        createdBy: createdBy,
+        createdBy: receptionistId, // Use authenticated receptionist ID
         accountant: accountantJson, // Pass accountant JSONB
         onJobAdded: () async {
           // Optionally refresh job requests after adding
@@ -253,10 +286,6 @@ class _JobRequestFormState extends State<_JobRequestForm> {
           } catch (_) {}
         },
       );
-      // Set salesperson as unavailable
-      if (selectedSalespersonId != null) {
-        await _receptionistService.setSalespersonUnavailable(selectedSalespersonId!);
-      }
       setState(() {
         _submitMessage = 'Job request submitted successfully!';
       });
@@ -347,12 +376,12 @@ class _JobRequestFormState extends State<_JobRequestForm> {
     }
     if (missingFields.isNotEmpty) {
       setState(() {
-        _validationError = 'Please fill/enter: ' + missingFields.join(', ');
+        _submitMessage = 'Please fill/enter: ' + missingFields.join(', ');
       });
       return false;
     }
     setState(() {
-      _validationError = null;
+      _submitMessage = null;
     });
     return true;
   }

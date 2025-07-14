@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 class DesignSidebar extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onItemTapped;
+  final String? employeeId;
   const DesignSidebar(
-      {Key? key, this.selectedIndex = 0, required this.onItemTapped})
+      {Key? key, this.selectedIndex = 0, required this.onItemTapped, this.employeeId})
       : super(key: key);
 
   @override
@@ -63,7 +64,14 @@ class DesignSidebar extends StatelessWidget {
             selected: selectedIndex == 2,
             onTap: () {
               if (ModalRoute.of(context)?.settings.name != '/design/reimbursement_request') {
-                Navigator.of(context).pushReplacementNamed('/design/reimbursement_request');
+                if (employeeId != null) {
+                  Navigator.of(context).pushReplacementNamed(
+                    '/design/reimbursement_request',
+                    arguments: {'employeeId': employeeId},
+                  );
+                } else {
+                  Navigator.of(context).pushReplacementNamed('/design/reimbursement_request');
+                }
               }
               onItemTapped(2);
             },

@@ -502,4 +502,28 @@ class ProductionService {
         return JobStatus.pending;
     }
   }
+
+  /// Fetch production employee's name, role, and branch_id from employee table
+  Future<Map<String, dynamic>?> fetchProductionDetails({String? productionId}) async {
+    final supabase = Supabase.instance.client;
+    // Use demo id if not provided
+    final String id = productionId ?? 'prod1001';
+    final result = await supabase
+        .from('employee')
+        .select('full_name, role, branch_id')
+        .eq('id', id)
+        .maybeSingle();
+    return result;
+  }
+
+  /// Fetch branch name from branches table using branch_id
+  Future<String?> fetchBranchName(int branchId) async {
+    final supabase = Supabase.instance.client;
+    final result = await supabase
+        .from('branches')
+        .select('name')
+        .eq('id', branchId)
+        .maybeSingle();
+    return result != null ? result['name'] as String? : null;
+  }
 }

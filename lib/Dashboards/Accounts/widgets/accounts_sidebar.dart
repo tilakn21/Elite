@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 class AccountsSidebar extends StatelessWidget {
   final int selectedIndex;
-  const AccountsSidebar({Key? key, required this.selectedIndex}) : super(key: key);
+  final String? accountantId;
+  const AccountsSidebar({Key? key, required this.selectedIndex, this.accountantId}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -36,14 +37,15 @@ class AccountsSidebar extends StatelessWidget {
                   label: 'Jobs',
                   selected: selectedIndex == 0,
                   onTap: () {
-                    Navigator.of(context).pushReplacementNamed('/accounts/dashboard');
+                    Navigator.of(context).pushReplacementNamed('/accounts/dashboard', arguments: {'accountantId': accountantId});
                   },
-                ),                _SidebarButton(
+                ),
+                _SidebarButton(
                   icon: Icons.people,
                   label: 'Employee',
                   selected: selectedIndex == 2,
                   onTap: () {
-                    Navigator.of(context).pushReplacementNamed('/accounts/employee');
+                    Navigator.of(context).pushReplacementNamed('/accounts/employee', arguments: {'accountantId': accountantId});
                   },
                 ),
                 _SidebarButton(
@@ -51,7 +53,7 @@ class AccountsSidebar extends StatelessWidget {
                   label: 'Calendar',
                   selected: selectedIndex == 3,
                   onTap: () {
-                    Navigator.of(context).pushReplacementNamed('/accounts/calendar');
+                    Navigator.of(context).pushReplacementNamed('/accounts/calendar', arguments: {'accountantId': accountantId});
                   },
                 ),
               ],

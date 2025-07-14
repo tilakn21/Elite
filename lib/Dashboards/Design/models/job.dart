@@ -23,6 +23,7 @@ class Job {
   final String? notes;
   final Map<String, dynamic>? salespersonData;
   final dynamic design;
+  final String jobCode;
 
   Job({
     String? id,
@@ -39,6 +40,7 @@ class Job {
     this.notes,
     this.salespersonData,
     this.design,
+    required this.jobCode,
   }) : id = id ?? const Uuid().v4();
 
   Job copyWith({
@@ -55,6 +57,7 @@ class Job {
     String? notes,
     Map<String, dynamic>? salespersonData,
     dynamic design,
+    String? jobCode,
   }) {
     return Job(
       id: this.id,
@@ -71,6 +74,7 @@ class Job {
       notes: notes ?? this.notes,
       salespersonData: salespersonData ?? this.salespersonData,
       design: design ?? this.design,
+      jobCode: jobCode ?? this.jobCode,
     );
   }
 
@@ -78,6 +82,7 @@ class Job {
     return {
       'id': id,
       'jobNo': jobNo,
+      'job_code': jobCode,
       'clientName': clientName,
       'email': email,
       'phoneNumber': phoneNumber,
@@ -108,6 +113,7 @@ class Job {
     return Job(
       id: json['id'],
       jobNo: receptionist['jobNo'] ?? '',
+      jobCode: json['job_code'] ?? '',
       clientName: receptionist['customerName'] ?? '',
       email: receptionist['email'] ?? '',
       phoneNumber: receptionist['phone'] ?? '',

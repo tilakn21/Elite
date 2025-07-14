@@ -86,7 +86,7 @@ class _UpdateJobStatusScreenState extends State<UpdateJobStatusScreen> {
                     .pushReplacementNamed('/production/joblist');
               } else if (index == 3) {
                 Navigator.of(context)
-                    .pushReplacementNamed('/production/reimbursement');
+                    .pushReplacementNamed('/production/reimbursement_request');
               }
             },
           ),

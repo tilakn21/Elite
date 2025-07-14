@@ -6,7 +6,8 @@ import '../services/invoice_service.dart';
 import '../models/invoice.dart';
 
 class AccountsCalendarScreen extends StatefulWidget {
-  const AccountsCalendarScreen({Key? key}) : super(key: key);
+  final String? accountantId;
+  const AccountsCalendarScreen({Key? key, this.accountantId}) : super(key: key);
 
   @override
   State<AccountsCalendarScreen> createState() => _AccountsCalendarScreenState();
@@ -234,10 +235,10 @@ class _AccountsCalendarScreenState extends State<AccountsCalendarScreen> {
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.attach_money, size: 16, color: Colors.grey[600]),
+                Icon(Icons.currency_pound, size: 16, color: Colors.grey[600]),
                 const SizedBox(width: 6),
                 Text(
-                  'Total: \$${invoice.totalAmount.toStringAsFixed(2)}',
+                  'Total: \£${invoice.totalAmount.toStringAsFixed(2)}',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[700],
@@ -252,7 +253,7 @@ class _AccountsCalendarScreenState extends State<AccountsCalendarScreen> {
                 Icon(Icons.payment, size: 16, color: Colors.grey[600]),
                 const SizedBox(width: 6),
                 Text(
-                  'Paid: \$${invoice.amountPaid.toStringAsFixed(2)}',
+                  'Paid: \£${invoice.amountPaid.toStringAsFixed(2)}',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[700],
@@ -309,7 +310,7 @@ class _AccountsCalendarScreenState extends State<AccountsCalendarScreen> {
                     Icon(Icons.warning, size: 16, color: Colors.orange[700]),
                     const SizedBox(width: 6),
                     Text(
-                      'Amount Due: \$${invoice.balanceDue.toStringAsFixed(2)}',
+                      'Amount Due: \£${invoice.balanceDue.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.orange[700],
@@ -419,167 +420,162 @@ class _AccountsCalendarScreenState extends State<AccountsCalendarScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F5FF),
-      body: SafeArea(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AccountsSidebar(
-              selectedIndex: 3,
-            ),
-            Expanded(
-              child: Column(
-                children: [
-                  const AccountsTopBar(),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 28.0, right: 28.0, top: 20.0),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Accounts Calendar',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 28,
-                                color: Color(0xFF232B3E),
-                              ),
+      body: Row(
+        children: [
+          AccountsSidebar(selectedIndex: 3, accountantId: widget.accountantId),
+          Expanded(
+            child: Column(
+              children: [
+                AccountsTopBar(accountantId: widget.accountantId),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 28.0, right: 28.0, top: 20.0),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Accounts Calendar',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 28,
+                              color: Color(0xFF232B3E),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Click on any date to view invoices for that day',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[600],
-                              ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Click on any date to view invoices for that day',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[600],
                             ),
-                            const SizedBox(height: 32),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
+                          ),
+                          const SizedBox(height: 32),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.all(24),
+                            child: TableCalendar<Invoice>(
+                              firstDay: DateTime.utc(2020, 1, 1),
+                              lastDay: DateTime.utc(2030, 12, 31),
+                              focusedDay: _focusedDay,
+                              calendarFormat: _calendarFormat,
+                              eventLoader: _getInvoicesForDay,
+                              startingDayOfWeek: StartingDayOfWeek.monday,
+                              selectedDayPredicate: (day) {
+                                return isSameDay(_selectedDay, day);
+                              },
+                              onDaySelected: (selectedDay, focusedDay) {
+                                if (!isSameDay(_selectedDay, selectedDay)) {
+                                  setState(() {
+                                    _selectedDay = selectedDay;
+                                    _focusedDay = focusedDay;
+                                  });
+                                }
+                                _showInvoicesDialog(selectedDay);
+                              },
+                              onFormatChanged: (format) {
+                                if (_calendarFormat != format) {
+                                  setState(() {
+                                    _calendarFormat = format;
+                                  });
+                                }
+                              },
+                              onPageChanged: (focusedDay) {
+                                _focusedDay = focusedDay;
+                              },
+                              calendarStyle: CalendarStyle(
+                                outsideDaysVisible: false,
+                                todayDecoration: BoxDecoration(
+                                  color: const Color(0xFF101C2C).withOpacity(0.7),
+                                  shape: BoxShape.circle,
+                                ),
+                                selectedDecoration: const BoxDecoration(
+                                  color: Color(0xFF101C2C),
+                                  shape: BoxShape.circle,
+                                ),
+                                markerDecoration: BoxDecoration(
+                                  color: Colors.amber[600],
+                                  shape: BoxShape.circle,
+                                ),
+                                markersMaxCount: 3,
+                                markersAnchor: 0.7,
+                                weekendTextStyle: TextStyle(
+                                  color: Colors.red[400],
+                                ),
+                                holidayTextStyle: TextStyle(
+                                  color: Colors.red[400],
+                                ),
                               ),
-                              padding: const EdgeInsets.all(24),
-                              child: TableCalendar<Invoice>(
-                                firstDay: DateTime.utc(2020, 1, 1),
-                                lastDay: DateTime.utc(2030, 12, 31),
-                                focusedDay: _focusedDay,
-                                calendarFormat: _calendarFormat,
-                                eventLoader: _getInvoicesForDay,
-                                startingDayOfWeek: StartingDayOfWeek.monday,
-                                selectedDayPredicate: (day) {
-                                  return isSameDay(_selectedDay, day);
-                                },
-                                onDaySelected: (selectedDay, focusedDay) {
-                                  if (!isSameDay(_selectedDay, selectedDay)) {
-                                    setState(() {
-                                      _selectedDay = selectedDay;
-                                      _focusedDay = focusedDay;
-                                    });
-                                  }
-                                  _showInvoicesDialog(selectedDay);
-                                },
-                                onFormatChanged: (format) {
-                                  if (_calendarFormat != format) {
-                                    setState(() {
-                                      _calendarFormat = format;
-                                    });
-                                  }
-                                },
-                                onPageChanged: (focusedDay) {
-                                  _focusedDay = focusedDay;
-                                },
-                                calendarStyle: CalendarStyle(
-                                  outsideDaysVisible: false,
-                                  todayDecoration: BoxDecoration(
-                                    color: const Color(0xFF101C2C).withOpacity(0.7),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  selectedDecoration: const BoxDecoration(
-                                    color: Color(0xFF101C2C),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  markerDecoration: BoxDecoration(
-                                    color: Colors.amber[600],
-                                    shape: BoxShape.circle,
-                                  ),
-                                  markersMaxCount: 3,
-                                  markersAnchor: 0.7,
-                                  weekendTextStyle: TextStyle(
-                                    color: Colors.red[400],
-                                  ),
-                                  holidayTextStyle: TextStyle(
-                                    color: Colors.red[400],
-                                  ),
+                              headerStyle: const HeaderStyle(
+                                formatButtonVisible: true,
+                                titleCentered: true,
+                                formatButtonShowsNext: false,
+                                formatButtonDecoration: BoxDecoration(
+                                  color: Color(0xFF101C2C),
+                                  borderRadius: BorderRadius.all(Radius.circular(12.0)),
                                 ),
-                                headerStyle: const HeaderStyle(
-                                  formatButtonVisible: true,
-                                  titleCentered: true,
-                                  formatButtonShowsNext: false,
-                                  formatButtonDecoration: BoxDecoration(
-                                    color: Color(0xFF101C2C),
-                                    borderRadius: BorderRadius.all(Radius.circular(12.0)),
-                                  ),
-                                  formatButtonTextStyle: TextStyle(
-                                    color: Colors.white,
-                                  ),
-                                  leftChevronIcon: Icon(
-                                    Icons.chevron_left,
-                                    color: Color(0xFF101C2C),
-                                  ),
-                                  rightChevronIcon: Icon(
-                                    Icons.chevron_right,
-                                    color: Color(0xFF101C2C),
-                                  ),
+                                formatButtonTextStyle: TextStyle(
+                                  color: Colors.white,
                                 ),
-                                calendarBuilders: CalendarBuilders(
-                                  markerBuilder: (context, day, events) {
-                                    if (events.isNotEmpty) {
-                                      return Positioned(
-                                        right: 1,
-                                        bottom: 1,
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            color: Colors.amber[600],
-                                            shape: BoxShape.circle,
-                                          ),
-                                          width: 16,
-                                          height: 16,
-                                          child: Center(
-                                            child: Text(
-                                              '${events.length}',
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                              ),
+                                leftChevronIcon: Icon(
+                                  Icons.chevron_left,
+                                  color: Color(0xFF101C2C),
+                                ),
+                                rightChevronIcon: Icon(
+                                  Icons.chevron_right,
+                                  color: Color(0xFF101C2C),
+                                ),
+                              ),
+                              calendarBuilders: CalendarBuilders(
+                                markerBuilder: (context, day, events) {
+                                  if (events.isNotEmpty) {
+                                    return Positioned(
+                                      right: 1,
+                                      bottom: 1,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.amber[600],
+                                          shape: BoxShape.circle,
+                                        ),
+                                        width: 16,
+                                        height: 16,
+                                        child: Center(
+                                          child: Text(
+                                            '${events.length}',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
                                             ),
                                           ),
                                         ),
-                                      );
-                                    }
-                                    return null;
-                                  },
-                                ),
+                                      ),
+                                    );
+                                  }
+                                  return null;
+                                },
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -6,7 +6,8 @@ import 'details_screen.dart';
 import '../models/site_visit_item.dart';
 
 class SalespersonHomeScreen extends StatefulWidget {
-  const SalespersonHomeScreen({Key? key}) : super(key: key);
+  final String? salespersonId;
+  const SalespersonHomeScreen({Key? key, this.salespersonId}) : super(key: key);
 
   @override
   State<SalespersonHomeScreen> createState() => _SalespersonHomeScreenState();
@@ -34,8 +35,16 @@ class _SalespersonHomeScreenState extends State<SalespersonHomeScreen> {
       _error = null;
     });
     try {
-      // TODO: Replace with actual logged-in user id from auth/session
-      final userId = 'sal2001';
+      String? userId = widget.salespersonId;
+      if (userId == null) {
+        setState(() {
+          _error = 'No salesperson ID provided.';
+          _isLoading = false;
+        });
+        print('[SALESPERSON_HOME] No salesperson ID provided.');
+        return;
+      }
+      print('[SALESPERSON_HOME] Using salesperson ID: ' + userId);
       final supabase = Supabase.instance.client;
       final response = await supabase
           .from('jobs')
@@ -98,13 +107,18 @@ class _SalespersonHomeScreenState extends State<SalespersonHomeScreen> {
           _selectedSidebar = route;
         });
         if (route == 'profile') {
-          Navigator.of(context).pushReplacementNamed('/salesperson/profile');
+          Navigator.of(context).pushReplacementNamed('/salesperson/profile', arguments: {'receptionistId': widget.salespersonId});
         } else if (route == 'home') {
-          Navigator.of(context).pushReplacementNamed('/salesperson/dashboard');
+          Navigator.of(context).pushReplacementNamed('/salesperson/dashboard', arguments: {'receptionistId': widget.salespersonId});
         } else if (route == 'reimbursement') {
-          Navigator.of(context).pushReplacementNamed('/salesperson/reimbursement');
+          String employeeId = widget.salespersonId ?? 'sal2003';
+          Navigator.of(context).pushReplacementNamed(
+            '/salesperson/reimbursement',
+            arguments: {'employeeId': employeeId},
+          );
         }
       },
+      salespersonId: widget.salespersonId,
     );
     return Scaffold(
       key: scaffoldKey,

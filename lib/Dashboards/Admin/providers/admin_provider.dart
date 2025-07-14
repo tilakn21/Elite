@@ -25,6 +25,9 @@ class AdminProvider with ChangeNotifier {
   List<SalesData> _salesPerformance = [];
   List<SalesData> get salesPerformance => _salesPerformance;
 
+  double _salesChartMaxY = 100.0;
+  double get salesChartMaxY => _salesChartMaxY;
+
   Future<void> fetchAdminData() async {
     _isLoading = true;
     _errorMessage = null;
@@ -37,10 +40,12 @@ class AdminProvider with ChangeNotifier {
         _adminService.getBranchStats(),
         _adminService.getSalesPerformance(),
       ]);
-      
-      _adminJobs = results[0] as List<AdminJob>;
+        _adminJobs = results[0] as List<AdminJob>;
       _branchStats = results[1] as List<Branch>;
       _salesPerformance = results[2] as List<SalesData>;
+      
+      // Calculate the appropriate maxY for the sales chart
+      _salesChartMaxY = _adminService.getSalesChartMaxY(_salesPerformance);
 
     } catch (e) {
       _errorMessage = e.toString();

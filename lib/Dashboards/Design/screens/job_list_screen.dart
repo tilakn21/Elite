@@ -7,6 +7,7 @@ import '../utils/app_theme.dart';
 import 'job_details_screen.dart';
 import '../widgets/design_top_bar.dart';
 import '../widgets/sidebar.dart';
+import '../services/design_service.dart';
 
 class JobListScreen extends StatefulWidget {
   final bool showNavigation;
@@ -24,12 +25,21 @@ class _JobListScreenState extends State<JobListScreen>
   String _searchQuery = '';
   String _selectedFilter = 'All';
   bool _isRefreshingJobs = false;
+  String? _designerId;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _refreshJobs();
+    _fetchDesignerId();
+  }
+
+  Future<void> _fetchDesignerId() async {
+    final user = await DesignService().getCurrentUser();
+    setState(() {
+      _designerId = user?.id;
+    });
   }
 
   Future<void> _refreshJobs() async {
@@ -351,7 +361,11 @@ class _JobListScreenState extends State<JobListScreen>
                       Navigator.pushReplacementNamed(context, '/design/dashboard');
                       break;
                     case 2:
-                      Navigator.pushReplacementNamed(context, '/design/reimbursement');
+                      if (_designerId != null) {
+                        Navigator.pushReplacementNamed(context, '/design/reimbursement_request', arguments: {'employeeId': _designerId});
+                      } else {
+                        Navigator.pushReplacementNamed(context, '/design/reimbursement_request');
+                      }
                       break;
                     case 3:
                       Navigator.pushReplacementNamed(context, '/design/chats');
@@ -585,12 +599,11 @@ class _JobListScreenState extends State<JobListScreen>
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
           child: Row(
-            children: [
-              // Job ID column
+            children: [              // Job ID column
               Expanded(
                 flex: 3,
                 child: Text(
-                  job.id,
+                  job.jobCode,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w500,
                     color: Theme.of(context).primaryColor,

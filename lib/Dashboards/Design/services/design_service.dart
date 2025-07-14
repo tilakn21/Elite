@@ -22,14 +22,11 @@ class DesignService {
         final aDate = a['created_at'] != null ? DateTime.tryParse(a['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0) : DateTime.fromMillisecondsSinceEpoch(0);
         final bDate = b['created_at'] != null ? DateTime.tryParse(b['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0) : DateTime.fromMillisecondsSinceEpoch(0);
         return bDate.compareTo(aDate);
-      });
-      // Map each job from Supabase to the Job model, using job_code for display
+      });      // Map each job from Supabase to the Job model, keeping UUID as id and job_code separate
       return jobsList
           .map((json) {
-            final jobCode = json['job_code']?.toString() ?? json['id']?.toString() ?? '';
-            final jobMap = Map<String, dynamic>.from(json);
-            jobMap['id'] = jobCode; // Use job_code for display instead of id
-            return Job.fromJson(jobMap);
+            // Keep the original UUID in id and job_code separate
+            return Job.fromJson(json);
           })
           .toList();
     } catch (e) {
@@ -177,8 +174,14 @@ class DesignService {
   }
   Future<app.User?> getCurrentUser() async {
     await Future.delayed(const Duration(milliseconds: 300));
-    // For mock, return the first user
-    return app.User(id: '1', name: 'John Doe', email: 'john@elitesigns.com', role: 'Admin', avatar: 'assets/images/avatars/default_avatar.png');
+    // Return a demo user for development/testing
+    return app.User(
+      id: 'design1001',
+      name: 'Demo Designer',
+      email: 'designer@elitesigns.com',
+      role: 'design',
+      avatar: 'assets/images/avatars/default_avatar.png',
+    );
   }
 
   Future<Map<String, dynamic>?> getEmployeeById(String employeeId) async {

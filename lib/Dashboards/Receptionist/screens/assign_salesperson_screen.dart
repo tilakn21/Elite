@@ -6,6 +6,7 @@ import '../providers/job_request_provider.dart';
 import '../providers/salesperson_provider.dart';
 import '../widgets/sidebar.dart';
 import '../widgets/topbar.dart';
+import '../services/receptionist_service.dart';
 
 class AssignSalespersonScreen extends StatefulWidget {
   const AssignSalespersonScreen({Key? key}) : super(key: key);
@@ -19,6 +20,32 @@ class _AssignSalespersonScreenState extends State<AssignSalespersonScreen> {
   String? selectedSalespersonId;
   bool isAssigning = false;
   String? assignMessage;
+
+  String _receptionistName = '';
+  String _branchName = '';
+  String _receptionistId = 'rec1001'; // fallback for demo, replace with actual auth id
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchReceptionistAndBranch();
+  }
+
+  Future<void> _fetchReceptionistAndBranch() async {
+    final service = ReceptionistService();
+    final details = await service.fetchReceptionistDetails(receptionistId: _receptionistId);
+    String name = details?['full_name'] ?? '';
+    String branchName = '';
+    String id = details?['id'] ?? 'rec1001';
+    if (details != null && details['branch_id'] != null) {
+      branchName = await service.fetchBranchName(int.parse(details['branch_id'].toString())) ?? '';
+    }
+    setState(() {
+      _receptionistName = name;
+      _branchName = branchName;
+      _receptionistId = id;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,13 +67,14 @@ class _AssignSalespersonScreenState extends State<AssignSalespersonScreen> {
                 selectedIndex: 2,
                 isDrawer: true,
                 onClose: () => Navigator.of(context).pop(),
+                employeeId: _receptionistId,
               ),
             )
           : null,
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!isMobile) Sidebar(selectedIndex: 2),
+          if (!isMobile) Sidebar(selectedIndex: 2, employeeId: _receptionistId),
           Expanded(
             child: Column(
               children: [
@@ -54,6 +82,8 @@ class _AssignSalespersonScreenState extends State<AssignSalespersonScreen> {
                   isDashboard: false,
                   showMenu: isMobile,
                   onMenuTap: () => scaffoldKey.currentState?.openDrawer(),
+                  receptionistName: _receptionistName.isNotEmpty ? _receptionistName : 'Receptionist',
+                  branchName: _branchName.isNotEmpty ? _branchName : 'Branch',
                 ),
                 Expanded(
                   child: isLoading

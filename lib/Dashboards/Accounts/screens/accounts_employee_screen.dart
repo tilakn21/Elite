@@ -8,7 +8,8 @@ import '../widgets/accounts_employee_table.dart';
 import '../widgets/reimbursement_details_dialog.dart';
 
 class AccountsEmployeeScreen extends StatefulWidget {
-  const AccountsEmployeeScreen({Key? key}) : super(key: key);
+  final String? accountantId;
+  const AccountsEmployeeScreen({Key? key, this.accountantId}) : super(key: key);
 
   @override
   State<AccountsEmployeeScreen> createState() => _AccountsEmployeeScreenState();
@@ -71,11 +72,11 @@ class _AccountsEmployeeScreenState extends State<AccountsEmployeeScreen> {
       backgroundColor: const Color(0xFFF7F5FF),
       body: Row(
         children: [
-          const AccountsSidebar(selectedIndex: 2),
+          AccountsSidebar(selectedIndex: 2, accountantId: widget.accountantId),
           Expanded(
             child: Column(
               children: [
-                const AccountsTopBar(),
+                AccountsTopBar(accountantId: widget.accountantId),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 32),

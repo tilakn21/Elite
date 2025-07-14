@@ -373,11 +373,10 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       
       // First, try to get assignedSalesperson ID from the raw job data
       // by directly querying the database for this specific job
-      final supabase = Supabase.instance.client;
-      final jobData = await supabase
+      final supabase = Supabase.instance.client;      final jobData = await supabase
         .from('jobs')
         .select('receptionist')
-        .eq('job_code', _job!.id) // job_code is used as the display ID
+        .eq('id', _job!.id) // Use the UUID for database queries
         .maybeSingle();
         
       if (jobData != null && jobData['receptionist'] != null) {
@@ -552,9 +551,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
               color: AppTheme.primaryColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: AppTheme.primaryColor.withOpacity(0.2)),
-            ),
-            child: Text(
-              'Job #${_job?.id ?? ''}',
+            ),            child: Text(
+              'Job #${_job?.jobCode ?? ''}',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: AppTheme.primaryColor,
                 fontWeight: FontWeight.w600,
@@ -1210,7 +1208,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                   ),
                   Expanded(                    child: _buildJobInfoItem(
                       'Job Number',
-                      _job!.jobNo.isNotEmpty ? _job!.jobNo : _job!.id, // Already uses job code
+                      _job!.jobNo.isNotEmpty ? _job!.jobNo : _job!.jobCode, // Use jobCode for display
                       Icons.tag,
                       AppTheme.textSecondaryColor,
                     ),
@@ -1266,41 +1264,65 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     IconData progressIcon = Icons.schedule_outlined;
     
     if (_job != null) {
-      switch (_job!.displayStatus) {
-        case 'Queued':
-          progressValue = 0.2;
-          progressStatus = 'Queued';
-          progressColor = AppTheme.pendingColor;
-          progressIcon = Icons.queue_outlined;
-          estimatedCompletion = DateFormat('dd/MM/yyyy')
-              .format(_job!.dateAdded.add(const Duration(days: 14)));
-          break;
-        case 'Pending for Approval':
-          progressValue = 0.7;
-          progressStatus = 'Pending for Approval';
-          progressColor = AppTheme.pendingColor;
-          progressIcon = Icons.pending_outlined;
-          estimatedCompletion = DateFormat('dd/MM/yyyy')
-              .format(_job!.dateAdded.add(const Duration(days: 7)));
-          break;
-        case 'Design Completed':
-          progressValue = 1.0;
-          progressStatus = 'Design Completed';
-          progressColor = AppTheme.successColor;
-          progressIcon = Icons.check_circle_outline;
-          estimatedCompletion = DateFormat('dd/MM/yyyy').format(DateTime.now());
-          break;
-        default:
-          progressValue = 0.0;
-          progressStatus = _job!.displayStatus;
-          progressColor = AppTheme.inProgressColor;
-          progressIcon = Icons.work_outline;
-          estimatedCompletion = 'N/A';
+      // Check if design is a list and has any drafts with status 'pending_approval' or 'pending for approval'
+      bool hasPendingApproval = false;
+      bool hasCompletedDesign = false;
+      
+      if (_job!.design is List && (_job!.design as List).isNotEmpty) {
+        final List designList = _job!.design as List;
+        for (var i = designList.length - 1; i >= 0; i--) {
+          final draft = designList[i];
+          final status = draft is Map<String, dynamic> ? draft['status']?.toString().toLowerCase() : null;
+          if (status == 'pending_approval' || status == 'pending for approval') {
+            hasPendingApproval = true;
+            break;
+          } else if (status == 'completed') {
+            hasCompletedDesign = true;
+            break;
+          }
+        }
       }
-    }
-
-    // --- MODIFICATION: Display job_code (job number) in progress info grid ---
-    final String jobNumber = _job?.id ?? '-'; // _job!.id is set to job_code in Job.fromJson
+      
+      if (hasPendingApproval) {
+        progressValue = 0.7;
+        progressStatus = 'Pending for Approval';
+        progressColor = AppTheme.pendingColor;
+        progressIcon = Icons.pending_outlined;
+        estimatedCompletion = DateFormat('dd/MM/yyyy')
+            .format(_job!.dateAdded.add(const Duration(days: 7)));
+      } else if (hasCompletedDesign) {
+        progressValue = 1.0;
+        progressStatus = 'Design Completed';
+        progressColor = AppTheme.successColor;
+        progressIcon = Icons.check_circle_outline;
+        estimatedCompletion = DateFormat('dd/MM/yyyy').format(DateTime.now());
+      } else {
+        switch (_job!.displayStatus) {
+          case 'Queued':
+            progressValue = 0.2;
+            progressStatus = 'Queued';
+            progressColor = AppTheme.pendingColor;
+            progressIcon = Icons.queue_outlined;
+            estimatedCompletion = DateFormat('dd/MM/yyyy')
+                .format(_job!.dateAdded.add(const Duration(days: 14)));
+            break;
+          case 'Design Completed':
+            progressValue = 1.0;
+            progressStatus = 'Design Completed';
+            progressColor = AppTheme.successColor;
+            progressIcon = Icons.check_circle_outline;
+            estimatedCompletion = DateFormat('dd/MM/yyyy').format(DateTime.now());
+            break;
+          default:
+            progressValue = 0.0;
+            progressStatus = _job!.displayStatus;
+            progressColor = AppTheme.inProgressColor;
+            progressIcon = Icons.work_outline;
+            estimatedCompletion = 'N/A';
+        }
+      }
+    }    // --- MODIFICATION: Display job_code (job number) in progress info grid ---
+    final String jobNumber = _job?.jobCode ?? '-'; // Display the job_code for user identification
 
     return Container(
       decoration: BoxDecoration(
@@ -1757,7 +1779,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         } else if (key.toLowerCase().contains('note') || key.toLowerCase().contains('comment')) {
           fieldIcon = Icons.description_outlined;
         } else if (key.toLowerCase().contains('price') || key.toLowerCase().contains('cost') || key.toLowerCase().contains('amount')) {
-          fieldIcon = Icons.attach_money;
+          fieldIcon = Icons.currency_pound;
         }        
         infoRows.add(_buildInfoRow(context, _beautifyKey(key), getField(key), icon: fieldIcon));
         // Use divider instead of simple spacing for better visual separation

@@ -26,6 +26,7 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
   List<File> _selectedImages = [];
   bool _showImagePreview = false;
   bool _isUploading = false;
+  String? _designerId;
 
   @override
   void dispose() {
@@ -171,6 +172,20 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
   }
 
   @override
+  void initState() {
+    super.initState();
+    _fetchDesignerId();
+  }
+
+  Future<void> _fetchDesignerId() async {
+    final user = await DesignService().getCurrentUser();
+    if (!mounted) return;
+    setState(() {
+      _designerId = user?.id;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
 
@@ -206,6 +221,7 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
                       }
                     }
                   },
+                  employeeId: _designerId,
                 ),
                 Expanded(
                   child: isMobile 
