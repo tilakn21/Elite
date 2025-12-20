@@ -4,39 +4,90 @@ import 'package:intl/intl.dart';
 import '../widgets/sidebar.dart';
 import '../widgets/topbar.dart';
 import '../providers/job_request_provider.dart';
-import '../models/job_request.dart';
-import '../providers/salesperson_provider.dart';
 
-class NewJobRequestScreen extends StatelessWidget {
-  const NewJobRequestScreen({Key? key}) : super(key: key);
+class NewJobRequestScreen extends StatefulWidget {
+  final String? receptionistId;
+  const NewJobRequestScreen({Key? key, this.receptionistId}) : super(key: key);
+
+  @override
+  State<NewJobRequestScreen> createState() => _NewJobRequestScreenState();
+}
+
+class _NewJobRequestScreenState extends State<NewJobRequestScreen> {
+  final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+
+  String _receptionistName = '';
+  String _branchName = '';
+  String _receptionistId = ''; // Will be set from widget parameter
+
+  @override
+  void initState() {
+    super.initState();
+    // Set receptionistId from widget parameter or use empty string if null
+    _receptionistId = widget.receptionistId ?? '';
+    print('[NEW_JOB] Using receptionist ID: $_receptionistId');
+    // Refresh job requests when screen is opened
+    Future.microtask(() {
+      Provider.of<JobRequestProvider>(context, listen: false).fetchJobRequests();
+    });
+    _fetchReceptionistAndBranch();
+  }
+
+  Future<void> _fetchReceptionistAndBranch() async {
+    if (_receptionistId.isEmpty) {
+      print('[NEW_JOB] Warning: Receptionist ID is empty');
+      setState(() {
+        _receptionistName = 'Unknown';
+        _branchName = 'Unknown';
+      });
+      return;
+    }
+    
+    final service = ReceptionistService();
+    try {
+      final details = await service.fetchReceptionistDetails(receptionistId: _receptionistId);
+      String name = details?['full_name'] ?? '';
+      String branchName = '';
+      
+      if (details != null && details['branch_id'] != null) {
+        branchName = await service.fetchBranchName(int.parse(details['branch_id'].toString())) ?? '';
+      }
+      
+      setState(() {
+        _receptionistName = name;
+        _branchName = branchName;
+      });
+      print('[NEW_JOB] Fetched details: name=$_receptionistName, branch=$_branchName');
+    } catch (e) {
+      print('[NEW_JOB] Error fetching receptionist details: $e');
+      setState(() {
+        _receptionistName = 'Error';
+        _branchName = 'Error';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final isMobile = width < 600;
     final isTablet = width >= 600 && width < 900;
-    final double formWidth =
-        isMobile ? double.infinity : (isTablet ? 500 : 800);
-    final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
-
+    final double formWidth = isMobile ? double.infinity : (isTablet ? 500 : 800);
     return Scaffold(
       key: scaffoldKey,
       backgroundColor: const Color(0xFFF6F3FE),
       drawer: isMobile
-          ? Drawer(
-              child: Sidebar(
+          ? Drawer(              child: Sidebar(
                 selectedIndex: 1,
                 isDrawer: true,
                 onClose: () => Navigator.of(context).pop(),
-                onItemSelected: (index) {}, // Dummy callback
+                employeeId: _receptionistId.isNotEmpty ? _receptionistId : 'unknown',
               ),
             )
           : null,
       body: Row(
         children: [
-          if (!isMobile)
-            Sidebar(
-                selectedIndex: 1, onItemSelected: (index) {}), // Dummy callback
+          if (!isMobile) Sidebar(selectedIndex: 1, employeeId: _receptionistId.isNotEmpty ? _receptionistId : 'unknown'),
           Expanded(
             child: Column(
               children: [
@@ -44,10 +95,38 @@ class NewJobRequestScreen extends StatelessWidget {
                   isDashboard: false,
                   showMenu: isMobile,
                   onMenuTap: () => scaffoldKey.currentState?.openDrawer(),
+                  receptionistName: _receptionistName.isNotEmpty ? _receptionistName : 'Receptionist',
+                  branchName: _branchName.isNotEmpty ? _branchName : 'Branch',
                 ),
                 Expanded(
-                  child: JobRequestContent(
-                      isMobile: isMobile, formWidth: formWidth),
+                  child: Center(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.symmetric(
+                        vertical: isMobile ? 8 : 24,
+                        horizontal: isMobile ? 0 : 8,
+                      ),
+                      child: Container(
+                        width: formWidth,
+                        padding: EdgeInsets.symmetric(
+                          vertical: isMobile ? 16 : 32,
+                          horizontal: isMobile ? 8 : 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(isMobile ? 0 : 12),
+                          boxShadow: [
+                            if (!isMobile)
+                              BoxShadow(
+                                color: Colors.black.withAlpha(10),
+                                blurRadius: 24,
+                                offset: const Offset(0, 8),
+                              ),
+                          ],
+                        ),
+                        child: _JobRequestForm(isMobile: isMobile, receptionistId: _receptionistId),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -612,43 +691,45 @@ class _JobRequestFormDialog extends StatelessWidget {
 // Update _JobRequestForm to accept onSuccess and call it after successful submission
 class _JobRequestForm extends StatefulWidget {
   final bool isMobile;
-  final VoidCallback? onSuccess;
-  const _JobRequestForm({this.isMobile = false, this.onSuccess, Key? key})
-      : super(key: key);
+  final String receptionistId;
+  const _JobRequestForm({this.isMobile = false, required this.receptionistId});
   @override
   State<_JobRequestForm> createState() => _JobRequestFormState();
 }
 
 class _JobRequestFormState extends State<_JobRequestForm> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
-  String? _selectedStatus;
-  String? _selectedPriority;
-  DateTime? _date;
-  TimeOfDay? _time;
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController shopNameController = TextEditingController();
+  final TextEditingController streetAddressController = TextEditingController();
+  final TextEditingController streetNumberController = TextEditingController();
+  final TextEditingController townController = TextEditingController();
+  final TextEditingController postcodeController = TextEditingController();
+  final TextEditingController dateController = TextEditingController();
+  final TextEditingController timeController = TextEditingController();
+  final TextEditingController dateOfVisitController = TextEditingController();
+  final TextEditingController dateOfAppointmentController = TextEditingController();
+  final TextEditingController totalAmountController = TextEditingController(); // Added for total amount
+
+  String? selectedSalespersonId;
+  String? selectedSalespersonName;
+  List<Map<String, String>> availableSalespersons = [];
+  bool _isLoadingSalespersons = false;
+
   bool _isSubmitting = false;
   String? _submitMessage;
-  String? _validationError;
-  final List<String> _statuses = [
-    'New',
-    'In Progress',
-    'Completed',
-    'Cancelled'
-  ];
-  final List<String> _priorities = ['High', 'Medium', 'Low'];
-  final List<String> _salespersons = [];
-
-  String _formatTimeOfDay(TimeOfDay? time) {
-    if (time == null) return '';
-    final now = DateTime.now();
-    final dt = DateTime(now.year, now.month, now.day, time.hour, time.minute);
-    return TimeOfDay(hour: dt.hour, minute: dt.minute).format(context);
-  }
-
+  final ReceptionistService _receptionistService = ReceptionistService();
+  final _formKey = GlobalKey<FormState>();
+  // Track invalid fields for highlighting
+  Set<String> _invalidFields = {};
   @override
   void initState() {
     super.initState();
+    // Debug print to check if we get the correct ID
+    print('[JOB_FORM] Received receptionist ID: ${widget.receptionistId}');
+    // Set date of appointment to today (read-only)
+    final now = DateTime.now();
+    dateOfAppointmentController.text = "${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}";
     _fetchSalespersons();
   }
 
@@ -680,25 +761,29 @@ class _JobRequestFormState extends State<_JobRequestForm> {
     });
   }
 
-  bool _validateForm() {
-    final name = _nameController.text.trim();
-    final email = _emailController.text.trim();
-    final phone = _phoneController.text.trim();
-    final date = _date;
-    final time = _time;
+  @override
+  void dispose() {
+    nameController.dispose();
+    phoneController.dispose();
+    shopNameController.dispose();
+    streetAddressController.dispose();
+    streetNumberController.dispose();
+    townController.dispose();
+    postcodeController.dispose();
+    dateController.dispose();
+    timeController.dispose();
+    dateOfVisitController.dispose();
+    dateOfAppointmentController.dispose();
+    totalAmountController.dispose(); // Dispose total amount controller
+    super.dispose();
+  }
 
-    if (name.isEmpty ||
-        email.isEmpty ||
-        phone.isEmpty ||
-        date == null ||
-        time == null) {
-      setState(() {
-        _validationError = 'Please fill in all fields.';
-      });
-      return false;
-    }
-
-    if (!RegExp(r'^[a-zA-Z ]+$').hasMatch(name)) {
+  Future<void> _pickTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (picked != null) {
       setState(() {
         _validationError = 'Name can only contain letters and spaces.';
       });
@@ -711,20 +796,9 @@ class _JobRequestFormState extends State<_JobRequestForm> {
       });
       return false;
     }
-
-    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
-      setState(() {
-        _validationError = 'Please enter a valid email address.';
-      });
-      return false;
-    }
-
-    return true;
-  }
-
-  Future<void> _submitJobRequest() async {
+  }  Future<void> _submitJobRequest() async {
     setState(() {
-      _validationError = null;
+      _invalidFields.clear();
     });
     if (!_validateForm()) {
       return;
@@ -732,24 +806,45 @@ class _JobRequestFormState extends State<_JobRequestForm> {
     setState(() {
       _isSubmitting = true;
       _submitMessage = null;
-    });
-    try {
-      final jobRequestProvider =
-          Provider.of<JobRequestProvider>(context, listen: false);
-      await jobRequestProvider.addJobRequest(
-        JobRequest(
-          id: '',
-          name: _nameController.text.trim(),
-          phone: _phoneController.text.trim(),
-          email: _emailController.text.trim(),
-          status: JobRequestStatus.pending,
-          dateAdded: _date,
-          subtitle: _nameController.text.trim(),
-          avatar: null,
-          time: _formatTimeOfDay(_time),
-          assigned: false,
-          priority: _selectedPriority,
-        ),
+    });    try {
+      // Get receptionistId directly from the widget
+      final String receptionistId = widget.receptionistId;
+      
+      if (receptionistId.isEmpty) {
+        throw Exception('Receptionist ID is missing. Please log in again.');
+      }
+      
+      print('[JOB_REQUEST] Using receptionist ID for job creation: $receptionistId');
+      
+      // Prepare accountant JSONB
+      final String totalAmountText = totalAmountController.text.trim();
+      final double? totalAmount = double.tryParse(totalAmountText);
+      final Map<String, dynamic> accountantJson = {
+        'total_amount': totalAmount ?? 0,
+        'amount_paid': 0,
+        'amount_due': totalAmount ?? 0,
+      };      // Upload job to Supabase
+      await _receptionistService.addJobToSupabase(
+        customerName: nameController.text.trim(),
+        phone: phoneController.text.trim(),
+        shopName: shopNameController.text.trim(),
+        streetAddress: streetAddressController.text.trim(),
+        streetNumber: streetNumberController.text.trim(),
+        town: townController.text.trim(),
+        postcode: postcodeController.text.trim(),
+        dateOfAppointment: dateOfAppointmentController.text.trim(),
+        dateOfVisit: dateOfVisitController.text.trim(),
+        timeOfVisit: timeController.text.trim(),
+        assignedSalesperson: selectedSalespersonId,
+        createdBy: receptionistId, // Use authenticated receptionist ID
+        accountant: accountantJson, // Pass accountant JSONB
+        onJobAdded: () async {
+          // Optionally refresh job requests after adding
+          try {
+            final jobRequestProvider = Provider.of<JobRequestProvider>(context, listen: false);
+            await jobRequestProvider.fetchJobRequests();
+          } catch (_) {}
+        },
       );
       setState(() {
         _submitMessage = 'Job request submitted successfully!';
@@ -771,6 +866,100 @@ class _JobRequestFormState extends State<_JobRequestForm> {
         _isSubmitting = false;
       });
     }
+  }
+
+  bool _validateForm() {
+    final phone = phoneController.text.trim();
+    final postcode = postcodeController.text.trim();
+    final phoneRegExp = RegExp(r'^[0-9]{8,}$');
+    final postcodeRegExp = RegExp(r'^[0-9]{4,8}$');
+    List<String> missingFields = [];
+    _invalidFields.clear();
+    if (nameController.text.trim().isEmpty) {
+      missingFields.add('Name');
+      _invalidFields.add('name');
+    }
+    if (phone.isEmpty) {
+      missingFields.add('Phone number');
+      _invalidFields.add('phone');
+    } else if (!phoneRegExp.hasMatch(phone)) {
+      missingFields.add('Valid phone number (8+ digits, numbers only)');
+      _invalidFields.add('phone');
+    }
+    if (shopNameController.text.trim().isEmpty) {
+      missingFields.add('Shop name');
+      _invalidFields.add('shopName');
+    }
+    if (streetAddressController.text.trim().isEmpty) {
+      missingFields.add('Street address');
+      _invalidFields.add('streetAddress');
+    }
+    if (streetNumberController.text.trim().isEmpty) {
+      missingFields.add('Street number');
+      _invalidFields.add('streetNumber');
+    }
+    if (townController.text.trim().isEmpty) {
+      missingFields.add('Town');
+      _invalidFields.add('town');
+    }
+    if (postcode.isEmpty) {
+      missingFields.add('Postcode');
+      _invalidFields.add('postcode');
+    } else if (!postcodeRegExp.hasMatch(postcode)) {
+      missingFields.add('Valid postcode (4-8 digits, numbers only)');
+      _invalidFields.add('postcode');
+    }
+    // Remove dateController (date of appointment) from validation
+    if (dateOfVisitController.text.trim().isEmpty) {
+      missingFields.add('Date of visit');
+      _invalidFields.add('dateOfVisit');
+    }
+    if (timeController.text.trim().isEmpty) {
+      missingFields.add('Time of visit');
+      _invalidFields.add('timeOfVisit');
+    }
+    if (selectedSalespersonId == null) {
+      missingFields.add('Salesperson');
+      _invalidFields.add('salesperson');
+    }
+    // Validate total amount
+    final totalAmountText = totalAmountController.text.trim();
+    final totalAmount = double.tryParse(totalAmountText);
+    if (totalAmountText.isEmpty) {
+      missingFields.add('Total amount');
+      _invalidFields.add('totalAmount');
+    } else if (totalAmount == null || totalAmount < 0) {
+      missingFields.add('Valid total amount (number >= 0)');
+      _invalidFields.add('totalAmount');
+    }
+    if (missingFields.isNotEmpty) {
+      setState(() {
+        _submitMessage = 'Please fill/enter: ' + missingFields.join(', ');
+      });
+      return false;
+    }
+    setState(() {
+      _submitMessage = null;
+    });
+    return true;
+  }
+
+  void _clearForm() {
+    nameController.clear();
+    phoneController.clear();
+    shopNameController.clear();
+    streetAddressController.clear();
+    streetNumberController.clear();
+    townController.clear();
+    postcodeController.clear();
+    // dateController.clear(); // No longer used
+    timeController.clear();
+    dateOfVisitController.clear();
+    totalAmountController.clear(); // Clear total amount
+    setState(() {
+      selectedSalespersonId = null;
+      selectedSalespersonName = null;
+    });
   }
 
   @override
@@ -1017,6 +1206,221 @@ class _JobRequestFormState extends State<_JobRequestForm> {
               ],
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildFormFields(bool isMobile) {
+    return [
+      ..._buildLeftFields(),
+      const SizedBox(height: 20),
+      ..._buildRightFields(),
+      const SizedBox(height: 20),
+      _Label('Total Amount', tooltip: 'Total job amount (required)'),
+      _InputField(
+        hint: 'Enter total amount',
+        controller: totalAmountController,
+        error: _invalidFields.contains('totalAmount'),
+        keyboardType: TextInputType.numberWithOptions(decimal: true),
+        helperText: _invalidFields.contains('totalAmount') ? 'Enter a valid amount (number >= 0)' : null,
+      ),
+    ];
+  }
+
+  List<Widget> _buildLeftFields() {
+    return [
+      _Label('Name', tooltip: 'Customer full name'),
+      _InputField(
+        hint: 'Enter name',
+        controller: nameController,
+        error: _invalidFields.contains('name'),
+      ),
+      SizedBox(height: 20),
+      _Label('Phone number', tooltip: 'At least 8 digits, numbers only'),
+      _InputField(
+        hint: 'Enter phone number',
+        controller: phoneController,
+        error: _invalidFields.contains('phone'),
+        keyboardType: TextInputType.number,
+        helperText: _invalidFields.contains('phone') ? 'Enter at least 8 digits, numbers only' : null,
+      ),
+      SizedBox(height: 20),
+      _Label('Shop name', tooltip: 'Business/shop name'),
+      _InputField(
+        hint: 'Enter shop name',
+        controller: shopNameController,
+        error: _invalidFields.contains('shopName'),
+      ),
+      SizedBox(height: 20),
+      _Label('Street address', tooltip: 'Street name (no number)'),
+      _InputField(
+        hint: 'Enter street address',
+        controller: streetAddressController,
+        error: _invalidFields.contains('streetAddress'),
+      ),
+      SizedBox(height: 20),
+      _Label('Date of appointment', tooltip: 'Auto-filled as today'),
+      _InputField(
+        hint: '',
+        controller: dateOfAppointmentController,
+        readOnly: true,
+        error: false,
+      ),
+      SizedBox(height: 20),
+      _Label('Total Amount', tooltip: 'Total job amount (required)'),
+      _InputField(
+        hint: 'Enter total amount',
+        controller: totalAmountController,
+        error: _invalidFields.contains('totalAmount'),
+        keyboardType: TextInputType.numberWithOptions(decimal: true),
+        helperText: _invalidFields.contains('totalAmount') ? 'Enter a valid amount (number >= 0)' : null,
+      ),
+    ];
+  }
+
+  List<Widget> _buildRightFields() {
+    return [
+      _Label('Street number', tooltip: 'Building/street number'),
+      _InputField(
+        hint: 'Enter street number',
+        controller: streetNumberController,
+        error: _invalidFields.contains('streetNumber'),
+      ),
+      SizedBox(height: 20),
+      _Label('Town', tooltip: 'Town or city'),
+      _InputField(
+        hint: 'Enter town',
+        controller: townController,
+        error: _invalidFields.contains('town'),
+      ),
+      SizedBox(height: 20),
+      _Label('Postcode', tooltip: '4-8 digits, numbers only'),
+      _InputField(
+        hint: 'Enter postcode',
+        controller: postcodeController,
+        error: _invalidFields.contains('postcode'),
+        keyboardType: TextInputType.number,
+        helperText: _invalidFields.contains('postcode') ? 'Enter 4-8 digits, numbers only' : null,
+      ),
+      SizedBox(height: 20),
+      _Label('Date of visit', tooltip: 'Date the salesperson will visit'),
+      _InputField(
+        hint: 'Select date of visit',
+        controller: dateOfVisitController,
+        readOnly: true,
+        onTap: () => _pickDateOfVisit(context),
+        suffixIcon: Icon(Icons.calendar_today, size: 18, color: Color(0xFFBDBDBD)),
+        error: _invalidFields.contains('dateOfVisit'),
+      ),
+      SizedBox(height: 20),
+      _Label('Time of visit', tooltip: 'Time the salesperson will visit'),
+      _InputField(
+        hint: 'Select time',
+        controller: timeController,
+        readOnly: true,
+        onTap: () => _pickTime(context),
+        suffixIcon: Icon(Icons.access_time, size: 18, color: Color(0xFFBDBDBD)),
+        error: _invalidFields.contains('timeOfVisit'),
+      ),
+    ];
+  }
+}
+
+class _Label extends StatelessWidget {
+  final String text;
+  final String? tooltip;
+  const _Label(this.text, {this.tooltip, Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 12,
+            color: Color(0xFF7B7B7B),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        if (tooltip != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 4.0),
+            child: Tooltip(
+              message: tooltip!,
+              child: Icon(Icons.info_outline, size: 15, color: Color(0xFFBDBDBD)),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _InputField extends StatelessWidget {
+  final String hint;
+  final Widget? suffixIcon;
+  final TextEditingController? controller;
+  final bool readOnly;
+  final VoidCallback? onTap;
+  final bool error;
+  final TextInputType? keyboardType;
+  final String? helperText;
+  const _InputField({
+    required this.hint,
+    this.suffixIcon,
+    this.controller,
+    this.readOnly = false,
+    this.onTap,
+    this.error = false,
+    this.keyboardType,
+    this.helperText,
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(4),
+        boxShadow: error
+            ? [
+                BoxShadow(
+                  color: Colors.red.withOpacity(0.15),
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+              ]
+            : [],
+      ),
+      child: TextField(
+        controller: controller,
+        readOnly: readOnly,
+        onTap: onTap,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(fontSize: 13, color: Color(0xFFBDBDBD)),
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          filled: true,
+          fillColor: Color(0xFFF8F8F8),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4),
+            borderSide: BorderSide.none,
+          ),
+          suffixIcon: suffixIcon,
+          errorText: error ? '' : null,
+          errorBorder: error
+              ? OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(4),
+                  borderSide: BorderSide(color: Colors.red, width: 1.5),
+                )
+              : null,
+          helperText: helperText,
+          helperStyle: TextStyle(color: Colors.red, fontSize: 11),
         ),
       ),
     );

@@ -7,6 +7,7 @@ import '../providers/job_request_provider.dart';
 import '../providers/salesperson_provider.dart';
 import '../widgets/sidebar.dart';
 import '../widgets/topbar.dart';
+import '../services/receptionist_service.dart';
 
 class AssignSalespersonScreen extends StatefulWidget {
   const AssignSalespersonScreen({Key? key}) : super(key: key);
@@ -21,77 +22,30 @@ class _AssignSalespersonScreenState extends State<AssignSalespersonScreen> {
   bool isAssigning = false;
   String? assignMessage;
 
-  final TextEditingController _searchController = TextEditingController();
-  Set<model.SalespersonStatus> _selectedStatuses = {};
-  Set<String> _selectedExpertiseAreas = {};
-  List<String> _allExpertiseOptions = [];
-  Timer? _debounce;
+  String _receptionistName = '';
+  String _branchName = '';
+  String _receptionistId = 'rec1001'; // fallback for demo, replace with actual auth id
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(_onSearchChanged);
-    // Initial fetch or listen to provider for salespersons to update expertise options
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _updateExpertiseOptions();
-      _applyFiltersAndSearch(); // Initial load of filtered salespersons
-    });
+    _fetchReceptionistAndBranch();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // If salespersons list in provider changes, update expertise options
-    // This might be better handled by listening to the provider if it signals data changes effectively
-    _updateExpertiseOptions();
-  }
-
-  void _updateExpertiseOptions() {
-    final salespersonProvider = Provider.of<SalespersonProvider>(context, listen: false);
-    if (salespersonProvider.salespersons.isNotEmpty) {
-      final allExpertise = salespersonProvider.salespersons
-          .expand((sp) => sp.expertise)
-          .toSet()
-          .toList();
-      allExpertise.sort();
-      if (mounted && !listEquals(_allExpertiseOptions, allExpertise)) {
-        setState(() {
-          _allExpertiseOptions = allExpertise;
-        });
-      }
+  Future<void> _fetchReceptionistAndBranch() async {
+    final service = ReceptionistService();
+    final details = await service.fetchReceptionistDetails(receptionistId: _receptionistId);
+    String name = details?['full_name'] ?? '';
+    String branchName = '';
+    String id = details?['id'] ?? 'rec1001';
+    if (details != null && details['branch_id'] != null) {
+      branchName = await service.fetchBranchName(int.parse(details['branch_id'].toString())) ?? '';
     }
-  }
-
-  _onSearchChanged() {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () {
-      _applyFiltersAndSearch();
+    setState(() {
+      _receptionistName = name;
+      _branchName = branchName;
+      _receptionistId = id;
     });
-  }
-
-  void _applyFiltersAndSearch() {
-    final salespersonProvider = Provider.of<SalespersonProvider>(context, listen: false);
-    salespersonProvider.searchAndFilterSalespersons(
-      searchTerm: _searchController.text,
-      selectedStatuses: _selectedStatuses.toList(),
-      selectedExpertise: _selectedExpertiseAreas.toList(),
-    );
-    if (mounted) setState(() {}); // To rebuild with new filtered list
-  }
-
-  Future<void> _refreshSalespersons() async {
-    final salespersonProvider = Provider.of<SalespersonProvider>(context, listen: false);
-    await salespersonProvider.fetchSalespersons();
-    _updateExpertiseOptions();
-    _applyFiltersAndSearch(); // Re-apply filters after refresh
-  }
-
-  @override
-  void dispose() {
-    _searchController.removeListener(_onSearchChanged);
-    _searchController.dispose();
-    _debounce?.cancel();
-    super.dispose();
   }
 
   @override
@@ -117,14 +71,14 @@ class _AssignSalespersonScreenState extends State<AssignSalespersonScreen> {
                 selectedIndex: 2,
                 isDrawer: true,
                 onClose: () => Navigator.of(context).pop(),
-                onItemSelected: (index) {}, // Dummy callback
+                employeeId: _receptionistId,
               ),
             )
           : null,
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!isMobile) Sidebar(selectedIndex: 2, onItemSelected: (index) {}), // Dummy callback
+          if (!isMobile) Sidebar(selectedIndex: 2, employeeId: _receptionistId),
           Expanded(
             child: Column(
               children: [
@@ -132,6 +86,8 @@ class _AssignSalespersonScreenState extends State<AssignSalespersonScreen> {
                   isDashboard: false,
                   showMenu: isMobile,
                   onMenuTap: () => scaffoldKey.currentState?.openDrawer(),
+                  receptionistName: _receptionistName.isNotEmpty ? _receptionistName : 'Receptionist',
+                  branchName: _branchName.isNotEmpty ? _branchName : 'Branch',
                 ),
                 Expanded(
                   child: isLoadingOverall && salesPeople.isEmpty // Show loader if loading and no data yet

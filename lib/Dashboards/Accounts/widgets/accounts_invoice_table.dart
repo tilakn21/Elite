@@ -139,7 +139,7 @@ class _InvoiceRow extends StatelessWidget {
             Expanded(flex: 2, child: Text(invoice.invoiceNo, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15))),
             Expanded(flex: 3, child: Text(invoice.clientName, style: const TextStyle(fontSize: 15))),
             Expanded(flex: 3, child: Text(invoice.issueDate.formatDate(), style: const TextStyle(fontSize: 15))),
-            Expanded(flex: 2, child: Text('\$${invoice.totalAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
+            Expanded(flex: 2, child: Text('£${invoice.totalAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
             Expanded(
               flex: 2,
               child: Container(

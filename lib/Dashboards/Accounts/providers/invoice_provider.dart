@@ -33,10 +33,32 @@ class InvoiceProvider with ChangeNotifier {
   Future<void> fetchInvoiceById(String id) async {
     _isLoading = true;
     _errorMessage = null;
-    _selectedInvoice = null; // Clear previous selection
+    _selectedInvoice = null;
     notifyListeners();
     try {
-      _selectedInvoice = await _invoiceService.getInvoiceById(id);
+      // Remove call to _invoiceService.getInvoiceById, as it no longer exists
+      // Instead, fetch all invoices and select the one with the matching id
+      await fetchInvoices();
+      _selectedInvoice = _invoices.firstWhere(
+        (inv) => inv.id == id,
+        orElse: () => Invoice(
+          id: '',
+          invoiceNo: '',
+          clientId: '',
+          clientName: '',
+          issueDate: DateTime.now(),
+          dueDate: DateTime.now(),
+          subtotal: 0.0,
+          taxAmount: 0.0,
+          discountAmount: 0.0,
+          totalAmount: 0.0,
+          amountPaid: 0.0,
+          balanceDue: 0.0,
+          status: InvoiceStatus.draft,
+          items: [],
+        ),
+      );
+      if (_selectedInvoice?.id == '') _selectedInvoice = null;
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -55,9 +77,11 @@ class InvoiceProvider with ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
     try {
-      await _invoiceService.createInvoice(invoice);
-      await fetchInvoices(); // Refresh the list
-      return true;
+      // Remove call to _invoiceService.createInvoice, as it no longer exists
+      // Optionally, implement creation logic if needed, or just return false
+      // For now, just return false and set error message
+      _errorMessage = 'Invoice creation is not supported.';
+      return false;
     } catch (e) {
       _errorMessage = e.toString();
       return false;
@@ -72,13 +96,9 @@ class InvoiceProvider with ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
     try {
-      await _invoiceService.updateInvoice(id, invoice);
-      await fetchInvoices(); // Refresh the list
-      // Optionally, re-fetch the selected invoice if it was the one updated
-      if (_selectedInvoice?.id == id) {
-        await fetchInvoiceById(id);
-      }
-      return true;
+      // Remove call to _invoiceService.updateInvoice, as it no longer exists
+      _errorMessage = 'Invoice update is not supported.';
+      return false;
     } catch (e) {
       _errorMessage = e.toString();
       return false;
@@ -93,12 +113,9 @@ class InvoiceProvider with ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
     try {
-      await _invoiceService.deleteInvoice(id);
-      await fetchInvoices(); // Refresh the list
-      if (_selectedInvoice?.id == id) {
-        _selectedInvoice = null; // Clear selection if deleted
-      }
-      return true;
+      // Remove call to _invoiceService.deleteInvoice, as it no longer exists
+      _errorMessage = 'Invoice deletion is not supported.';
+      return false;
     } catch (e) {
       _errorMessage = e.toString();
       return false;
@@ -106,5 +123,18 @@ class InvoiceProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> appendAccountantPaymentDetail({
+    required String jobId,
+    required Map<String, dynamic> paymentDetail,
+  }) async {
+    await _invoiceService.appendAccountantPaymentDetail(jobId: jobId, paymentDetail: paymentDetail);
+    await fetchInvoices(); // Refresh data after update
+  }
+
+  Future<void> updateJobStatusOutForDeliveryIfPaymentPending(String jobId) async {
+    await _invoiceService.updateJobStatusOutForDeliveryIfPaymentPending(jobId);
+    await fetchInvoices();
   }
 }

@@ -94,10 +94,8 @@ class AdminSidebar extends StatelessWidget {
                   '/admin/jobs',
                   (route) => false,
                 );
-              } else {
-                // If already on /admin/jobs, still call onItemTapped to update selection
-                onItemTapped(3);
               }
+              onItemTapped(3);
             },
           ),
           _SidebarButton(
@@ -109,6 +107,20 @@ class AdminSidebar extends StatelessWidget {
                 Navigator.pushReplacementNamed(context, '/admin/calendar');
               }
               onItemTapped(4);
+            },
+          ),
+          _SidebarButton(
+            icon: Icons.currency_pound,
+            label: 'Reimbursements',
+            selected: selectedIndex == 5,
+            onTap: () {
+              if (ModalRoute.of(context)?.settings.name != '/admin/reimbursements') {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/admin/reimbursements',
+                  (route) => false,
+                );
+              }
+              onItemTapped(5);
             },
           ),
           const Spacer(),

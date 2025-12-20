@@ -1,8 +1,11 @@
 import 'package:elite_signboard_app/Dashboards/Admin/screens/job_listing_screen_new.dart';
+import 'package:elite_signboard_app/Dashboards/Admin/screens/view_reimbursements_screen.dart';
+import 'package:elite_signboard_app/shared/reimbursement/screens/reimbursement_request_screen_new.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'Dashboards/Admin/screens/employee_management_screen.dart';
 import 'Dashboards/Admin/screens/admin_dashboard_screen.dart';
+import 'Dashboards/Admin/screens/admin_calendar_screen.dart';
 import 'package:provider/provider.dart';
 
 // Providers
@@ -21,16 +24,25 @@ import 'Dashboards/Production/services/production_service.dart'; // Added Produc
 import 'Dashboards/Receptionist/services/receptionist_service.dart'; // Added ReceptionistService
 import 'Dashboards/Receptionist/providers/job_request_provider.dart'; // Added JobRequestProvider
 import 'Dashboards/Receptionist/providers/salesperson_provider.dart'; // Added SalespersonProvider
+import 'Dashboards/Receptionist/services/reimbursement_service.dart'; // Fixed import path for ReimbursementService
+import 'Dashboards/Receptionist/providers/reimbursement_provider.dart'; // Added ReimbursementProvider
+import 'Dashboards/Admin/providers/reimbursement_provider.dart' as admin; // Added Admin ReimbursementProvider
+import 'Dashboards/Accounts/providers/employee_provider.dart'; // Added for Accounts EmployeeProvider
 
 // Screens
 import 'Dashboards/Design/screens/dashboard_screen.dart';
 import 'Dashboards/Design/screens/job_list_screen.dart';
 import 'Dashboards/Design/screens/active_chats_screen.dart';
+import 'Dashboards/Design/screens/design_calendar_screen.dart';
 
 // Receptionist Dashboard
 import 'Dashboards/Receptionist/screens/dashboard_screen.dart';
 import 'Dashboards/Receptionist/screens/new_job_request_screen.dart';
 import 'Dashboards/Receptionist/screens/assign_salesperson_screen.dart';
+import 'Dashboards/Receptionist/screens/view_all_jobs_screen.dart';
+import 'Dashboards/Receptionist/screens/reimbursement_request_screen.dart';
+import 'Dashboards/Receptionist/screens/receptionist_calendar_screen.dart';
+//import 'Dashboards/Receptionist/screens/view_reimbursements_screen.dart';
 
 // Design Dashboard
 import 'Dashboards/Design/screens/dashboard_screen.dart' as design;
@@ -44,6 +56,7 @@ import 'Dashboards/Production/screens/production_dashboard.dart';
 import 'Dashboards/Production/screens/production_job_list_screen.dart';
 import 'Dashboards/Production/screens/assign_labour_screen.dart';
 import 'Dashboards/Production/screens/update_job_status_screen.dart';
+import 'Dashboards/Production/screens/production_calendar_screen.dart';
 
 // Printing Dashboard
 import 'Dashboards/Printing/screens/printing_dashboard_screen.dart';
@@ -54,6 +67,7 @@ import 'Dashboards/Printing/screens/quality_check_screen.dart';
 import 'Dashboards/Accounts/screens/accounts_dashboard_screen.dart';
 import 'Dashboards/Accounts/screens/accounts_invoice_screen.dart';
 import 'Dashboards/Accounts/screens/accounts_employee_screen.dart';
+import 'Dashboards/Accounts/screens/accounts_calendar_screen.dart';
 
 // Utils
 import 'Dashboards/Design/utils/app_theme.dart';
@@ -84,31 +98,20 @@ void main() async {
         ChangeNotifierProvider(create: (_) => UserProvider(DesignService())),
         ChangeNotifierProvider(create: (_) => JobProvider(DesignService())),
         ChangeNotifierProvider(create: (_) => ChatProvider(DesignService())),
-        ChangeNotifierProvider(
-            create: (_) => InvoiceProvider()), // Registered InvoiceProvider
-        ChangeNotifierProvider(
-            create: (_) => AdminProvider(
-                AdminService())), // Registered AdminProvider with AdminService
-        ChangeNotifierProvider(
-            create: (_) => PrintingJobProvider(
-                PrintingService())), // Registered PrintingJobProvider
-        Provider(
-            create: (_) =>
-                ProductionService()), // Provide ProductionService so other providers can read it
-        ChangeNotifierProvider(
-            create: (context) =>
-                ProductionJobProvider(context.read<ProductionService>())),
-        ChangeNotifierProvider(
-            create: (context) =>
-                WorkerProvider(context.read<ProductionService>())),
-        // Provide ReceptionistService so other providers can read it.
-        Provider(create: (_) => ReceptionistService()),
-        ChangeNotifierProvider(
-            create: (context) =>
-                JobRequestProvider(context.read<ReceptionistService>())),
-        ChangeNotifierProvider(
-            create: (context) =>
-                SalespersonProvider(context.read<ReceptionistService>())),
+        ChangeNotifierProvider(create: (_) => InvoiceProvider()), // Registered InvoiceProvider
+        ChangeNotifierProvider(create: (_) => AdminProvider(AdminService())),   // Registered AdminProvider with AdminService
+        ChangeNotifierProvider(create: (_) => PrintingJobProvider(PrintingService())), // Registered PrintingJobProvider        
+        Provider(create: (_) => ProductionService()), // Provide ProductionService so other providers can read it
+        ChangeNotifierProvider(create: (context) => ProductionJobProvider(context.read<ProductionService>())),
+        ChangeNotifierProvider(create: (context) => WorkerProvider(context.read<ProductionService>())),        // Provide ReceptionistService so other providers can read it.
+        Provider(create: (_) => ReceptionistService()), 
+        ChangeNotifierProvider(create: (context) => JobRequestProvider(context.read<ReceptionistService>())),
+        ChangeNotifierProvider(create: (context) => SalespersonProvider(context.read<ReceptionistService>())),
+        // Provide ReimbursementService and ReimbursementProvider
+        Provider(create: (_) => ReimbursementService()),
+        ChangeNotifierProvider(create: (context) => ReimbursementProvider(context.read<ReimbursementService>())),
+        ChangeNotifierProvider(create: (_) => admin.ReimbursementProvider()), // Admin ReimbursementProvider
+        ChangeNotifierProvider(create: (_) => EmployeeProvider()), // <-- Add this line for Accounts dashboard only
       ],
       child: MyApp(),
     ),
@@ -134,38 +137,128 @@ class MyApp extends StatelessWidget {
             ),
             fontFamily: 'Poppins',
           ),
-          home: const LoginScreen(),
-          //home: const SalespersonHomeScreen(),
-          routes: {
-            '/admin/dashboard': (context) => AdminDashboardScreen(),
-            '/admin/employees': (context) => const EmployeeManagementScreen(),
-            '/admin/jobs': (context) => const JobListingScreen(),
-            '/login': (context) => const LoginScreen(),
-            '/receptionist/dashboard': (context) => const DashboardPage(),
-            '/receptionist/new-job-request': (context) =>
-                const NewJobRequestScreen(),
-            '/receptionist/assign-salesperson': (context) =>
-                const AssignSalespersonScreen(),
-            '/salesperson/dashboard': (context) =>
-                const SalespersonHomeScreen(),
-            '/salesperson/profile': (context) =>
-                const SalespersonProfileScreen(),
-            '/design/dashboard': (context) => const design.DashboardScreen(),
-            '/accounts/dashboard': (context) => const AccountsDashboardScreen(),
-            '/accounts/invoice': (context) => const AccountsInvoiceScreen(),
-            '/accounts/employee': (context) => const AccountsEmployeeScreen(),
-            '/production/dashboard': (context) => const ProductionDashboard(),
-            '/production/joblist': (context) => const ProductionJobListScreen(),
-            '/production/assignlabour': (context) => const AssignLabourScreen(),
-            '/production/updatejobstatus': (context) =>
-                const UpdateJobStatusScreen(),
-            '/printing/dashboard': (context) => const PrintingDashboardScreen(),
-            '/printing/assignlabour': (context) =>
-                const PrintingAssignLabourScreen(),
-            '/printing/qualitycheck': (context) =>
-                const PrintingQualityCheckScreen(),
-          },
-        ));
+          fontFamily: 'Poppins',        ),
+        home: const LoginScreen(),
+        //home: const SalespersonHomeScreen(),
+        routes: {
+        '/admin/dashboard': (context) => AdminDashboardScreen(),
+        '/admin/employees': (context) => const EmployeeManagementScreen(),
+        '/admin/jobs': (context) => const JobListingScreen(),
+        '/admin/calendar': (context) => const AdminCalendarScreen(),
+        '/login': (context) => const LoginScreen(),
+        '/receptionist/dashboard': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? receptionistId;
+          if (args is Map && args['receptionistId'] != null) {
+            receptionistId = args['receptionistId'] as String?;
+          }
+          return DashboardPage(receptionistId: receptionistId);
+        },
+        '/receptionist/new-job-request': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? receptionistId;
+          if (args is Map && args['receptionistId'] != null) {
+            receptionistId = args['receptionistId'] as String?;
+          }
+          return NewJobRequestScreen(receptionistId: receptionistId);
+        },
+        '/receptionist/assign-salesperson': (context) =>
+            const AssignSalespersonScreen(),        '/receptionist/view-all-jobs': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? receptionistId;
+          if (args is Map && args['receptionistId'] != null) {
+            receptionistId = args['receptionistId'] as String?;
+          }
+          return ViewAllJobsScreen(receptionistId: receptionistId);
+        },
+        '/receptionist/reimbursement-request': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? receptionistId;
+          if (args is Map && args['receptionistId'] != null) {
+            receptionistId = args['receptionistId'] as String?;
+          }
+          return ReimbursementRequestScreen(receptionistId: receptionistId);
+        },
+        '/receptionist/calendar': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? receptionistId;
+          if (args is Map && args['receptionistId'] != null) {
+            receptionistId = args['receptionistId'] as String?;
+          }
+          return ReceptionistCalendarScreen(receptionistId: receptionistId);
+        },
+        //'/receptionist/view-reimbursements': (context) => const ViewReimbursementsScreen(),
+        '/salesperson/dashboard': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? salespersonId;
+          if (args is Map && args['receptionistId'] != null) {
+            salespersonId = args['receptionistId'] as String?;
+          }
+          return SalespersonHomeScreen(salespersonId: salespersonId);
+        },
+        '/salesperson/profile': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? salespersonId;
+          if (args is Map && args['receptionistId'] != null) {
+            salespersonId = args['receptionistId'] as String?;
+          }
+          return SalespersonProfileScreen(salespersonId: salespersonId);
+        },
+        '/design/dashboard': (context) => const design.DashboardScreen(),        '/accounts/dashboard': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? accountantId;
+          if (args is Map && args['accountantId'] != null) {
+            accountantId = args['accountantId'] as String?;
+          }
+          return AccountsDashboardScreen(accountantId: accountantId);
+        },
+        '/accounts/invoice': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? accountantId;
+          if (args is Map && args['accountantId'] != null) {
+            accountantId = args['accountantId'] as String?;
+          }
+          return AccountsInvoiceScreen(accountantId: accountantId);
+        },
+        '/accounts/employee': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? accountantId;
+          if (args is Map && args['accountantId'] != null) {
+            accountantId = args['accountantId'] as String?;
+          }
+          return AccountsEmployeeScreen(accountantId: accountantId);
+        },
+        '/accounts/calendar': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          String? accountantId;
+          if (args is Map && args['accountantId'] != null) {
+            accountantId = args['accountantId'] as String?;
+          }
+          return AccountsCalendarScreen(accountantId: accountantId);
+        },
+        '/production/dashboard': (context) => const ProductionDashboard(),
+        '/production/joblist': (context) => const ProductionJobListScreen(),
+        '/production/assignlabour': (context) => const AssignLabourScreen(),
+        '/production/updatejobstatus': (context) =>
+            const UpdateJobStatusScreen(),
+        '/production/calendar': (context) => const ProductionCalendarScreen(),
+        '/printing/dashboard': (context) => const PrintingDashboardScreen(),
+        '/printing/assignlabour': (context) =>
+            const PrintingAssignLabourScreen(),
+        '/printing/qualitycheck': (context) =>
+            const PrintingQualityCheckScreen(),
+        '/admin/reimbursements': (context) => const ViewReimbursementsScreen(),
+        //'reimbursement': (context) => const salesperson.ReimbursementRequestScreen(),
+        //'/salesperson/reimbursement': (context) => const salesperson.ReimbursementRequestScreen(),
+        //'/production/reimbursement': (context) => const ReimbursementRequestScreen(),
+        '/production/reimbursement_request': (context) => const ReimbursementRequestScreenNew(dashboardType: 'production'),        '/design/reimbursement_request': (context) => const ReimbursementRequestScreenNew(dashboardType: 'design'),
+        '/design/joblist': (context) => const JobListScreen(),
+        '/design/chats': (context) => const ActiveChatsScreen(),
+        '/design/calendar': (context) => const DesignCalendarScreen(),
+        '/salesperson/reimbursement': (context) => const ReimbursementRequestScreenNew(dashboardType: 'salesperson'),
+      },
+      ),
+    );
   }
 }
 

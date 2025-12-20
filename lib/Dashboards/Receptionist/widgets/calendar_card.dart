@@ -1,26 +1,36 @@
 import 'package:flutter/material.dart';
+import '../screens/receptionist_calendar_screen.dart';
 
 class CalendarCard extends StatelessWidget {
   const CalendarCard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-      color: Colors.white,
-      child: Container(
-        // constraints: const BoxConstraints.expand(),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(32, 28, 32, 28),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Calendar', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: Color(0xFF1B2330))),
-                const SizedBox(height: 18),
-                _CalendarWidget(),
-              ],
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const ReceptionistCalendarScreen(),
+          ),
+        );
+      },
+      child: Card(
+        elevation: 8,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        color: Colors.white,
+        child: Container(
+          // constraints: const BoxConstraints.expand(),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(32, 28, 32, 28),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Calendar', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: Color(0xFF1B2330))),
+                  const SizedBox(height: 18),
+                  _CalendarWidget(),
+                ],
+              ),
             ),
           ),
         ),

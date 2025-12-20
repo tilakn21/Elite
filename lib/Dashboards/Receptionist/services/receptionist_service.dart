@@ -2,6 +2,8 @@ import '../models/job_request.dart';
 import '../models/salesperson.dart';
 import 'package:uuid/uuid.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 
 class ReceptionistService {
   final Uuid _uuid = const Uuid();
@@ -16,7 +18,7 @@ class ReceptionistService {
       status: JobRequestStatus.pending,
       dateAdded: DateTime.now().subtract(const Duration(days: 1)),
       subtitle: 'New kitchen design inquiry',
-      avatar: 'assets/images/avatars/avatar1.png', // Placeholder path
+      avatar: 'assets/images/avatars/default_avatar.png', // Placeholder path
       time: '10:30 AM',
       assigned: false,
     ),
@@ -28,7 +30,7 @@ class ReceptionistService {
       status: JobRequestStatus.approved,
       dateAdded: DateTime.now().subtract(const Duration(hours: 5)),
       subtitle: 'Approved for site visit',
-      avatar: 'assets/images/avatars/avatar2.png', // Placeholder path
+      avatar: 'assets/images/avatars/default_avatar.png', // Placeholder path
       time: '02:15 PM',
       assigned: true,
     ),
@@ -40,7 +42,7 @@ class ReceptionistService {
       status: JobRequestStatus.declined,
       dateAdded: DateTime.now().subtract(const Duration(days: 2)),
       subtitle: 'Not interested at this time',
-      avatar: 'assets/images/avatars/avatar3.png', // Placeholder path
+      avatar: 'assets/images/avatars/default_avatar.png', // Placeholder path
       time: '09:00 AM',
       assigned: false,
     ),
@@ -189,7 +191,7 @@ class ReceptionistService {
     return null;
   }
 
-  // Add a new job to Supabase (jobs table)
+  // Add a new job to Supabase, now with branch_id logic
   Future<void> addJobToSupabase({
     required String customerName,
     required String phone,
@@ -203,16 +205,31 @@ class ReceptionistService {
     required String timeOfVisit,
     required String? assignedSalesperson,
     required String createdBy, // receptionist user id
+    Map<String, dynamic>? accountant, // <-- add this
     void Function()? onJobAdded, // callback after job is added
   }) async {
+    print('[SUPABASE_JOB] Creating job with receptionist ID: $createdBy');
     final supabase = Supabase.instance.client;
     final now = DateTime.now().toUtc().toIso8601String();
-    final address = '$streetAddress, $streetNumber, $town, $postcode';
+    // --- Fetch branch_id for authenticated receptionist ---
+    final branchResult = await supabase
+        .from('employee')
+        .select('branch_id')
+        .eq('id', createdBy)
+        .maybeSingle();
+    print('[SUPABASE_JOB] Branch result: $branchResult for ID: $createdBy');
+    
+    final int? branchId = branchResult != null ? int.tryParse(branchResult['branch_id'].toString()) : null;
+    print('[SUPABASE_JOB] Branch ID: $branchId');
+    // --- END ---
     final receptionistJson = {
       'customerName': customerName,
       'phone': phone,
       'shopName': shopName,
-      'address': address,
+      'streetAddress': streetAddress, // separate
+      'streetNumber': streetNumber,   // separate
+      'town': town,                   // separate
+      'postcode': postcode,           // separate
       'dateOfAppointment': dateOfAppointment,
       'dateOfVisit': dateOfVisit,
       'timeOfVisit': timeOfVisit,
@@ -221,24 +238,49 @@ class ReceptionistService {
       'createdAt': now,
     };
     try {
-      await supabase
+      // Insert job and get the created job's id
+      final insertData = {
+        'status': 'salesperson assigned',
+        'created_at': now,
+        'receptionist': receptionistJson,
+        if (accountant != null) 'accountant': accountant, // <-- include accountant if provided
+        if (branchId != null) 'branch_id': branchId, // <-- include branch_id in jobs table
+      };
+      final insertedJob = await supabase
           .from('jobs')
-          .insert({
-            'status': 'reception',
-            'created_at': now,
-            'receptionist': receptionistJson,
-          })
+          .insert(insertData)
           .select()
           .single();
-      if (onJobAdded != null) {
-        onJobAdded();
+      final jobId = insertedJob['id'];
+      // Update assigned_jobs for the assigned salesperson (append to array safely)
+      if (assignedSalesperson != null && jobId != null) {
+        // Fetch current assigned_jobs array and number_of_jobs
+        final employee = await supabase
+            .from('employee')
+            .select('assigned_job, number_of_jobs')
+            .eq('id', assignedSalesperson)
+            .single();
+        List<dynamic> currentJobs = employee['assigned_job'] ?? [];
+        int numberOfJobs = (employee['number_of_jobs'] ?? 0) as int;
+        // Ensure no duplicates and append
+        if (!currentJobs.contains(jobId)) {
+          currentJobs.add(jobId);
+          numberOfJobs += 1;
+        }
+        // If number_of_jobs >= 4, set is_available to false
+        bool isAvailable = numberOfJobs < 4;
+        await supabase
+            .from('employee')
+            .update({
+              'assigned_job': currentJobs,
+              'number_of_jobs': numberOfJobs,
+              'is_available': isAvailable
+            })
+            .eq('id', assignedSalesperson);
       }
-      // Fetch jobs again after adding
-      await fetchJobRequestsFromSupabase();
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to add job: ${e.message}');
+      if (onJobAdded != null) onJobAdded();
     } catch (e) {
-      throw Exception('Failed to add job: $e');
+      rethrow;
     }
   }
 
@@ -247,9 +289,22 @@ class ReceptionistService {
     final supabase = Supabase.instance.client;
     final response = await supabase
         .from('employee')
-        .select('id, full_name, is_available')
+        .select('id, full_name, is_available, number_of_jobs')
         .ilike('id', 'sal%');
-    return List<Map<String, dynamic>>.from(response)
+    List<Map<String, dynamic>> employees = List<Map<String, dynamic>>.from(response);
+    // Sort: available first (ascending number_of_jobs), then unavailable
+    employees.sort((a, b) {
+      final aAvailable = a['is_available'] == true ? 0 : 1;
+      final bAvailable = b['is_available'] == true ? 0 : 1;
+      if (aAvailable != bAvailable) {
+        return aAvailable - bAvailable;
+      }
+      // If both have same availability, sort by number_of_jobs ascending
+      final aJobs = (a['number_of_jobs'] ?? 0) as int;
+      final bJobs = (b['number_of_jobs'] ?? 0) as int;
+      return aJobs.compareTo(bJobs);
+    });
+    return employees
         .map<Salesperson>((e) => Salesperson(
               id: e['id']?.toString() ?? '',
               name: e['full_name'] ?? '',
@@ -266,12 +321,28 @@ class ReceptionistService {
     final supabase = Supabase.instance.client;
     final response = await supabase
         .from('jobs')
-        .select('id, status, created_at, receptionist');
-    return List<Map<String, dynamic>>.from(response).map<JobRequest>((e) {
+        .select('id, job_code, status, created_at, receptionist, assigned_salesperson');
+    final jobs = List<Map<String, dynamic>>.from(response);
+    // Update salesperson availability in a detached microtask (never blocks UI)
+    Future.microtask(() async {
+      for (final job in jobs) {
+        final status = job['status']?.toString();
+        final assignedSalesperson = job['assigned_salesperson'];
+        if (assignedSalesperson != null && status != null && status.toLowerCase() != 'salesperson assigned') {
+          try {
+            await setSalespersonAvailable(assignedSalesperson);
+          } catch (_) {}
+        }
+      }
+    });
+    final jobRequests = jobs.map<JobRequest>((e) {
       final receptionist = e['receptionist'] as Map<String, dynamic>?;
+      final receptionistStatus = receptionist?['status']?.toString().toLowerCase();
+      final isAssigned = receptionistStatus == 'completed';
+      final jobCode = e['job_code']?.toString() ?? e['id']?.toString() ?? '';
       return JobRequest(
         id: e['id']?.toString() ?? '',
-        name: receptionist?['customerName'] ?? '',
+        name: jobCode,
         phone: receptionist?['phone'] ?? '',
         email: receptionist?['createdBy'] ?? '',
         status: _parseJobStatus(e['status']),
@@ -280,9 +351,17 @@ class ReceptionistService {
         subtitle: receptionist?['shopName'] ?? '',
         avatar: '',
         time: receptionist?['timeOfVisit'] ?? '',
-        assigned: receptionist?['assignedSalesperson'] != null,
+        assigned: isAssigned,
+        receptionistJson: receptionist,
       );
     }).toList();
+    // Sort by dateAdded descending (most recent first)
+    jobRequests.sort((a, b) {
+      final aDate = a.dateAdded ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bDate = b.dateAdded ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bDate.compareTo(aDate);
+    });
+    return jobRequests;
   }
 
   // Helper to parse job status from string
@@ -312,5 +391,57 @@ class ReceptionistService {
     } catch (e) {
       throw Exception('Failed to update salesperson availability: $e');
     }
+  }
+
+  // Set is_available to true for a salesperson in Supabase
+  Future<void> setSalespersonAvailable(String salespersonId) async {
+    final supabase = Supabase.instance.client;
+    try {
+      await supabase
+          .from('employee')
+          .update({'is_available': true})
+          .eq('id', salespersonId);
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to update salesperson availability: \\${e.message}');
+    } catch (e) {
+      throw Exception('Failed to update salesperson availability: $e');
+    }
+  }
+
+  /// Fetch receptionist's name, role, and branch_id from employee table
+  Future<Map<String, dynamic>?> fetchReceptionistDetails({required String receptionistId}) async {
+    final supabase = Supabase.instance.client;
+    final String id = receptionistId;
+    final result = await supabase
+        .from('employee')
+        .select('full_name, role, branch_id')
+        .eq('id', id)
+        .maybeSingle();
+    return result;
+  }
+
+  /// Fetch branch name from branches table using branch_id
+  Future<String?> fetchBranchName(int branchId) async {
+    final supabase = Supabase.instance.client;
+    final result = await supabase
+        .from('branches')
+        .select('name')
+        .eq('id', branchId)
+        .maybeSingle();
+    return result != null ? result['name'] as String? : null;
+  }
+
+  /// Authenticate employee by ID and password (hashed)
+  static Future<Map<String, dynamic>?> loginWithIdAndPassword(String empId, String password) async {
+    final supabase = Supabase.instance.client;
+    // Hash the password (assuming SHA256, update if you use a different hash)
+    final hashedPassword = sha256.convert(utf8.encode(password)).toString();
+    final result = await supabase
+        .from('employee')
+        .select('id, full_name, role, branch_id')
+        .eq('id', empId)
+        .eq('password', hashedPassword)
+        .maybeSingle();
+    return result;
   }
 }

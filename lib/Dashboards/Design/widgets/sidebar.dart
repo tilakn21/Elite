@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 class DesignSidebar extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onItemTapped;
+  final String? employeeId;
   const DesignSidebar(
-      {Key? key, this.selectedIndex = 0, required this.onItemTapped})
+      {Key? key, this.selectedIndex = 0, required this.onItemTapped, this.employeeId})
       : super(key: key);
 
   @override
@@ -50,14 +51,51 @@ class DesignSidebar extends StatelessWidget {
             icon: Icons.list_alt,
             label: 'Job List',
             selected: selectedIndex == 1,
-            onTap: () => onItemTapped(1),
+            onTap: () {
+              if (ModalRoute.of(context)?.settings.name != '/design/joblist') {
+                Navigator.of(context).pushReplacementNamed('/design/joblist');
+              }
+              onItemTapped(1);
+            },
           ),
-        
           _SidebarButton(
+            icon: Icons.receipt_long,
+            label: 'Reimbursement',
+            selected: selectedIndex == 2,
+            onTap: () {
+              if (ModalRoute.of(context)?.settings.name != '/design/reimbursement_request') {
+                if (employeeId != null) {
+                  Navigator.of(context).pushReplacementNamed(
+                    '/design/reimbursement_request',
+                    arguments: {'employeeId': employeeId},
+                  );
+                } else {
+                  Navigator.of(context).pushReplacementNamed('/design/reimbursement_request');
+                }
+              }
+              onItemTapped(2);
+            },
+          ),          _SidebarButton(
             icon: Icons.chat,
             label: 'Customer\nChats',
             selected: selectedIndex == 3,
-            onTap: () => onItemTapped(3),
+            onTap: () {
+              if (ModalRoute.of(context)?.settings.name != '/design/chats') {
+                Navigator.of(context).pushReplacementNamed('/design/chats');
+              }
+              onItemTapped(3);
+            },
+          ),
+          _SidebarButton(
+            icon: Icons.calendar_today,
+            label: 'Calendar',
+            selected: selectedIndex == 4,
+            onTap: () {
+              if (ModalRoute.of(context)?.settings.name != '/design/calendar') {
+                Navigator.of(context).pushReplacementNamed('/design/calendar');
+              }
+              onItemTapped(4);
+            },
           ),
           const Spacer(),
           Padding(

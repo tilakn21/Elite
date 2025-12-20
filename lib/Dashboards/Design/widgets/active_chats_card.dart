@@ -5,10 +5,12 @@ import '../screens/chat_screen.dart';
 
 class ActiveChatsCard extends StatelessWidget {
   final List<Chat> chats;
+  final String? designerId;
 
   const ActiveChatsCard({
     Key? key,
     required this.chats,
+    this.designerId,
   }) : super(key: key);
 
   @override
@@ -102,6 +104,7 @@ class ActiveChatsCard extends StatelessWidget {
             builder: (context) => ChatScreen(
               customerId: chat.customerId,
               customerName: chat.customerName,
+              designerId: designerId,
             ),
           ),
         );

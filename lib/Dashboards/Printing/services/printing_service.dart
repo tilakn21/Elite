@@ -22,9 +22,10 @@ class PrintingService {
   // Fetch printing jobs from Supabase where design is not null
   Future<List<PrintingJob>> getPrintingJobs() async {
     try {
-      final supabase = Supabase.instance.client;      final response = await supabase
+      final supabase = Supabase.instance.client;
+      final response = await supabase
           .from('jobs')
-          .select('id, created_at, receptionist, salesperson, design, production, printing')
+          .select('id, job_code, created_at, receptionist, salesperson, design, production, printing')
           .not('design', 'is', null);
 
       print('Printing jobs query response: ${response.length} jobs found');
@@ -41,7 +42,9 @@ class PrintingService {
         }
       }
       
-      print('Successfully mapped ${jobs.length} printing jobs');
+      // Sort jobs by created_at descending (latest first)
+      jobs.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+      print('Successfully mapped \\${jobs.length} printing jobs');
       return jobs;
     } catch (e) {
       print('Error fetching printing jobs: $e');
@@ -86,8 +89,10 @@ class PrintingService {
         // In case it's a single object (backward compatibility)
         latestDesign = _safeMapCast(json['design']);
       }
-    }// Use actual job ID as job number
-    final jobNo = json['id'].toString();    // Extract client info from receptionist data
+    } // Use job_code as job number, fallback to id if missing
+    final jobNo = (json['job_code'] != null && json['job_code'].toString().trim().isNotEmpty && json['job_code'].toString().toLowerCase() != 'null')
+        ? json['job_code'].toString()
+        : json['id'].toString();    // Extract client info from receptionist data
     final clientName = receptionist?['customerName'] ?? 'Unknown Client';
     final clientPhone = receptionist?['phone'] ?? '';
     final clientAddress = receptionist?['address'] ?? '';
@@ -116,7 +121,7 @@ class PrintingService {
     }
     
     // Debug print to see extracted data
-    print('Job ${json['id']} data extraction:');
+    print('Job [1m${json['job_code'] ?? json['id']}[0m data extraction:');
     print('  clientName: $clientName');
     print('  clientPhone: $clientPhone');
     print('  clientAddress: $clientAddress');
@@ -200,10 +205,10 @@ class PrintingService {
     }
     
     // Print debug information about the status assignment
-    print('Job ${json['id']} status assigned: ${status.name} from printing status: ${latestPrinting?['status']}');// Create default specifications
+    print('Job [1m${json['job_code'] ?? json['id']}[0m status assigned: [1m${status.name}[0m from printing status: ${latestPrinting?['status']}');// Create default specifications
     final specifications = [
       PrintingSpecification(
-        id: 'spec_${json['id']}_1',
+        id: 'spec_${json['job_code'] ?? json['id']}_1',
         paperType: PaperType.uncoated,
         paperSize: PaperSize.a4,
         isDoubleSided: true,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/platform_utils.dart';
+import '../Dashboards/Receptionist/services/receptionist_service.dart';
 import 'login_screen_left_image.dart';
-import '../Dashboards/Admin/screens/admin_dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -13,53 +13,61 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _employeeIdController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  String? _selectedRole;
+  bool _obscurePassword = true;
+  bool _isLoading = false;
+  String? _errorMessage;
 
-  final List<Map<String, String>> _roles = [
-    {'label': 'Receptionist', 'route': '/receptionist/dashboard'},
-    {'label': 'Salesperson', 'route': '/salesperson/dashboard'},
-    {'label': 'Design Team', 'route': '/design/dashboard'},
-    {'label': 'Accounts', 'route': '/accounts/dashboard'},
-    {'label': 'Production Team', 'route': '/production/dashboard'},
-    {'label': 'Printing', 'route': '/printing/dashboard'},
-    {'label': 'Admin', 'route': '/admin/dashboard'},
-  ];
-
-  void navigateBasedOnRoleAndPlatform(String role) {
-    if (role == 'Salesperson' && (isMobile() || isDesktop())) {
-      Navigator.of(context).pushReplacementNamed('/salesperson/dashboard');
-    } else if (role == 'Admin' && isDesktop()) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
-      );
-    } else if (role == 'Receptionist' && isDesktop()) {
-      Navigator.of(context).pushReplacementNamed('/receptionist/dashboard');
-    } else if (role == 'Design Team' && isDesktop()) {
-      Navigator.of(context).pushReplacementNamed('/design/dashboard');
-    } else if (role == 'Accounts' && isDesktop()) {
-      Navigator.of(context).pushReplacementNamed('/accounts/dashboard');
-    } else if (role == 'Production Team' && isDesktop()) {
-      Navigator.of(context).pushReplacementNamed('/production/dashboard');
-    } else if (role == 'Printing' && isDesktop()) {
-      Navigator.of(context).pushReplacementNamed('/printing/dashboard');
-    } else if (role == 'Printing' && isMobile()) {
-      Navigator.of(context).pushReplacementNamed('/printing/dashboard');
-    } else if (role == 'Accounts' && isMobile()) {
-      Navigator.of(context).pushReplacementNamed('/accounts/dashboard');
-    } else {
-      showDialog(
-        context: context,
-        builder: (_) => const AlertDialog(
-          title: Text('Unsupported'),
-          content: Text('This dashboard is not available on this device.'),
-        ),
-      );
+  Future<void> _login() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    final empId = _employeeIdController.text.trim();
+    final password = _passwordController.text;
+    if (empId.isEmpty || password.isEmpty) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Please enter both Employee ID and Password.';
+      });
+      return;
     }
-  }
-
-  void _login() {
-    if (_selectedRole != null) {
-      navigateBasedOnRoleAndPlatform(_selectedRole!);
+    try {
+      // Example: Use ReceptionistService for all roles, or switch by prefix if needed
+      final user = await ReceptionistService.loginWithIdAndPassword(empId, password);
+      if (user != null) {
+        // Route based on ID prefix
+        if (empId.toLowerCase().startsWith('adm')) {
+          Navigator.of(context).pushReplacementNamed('/admin/dashboard', arguments: {'admindashboardId': empId});
+        } else if (empId.toLowerCase().startsWith('rec')) {
+          Navigator.of(context).pushReplacementNamed('/receptionist/dashboard', arguments: {'receptionistId': empId});
+        } else if (empId.toLowerCase().startsWith('prod')) {
+          Navigator.of(context).pushReplacementNamed('/production/dashboard', arguments: {'productiondashboardId': empId});
+        } else if (empId.toLowerCase().startsWith('pri')) {
+          Navigator.of(context).pushReplacementNamed('/printing/dashboard', arguments: {'printingdashboardId': empId});
+        } else if (empId.toLowerCase().startsWith('des')) {
+          Navigator.of(context).pushReplacementNamed('/design/dashboard', arguments: {'designdashboardId': empId});
+        } else if (empId.toLowerCase().startsWith('acc')) {
+          Navigator.of(context).pushReplacementNamed('/accounts/dashboard', arguments: {'accountsdashboardId': empId});
+        } else if (empId.toLowerCase().startsWith('sal')) {
+          Navigator.of(context).pushReplacementNamed('/salesperson/dashboard', arguments: {'receptionistId': empId});
+        } else {
+          setState(() {
+            _errorMessage = 'Unknown role for this Employee ID.';
+          });
+        }
+      } else {
+        setState(() {
+          _errorMessage = 'Invalid Employee ID or Password.';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Login failed. Please try again.';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -112,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         TextField(
                           controller: _employeeIdController,
                           decoration: InputDecoration(
-                            hintText: 'employee ID',
+                            hintText: 'Employee ID',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -122,73 +130,37 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 16),
                         TextField(
                           controller: _passwordController,
-                          obscureText: true,
+                          obscureText: _obscurePassword,
                           decoration: InputDecoration(
                             hintText: 'Password',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        DropdownButtonFormField<String>(
-                          value: _selectedRole,
-                          decoration: InputDecoration(
-                            hintText: 'Role',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          ),
-                          items: _roles
-                              .map((role) => DropdownMenuItem<String>(
-                                    value: role['label'],
-                                    child: Text(role['label']!),
-                                  ))
-                              .toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedRole = value;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            StatefulBuilder(
-                              builder: (context, setSwitchState) {
-                                bool rememberMe = false;
-                                return Row(
-                                  children: [
-                                    Switch(
-                                      value: rememberMe,
-                                      onChanged: (value) {
-                                        setSwitchState(() {
-                                          rememberMe = value;
-                                        });
-                                      },
-                                      activeColor: const Color(0xFFE6007A),
-                                    ),
-                                    const Text(
-                                      'Remember me',
-                                      style: TextStyle(
-                                        color: Color(0xFF7B7B93),
-                                        fontWeight: FontWeight.w400,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                );
+                            suffixIcon: IconButton(
+                              icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
                               },
                             ),
-                          ],
+                          ),
                         ),
                         const SizedBox(height: 24),
+                        if (_errorMessage != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Text(
+                              _errorMessage!,
+                              style: const TextStyle(color: Colors.red, fontSize: 14),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                         SizedBox(
                           height: 44,
                           child: ElevatedButton(
-                            onPressed: _login,
+                            onPressed: _isLoading ? null : _login,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFE6007A),
                               shape: RoundedRectangleBorder(
@@ -196,15 +168,24 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               elevation: 0,
                             ),
-                            child: const Text(
-                              'SIGN IN',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
-                                letterSpacing: 1.1,
-                              ),
-                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'SIGN IN',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                      letterSpacing: 1.1,
+                                    ),
+                                  ),
                           ),
                         ),
                       ],

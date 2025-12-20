@@ -11,37 +11,8 @@ class PrintingTopBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 40),
       child: Row(
         children: [
-          Expanded(
-            child: Container(
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Row(
-                children: [
-                  const SizedBox(width: 16),
-                  const Icon(Icons.search, color: Color(0xFF888FA6)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'Search data for this page',
-                        hintStyle: TextStyle(color: Color(0xFF888FA6), fontSize: 16),
-                        isDense: true,
-                        contentPadding: EdgeInsets.only(bottom: 8),
-                      ),
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 32),
-          const Icon(Icons.bar_chart, color: Color(0xFF232B3E)),
-          const SizedBox(width: 32),
+          const Spacer(),
+          // User/logout section
           Row(
             children: [
               ElevatedButton.icon(

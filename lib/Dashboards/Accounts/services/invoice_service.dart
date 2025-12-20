@@ -1,101 +1,133 @@
 // Service for handling API communication related to Invoices
-// import 'package:http/http.dart' as http; // Placeholder for HTTP requests - uncomment when ready
 import '../models/invoice.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class InvoiceService {
+  final _supabase = Supabase.instance.client;
 
-  // Fetch all invoices
+  // Fetch all invoices from jobs table, including all JSONB fields
   Future<List<Invoice>> getInvoices() async {
-    // final response = await http.get(Uri.parse(_baseUrl));
-    // if (response.statusCode == 200) {
-    //   List<dynamic> body = jsonDecode(response.body);
-    //   List<Invoice> invoices = body.map((dynamic item) => Invoice.fromJson(item as Map<String, dynamic>)).toList();
-    //   return invoices;
-    // } else {
-    //   throw Exception('Failed to load invoices');
-    // }
-    print('InvoiceService: Fetching all invoices (mocked)');
-    // Return a mock list for now
-    await Future.delayed(const Duration(seconds: 1)); // Simulate network delay
-    return [
-      Invoice.createNew(clientId: 'client-001', clientName: 'Mock Client 1', issueDate: DateTime.now(), dueDate: DateTime.now().add(const Duration(days: 30)))
-        .copyWith(id: 'inv-001', invoiceNo: 'INV-2024-001', totalAmount: 1500.0, status: InvoiceStatus.sent, items: [
-          InvoiceItem(id: 'item-1', description: 'Service A', quantity: 1, unitPrice: 1000, taxRate: 0.1),
-          InvoiceItem(id: 'item-2', description: 'Service B', quantity: 2, unitPrice: 200, taxRate: 0.1),
-        ]),
-      Invoice.createNew(clientId: 'client-002', clientName: 'Mock Client 2', issueDate: DateTime.now().subtract(const Duration(days: 10)), dueDate: DateTime.now().add(const Duration(days: 20)))
-        .copyWith(id: 'inv-002', invoiceNo: 'INV-2024-002', totalAmount: 250.75, status: InvoiceStatus.paid, paidDate: DateTime.now(), items: [
-          InvoiceItem(id: 'item-3', description: 'Product X', quantity: 5, unitPrice: 45, taxRate: 0.05),
-        ]),
-    ];
+    final response = await _supabase
+        .from('jobs')
+        .select()
+        .not('salesperson', 'is', null)
+        .order('created_at', ascending: false);
+    // Print all jobs where salesperson is not null
+    for (final job in response) {
+      print('Job: ' + job.toString());
+    }
+    final List<Invoice> invoices = response.map<Invoice>((job) {
+      String statusStr = job['status']?.toString().toLowerCase() ?? '';
+      final accountant = job['accountant'] as Map<String, dynamic>?;
+      final double accountantDue = (accountant?['amount_due'] as num?)?.toDouble() ?? 0.0;
+      final String accStatus = (accountant?['status'] as String?)?.toLowerCase() ?? '';
+      if (accountant != null && accountantDue == 0 && accStatus != 'completed') {
+        _supabase.from('jobs').update({
+          'accountant': {
+            ...accountant,
+            'status': 'completed',
+          }
+        }).eq('id', job['id']).select();
+        accountant['status'] = 'completed';
+      }
+      final double accountantTotal = (accountant?['total_amount'] as num?)?.toDouble() ?? 0.0;
+      final double accountantPaid = (accountant?['amount_paid'] as num?)?.toDouble() ?? 0.0;
+      final List<dynamic> payments = (accountant != null && accountant['payments'] is List) ? List<dynamic>.from(accountant['payments']) : [];
+      String clientName = '';
+      if (job['receptionist'] is Map<String, dynamic> && job['receptionist'] != null) {
+        clientName = (job['receptionist']['customerName'] ?? '').toString();
+      }
+      DateTime issueDate = DateTime.now();
+      if (job['created_at'] != null) {
+        try {
+          issueDate = DateTime.parse(job['created_at']);
+        } catch (_) {}
+      }
+      DateTime dueDate = issueDate;
+      if (job['due_date'] != null) {
+        try {
+          dueDate = DateTime.parse(job['due_date']);
+        } catch (_) {}
+      }
+      // Use job_code as job number, fallback to id
+      final jobCode = (job['job_code']?.toString() ?? '').isNotEmpty ? job['job_code'].toString() : job['id'].toString();
+      return Invoice(
+        id: job['id'].toString(),
+        invoiceNo: jobCode, // Use job_code for display
+        clientId: job['client_id']?.toString() ?? '',
+        clientName: clientName.isNotEmpty ? clientName : (job['client_name']?.toString() ?? ''),
+        issueDate: issueDate,
+        dueDate: dueDate,
+        subtotal: (job['subtotal'] as num?)?.toDouble() ?? 0.0,
+        taxAmount: (job['tax_amount'] as num?)?.toDouble() ?? 0.0,
+        discountAmount: (job['discount_amount'] as num?)?.toDouble() ?? 0.0,
+        totalAmount: accountantTotal > 0 ? accountantTotal : (job['total_amount'] as num?)?.toDouble() ?? 0.0,
+        amountPaid: accountantPaid > 0 ? accountantPaid : (job['amount_paid'] as num?)?.toDouble() ?? 0.0,
+        balanceDue: accountantDue > 0 ? accountantDue : (job['balance_due'] as num?)?.toDouble() ?? 0.0,
+        status: InvoiceStatus.values.firstWhere(
+          (e) => e.name == statusStr,
+          orElse: () => InvoiceStatus.draft,
+        ),
+        paidDate: job['paid_date'] != null ? DateTime.tryParse(job['paid_date']) : null,
+        paymentMethod: job['payment_method']?.toString(),
+        items: (job['invoice_items'] is List)
+            ? (job['invoice_items'] as List).map<InvoiceItem>((item) => InvoiceItem.fromJson(item)).toList()
+            : [],
+        accountantJson: accountant,
+        payments: payments,
+      );
+    }).toList();
+    return invoices;
   }
 
-  // Fetch a single invoice by ID
-  Future<Invoice> getInvoiceById(String id) async {
-    // final response = await http.get(Uri.parse('$_baseUrl/$id'));
-    // if (response.statusCode == 200) {
-    //   return Invoice.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
-    // } else {
-    //   throw Exception('Failed to load invoice $id');
-    // }
-    print('InvoiceService: Fetching invoice by ID: $id (mocked)');
-    await Future.delayed(const Duration(seconds: 1));
-    return Invoice.createNew(clientId: 'client-003', clientName: 'Mock Client Detail', issueDate: DateTime.now(), dueDate: DateTime.now().add(const Duration(days: 15)))
-        .copyWith(id: id, invoiceNo: 'INV-DETAIL-001', totalAmount: 500.0, status: InvoiceStatus.pending, items: [
-          InvoiceItem(id: 'item-4', description: 'Consulting Hours', quantity: 10, unitPrice: 45, taxRate: 0.0)
-        ]);
+  Future<void> appendAccountantPaymentDetail({
+    required String jobId,
+    required Map<String, dynamic> paymentDetail,
+  }) async {
+    // Fetch current accountant JSONB
+    final job = await _supabase.from('jobs').select('accountant').eq('id', jobId).single();
+    Map<String, dynamic> accountant = {};
+    if (job['accountant'] != null) {
+      accountant = Map<String, dynamic>.from(job['accountant']);
+    }
+    // Update amount_paid and amount_due
+    final double prevPaid = (accountant['amount_paid'] ?? 0).toDouble();
+    final double prevDue = (accountant['amount_due'] ?? 0).toDouble();
+    final double totalAmount = (accountant['total_amount'] ?? 0).toDouble();
+    final double paymentAmount = (paymentDetail['amount_paid'] ?? 0).toDouble();
+    final double newPaid = prevPaid + paymentAmount;
+    final double newDue = (prevDue - paymentAmount).clamp(0, totalAmount);
+    accountant['amount_paid'] = newPaid;
+    accountant['amount_due'] = newDue;
+    // Append payment record with separate date and time fields
+    final paymentRecord = {
+      'amount': paymentAmount,
+      'received_by': paymentDetail['received_by'],
+      'mode_of_payment': paymentDetail['mode_of_payment'],
+      'date': paymentDetail['date'],
+      'time': paymentDetail['time'],
+    };
+    if (accountant['payments'] == null || accountant['payments'] is! List) {
+      accountant['payments'] = [paymentRecord];
+    } else {
+      (accountant['payments'] as List).add(paymentRecord);
+    }
+    // Set status to completed in accountant JSONB
+    accountant['status'] = paymentDetail['status'] ?? 'completed';
+    // Update jobs table
+    await _supabase.from('jobs').update({'accountant': accountant}).eq('id', jobId).select();
+    // If payment is completed (amount_due == 0), update the jobs.amount column
+    if (newDue == 0) {
+      await _supabase.from('jobs').update({'amount': newPaid}).eq('id', jobId);
+    }
   }
 
-  // Create a new invoice
-  Future<Invoice> createInvoice(Invoice invoice) async {
-    // final response = await http.post(
-    //   Uri.parse(_baseUrl),
-    //   headers: <String, String>{
-    //     'Content-Type': 'application/json; charset=UTF-8',
-    //   },
-    //   body: jsonEncode(invoice.toJson()),
-    // );
-    // if (response.statusCode == 201) { // 201 Created
-    //   return Invoice.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
-    // } else {
-    //   throw Exception('Failed to create invoice. Status: ${response.statusCode}, Body: ${response.body}');
-    // }
-    print('InvoiceService: Creating invoice (mocked): ${invoice.invoiceNo}');
-    await Future.delayed(const Duration(seconds: 1));
-    // Return the same invoice with a mock ID, assuming creation was successful
-    return invoice.copyWith(id: 'mock-created-${DateTime.now().millisecondsSinceEpoch}');
-  }
-
-  // Update an existing invoice
-  Future<Invoice> updateInvoice(String id, Invoice invoice) async {
-    // final response = await http.put(
-    //   Uri.parse('$_baseUrl/$id'),
-    //   headers: <String, String>{
-    //     'Content-Type': 'application/json; charset=UTF-8',
-    //   },
-    //   body: jsonEncode(invoice.toJson()),
-    // );
-    // if (response.statusCode == 200) {
-    //   return Invoice.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
-    // } else {
-    //   throw Exception('Failed to update invoice $id. Status: ${response.statusCode}, Body: ${response.body}');
-    // }
-    print('InvoiceService: Updating invoice $id (mocked)');
-    await Future.delayed(const Duration(seconds: 1));
-    // Return the updated invoice, assuming update was successful
-    return invoice;
-  }
-
-  // Delete an invoice
-  Future<void> deleteInvoice(String id) async {
-    // final response = await http.delete(Uri.parse('$_baseUrl/$id'));
-    // if (response.statusCode == 204) { // 204 No Content or 200 OK
-    //   return;
-    // } else {
-    //   throw Exception('Failed to delete invoice $id. Status: ${response.statusCode}, Body: ${response.body}');
-    // }
-    print('InvoiceService: Deleting invoice $id (mocked)');
-    await Future.delayed(const Duration(seconds: 1));
-    // No return value needed for delete, or could return a boolean status
+  Future<void> updateJobStatusOutForDeliveryIfPaymentPending(String jobId) async {
+    // Fetch current status from jobs table
+    final job = await _supabase.from('jobs').select('status').eq('id', jobId).single();
+    final String status = (job['status'] ?? '').toString().toLowerCase();
+    if (status == 'payment pending') {
+      await _supabase.from('jobs').update({'status': 'out for delivery'}).eq('id', jobId);
+    }
   }
 }

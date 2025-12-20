@@ -15,8 +15,8 @@ class UpdateJobStatusScreen extends StatefulWidget {
 
 class _UpdateJobStatusScreenState extends State<UpdateJobStatusScreen> {
   ProductionJob? selectedJob;
-  JobStatus selectedStatus = JobStatus.receiver;  final List<JobStatus> statusOptions = [
-    JobStatus.receiver,
+  JobStatus selectedStatus = JobStatus.received;  final List<JobStatus> statusOptions = [
+    JobStatus.received,
     JobStatus.assignedLabour,
     JobStatus.inProgress,
     JobStatus.completed,
@@ -46,12 +46,34 @@ class _UpdateJobStatusScreenState extends State<UpdateJobStatusScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Only allow forward status transitions
+    int currentStatusIndex = 0;
+    List<JobStatus> fullStatusOptions = List<JobStatus>.from(statusOptions);
+    if (selectedJob != null && !fullStatusOptions.contains(selectedJob!.computedStatus)) {
+      // Add the current status if it's not in the default list (e.g., printingCompleted)
+      fullStatusOptions.add(selectedJob!.computedStatus);
+    }
+    // Always include 'completed' as an option if not present
+    if (!fullStatusOptions.contains(JobStatus.completed)) {
+      fullStatusOptions.add(JobStatus.completed);
+    }
+    // Sort by enum index to keep order
+    fullStatusOptions.sort((a, b) => a.index.compareTo(b.index));
+    if (selectedJob != null) {
+      final idx = fullStatusOptions.indexOf(selectedJob!.computedStatus);
+      currentStatusIndex = idx >= 0 ? idx : 0;
+    }
+    final List<JobStatus> allowedStatusOptions = fullStatusOptions.sublist(currentStatusIndex);
+    // If current status is printingCompleted, ensure completed is in the allowed list
+    if (selectedJob?.computedStatus == JobStatus.printingCompleted && !allowedStatusOptions.contains(JobStatus.completed)) {
+      allowedStatusOptions.add(JobStatus.completed);
+    }
     return Scaffold(
       backgroundColor: const Color(0xFFF7F4FF),
       body: Row(
         children: [
           ProductionSidebar(
-            selectedIndex: 3,
+            selectedIndex: -1, // No sidebar button highlighted
             onItemTapped: (index) {
               if (index == 0) {
                 Navigator.of(context)
@@ -63,7 +85,8 @@ class _UpdateJobStatusScreenState extends State<UpdateJobStatusScreen> {
                 Navigator.of(context)
                     .pushReplacementNamed('/production/joblist');
               } else if (index == 3) {
-                // Already on Update Job Status
+                Navigator.of(context)
+                    .pushReplacementNamed('/production/reimbursement_request');
               }
             },
           ),
@@ -114,7 +137,7 @@ class _UpdateJobStatusScreenState extends State<UpdateJobStatusScreen> {
                                     const SizedBox(height: 8),
                                     _jobDetail('Job description', selectedJob?.description ?? 'N/A'),
                                     const SizedBox(height: 8),
-                                    _jobDetail('Current status', selectedJob?.status.label ?? 'N/A'),
+                                    _jobDetail('Current status', selectedJob?.computedStatus.label ?? 'N/A'),
                                   ],
                                 ),
                               ),
@@ -234,8 +257,10 @@ class _UpdateJobStatusScreenState extends State<UpdateJobStatusScreen> {
                                                 fontSize: 20)),
                                         const SizedBox(height: 24),
                                         DropdownButton<JobStatus>(
-                                          value: selectedStatus,
-                                          items: statusOptions.map((status) {
+                                          value: allowedStatusOptions.contains(selectedStatus)
+                                              ? selectedStatus
+                                              : allowedStatusOptions.first,
+                                          items: allowedStatusOptions.map((status) {
                                             return DropdownMenuItem<JobStatus>(
                                               value: status,
                                               child: Text(status.label),
@@ -264,77 +289,77 @@ class _UpdateJobStatusScreenState extends State<UpdateJobStatusScreen> {
                                                         BorderRadius.circular(
                                                             8)),
                                               ),                                              onPressed: () async {
-                                                if (selectedJob != null) {
-                                                  try {
-                                                    final jobProvider = Provider.of<ProductionJobProvider>(context, listen: false);
-                                                    final feedback = _feedbackController.text.trim();
-                                                      // Update job status with feedback if provided
-                                                    await jobProvider.updateJobStatus(
-                                                      selectedJob!.id, 
-                                                      selectedStatus,
-                                                      feedback: feedback.isNotEmpty ? feedback : null,
-                                                    );
-                                                    
-                                                    // Get updated job data to refresh the progress bar
-                                                    final updatedJobs = jobProvider.jobs;
-                                                    final updatedJob = updatedJobs.firstWhere(
-                                                      (job) => job.id == selectedJob!.id,
-                                                      orElse: () => selectedJob!,
-                                                    );
-                                                    
-                                                    setState(() {
-                                                      selectedJob = updatedJob;
-                                                    });
-                                                    
-                                                    // Clear feedback after successful update
-                                                    _feedbackController.clear();
-                                                    
-                                                    final successMessage = feedback.isNotEmpty 
-                                                        ? 'Job ${selectedJob!.jobNo} status updated to ${selectedStatus.label} with feedback'
-                                                        : 'Job ${selectedJob!.jobNo} status updated to ${selectedStatus.label}';
-                                                    
-                                                    ScaffoldMessenger.of(context).showSnackBar(
-                                                      SnackBar(
-                                                        content: Text(successMessage),
-                                                        backgroundColor: const Color(0xFF57B9C6),
-                                                      ),
-                                                    );
-                                                    
-                                                    // Show option to go back or continue updating
-                                                    Future.delayed(const Duration(seconds: 2), () {
-                                                      if (mounted) {
-                                                        ScaffoldMessenger.of(context).showSnackBar(
-                                                          SnackBar(
-                                                            content: const Text('Continue updating or go back to job list'),
-                                                            backgroundColor: Colors.blue.shade600,
-                                                            action: SnackBarAction(
-                                                              label: 'Go Back',
-                                                              textColor: Colors.white,
-                                                              onPressed: () {
-                                                                Navigator.pushReplacementNamed(context, '/production/joblist');
-                                                              },
+                                                  if (selectedJob != null) {
+                                                    try {
+                                                      final jobProvider = Provider.of<ProductionJobProvider>(context, listen: false);
+                                                      final feedback = _feedbackController.text.trim();
+                                                        // Update job status with feedback if provided
+                                                      await jobProvider.updateJobStatus(
+                                                        selectedJob!.id, 
+                                                        selectedStatus,
+                                                        feedback: feedback.isNotEmpty ? feedback : null,
+                                                      );
+                                                      
+                                                      // Get updated job data to refresh the progress bar
+                                                      final updatedJobs = jobProvider.jobs;
+                                                      final updatedJob = updatedJobs.firstWhere(
+                                                        (job) => job.id == selectedJob!.id,
+                                                        orElse: () => selectedJob!,
+                                                      );
+                                                      
+                                                      setState(() {
+                                                        selectedJob = updatedJob;
+                                                      });
+                                                      
+                                                      // Clear feedback after successful update
+                                                      _feedbackController.clear();
+                                                      
+                                                      final successMessage = feedback.isNotEmpty 
+                                                          ? 'Job ${selectedJob!.jobNo} status updated to ${selectedStatus.label} with feedback'
+                                                          : 'Job ${selectedJob!.jobNo} status updated to ${selectedStatus.label}';
+                                                      
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        SnackBar(
+                                                          content: Text(successMessage),
+                                                          backgroundColor: const Color(0xFF57B9C6),
+                                                        ),
+                                                      );
+                                                      
+                                                      // Show option to go back or continue updating
+                                                      Future.delayed(const Duration(seconds: 2), () {
+                                                        if (mounted) {
+                                                          ScaffoldMessenger.of(context).showSnackBar(
+                                                            SnackBar(
+                                                              content: const Text('Continue updating or go back to job list'),
+                                                              backgroundColor: Colors.blue.shade600,
+                                                              action: SnackBarAction(
+                                                                label: 'Go Back',
+                                                                textColor: Colors.white,
+                                                                onPressed: () {
+                                                                  Navigator.pushReplacementNamed(context, '/production/joblist');
+                                                                },
+                                                              ),
                                                             ),
-                                                          ),
-                                                        );
-                                                      }
-                                                    });
-                                                  } catch (e) {
+                                                          );
+                                                        }
+                                                      });
+                                                    } catch (e) {
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        SnackBar(
+                                                          content: Text('Failed to update job status: ${e.toString()}'),
+                                                          backgroundColor: Colors.red,
+                                                        ),
+                                                      );
+                                                    }
+                                                  } else {
                                                     ScaffoldMessenger.of(context).showSnackBar(
-                                                      SnackBar(
-                                                        content: Text('Failed to update job status: ${e.toString()}'),
+                                                      const SnackBar(
+                                                        content: Text('No job selected'),
                                                         backgroundColor: Colors.red,
                                                       ),
                                                     );
                                                   }
-                                                } else {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    const SnackBar(
-                                                      content: Text('No job selected'),
-                                                      backgroundColor: Colors.red,
-                                                    ),
-                                                  );
-                                                }
-                                              },
+                                                },
                                               child: const Text('Update',
                                                   style: TextStyle(
                                                       fontSize: 18,

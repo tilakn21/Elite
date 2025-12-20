@@ -1,4 +1,6 @@
 import 'package:uuid/uuid.dart';
+import 'package:flutter/material.dart';
+import '../utils/app_theme.dart';
 
 enum JobStatus {
   inProgress,
@@ -20,6 +22,8 @@ class Job {
   final List<String>? uploadedImages;
   final String? notes;
   final Map<String, dynamic>? salespersonData;
+  final dynamic design;
+  final String jobCode;
 
   Job({
     String? id,
@@ -35,6 +39,8 @@ class Job {
     this.uploadedImages,
     this.notes,
     this.salespersonData,
+    this.design,
+    required this.jobCode,
   }) : id = id ?? const Uuid().v4();
 
   Job copyWith({
@@ -50,6 +56,8 @@ class Job {
     List<String>? uploadedImages,
     String? notes,
     Map<String, dynamic>? salespersonData,
+    dynamic design,
+    String? jobCode,
   }) {
     return Job(
       id: this.id,
@@ -65,6 +73,8 @@ class Job {
       uploadedImages: uploadedImages ?? this.uploadedImages,
       notes: notes ?? this.notes,
       salespersonData: salespersonData ?? this.salespersonData,
+      design: design ?? this.design,
+      jobCode: jobCode ?? this.jobCode,
     );
   }
 
@@ -72,6 +82,7 @@ class Job {
     return {
       'id': id,
       'jobNo': jobNo,
+      'job_code': jobCode,
       'clientName': clientName,
       'email': email,
       'phoneNumber': phoneNumber,
@@ -83,6 +94,7 @@ class Job {
       'uploadedImages': uploadedImages,
       'notes': notes,
       'salesperson': salespersonData,
+      'design': design,
     };
   }
 
@@ -101,6 +113,7 @@ class Job {
     return Job(
       id: json['id'],
       jobNo: receptionist['jobNo'] ?? '',
+      jobCode: json['job_code'] ?? '',
       clientName: receptionist['customerName'] ?? '',
       email: receptionist['email'] ?? '',
       phoneNumber: receptionist['phone'] ?? '',
@@ -115,6 +128,44 @@ class Job {
       uploadedImages: uploadedImages,
       notes: null, // Update if needed
       salespersonData: Map<String, dynamic>.from(salesperson),
+      design: json['design'],
     );
+  }
+
+  // Add this computed property to determine the display status
+  String get displayStatus {
+    // If design is null or empty, status is 'Queued'
+    if (design == null || (design is List && (design as List).isEmpty)) {
+      return 'Queued';
+    }
+    // If design is a list and the latest (topmost) submission has status 'pending for approval'
+    if (design is List && (design as List).isNotEmpty) {
+      final latestDraft = (design as List).last;
+      final draftStatus = latestDraft is Map<String, dynamic>
+          ? latestDraft['status']?.toString().toLowerCase()
+          : null;
+      if (draftStatus == 'pending for approval') {
+        return 'Pending for Approval';
+      }
+      if (draftStatus == 'completed') {
+        return 'Design Completed';
+      }
+    }
+    // Default fallback
+    return 'Queued';
+  }
+
+  // Returns the color for the current displayStatus
+  Color get displayStatusColor {
+    switch (displayStatus) {
+      case 'Queued':
+        return AppTheme.pendingColor;
+      case 'Pending for Approval':
+        return AppTheme.inProgressColor;
+      case 'Design Completed':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
   }
 }

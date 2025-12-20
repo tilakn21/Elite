@@ -28,7 +28,7 @@ class AdminJob {
 
   factory AdminJob.fromJson(Map<String, dynamic> json) {
     return AdminJob(
-      no: json['no'] as String,
+      no: (json['no'] as String?) ?? '', // job_code is mapped in the service
       title: json['title'] as String,
       client: json['client'] as String,
       date: json['date'] as String,

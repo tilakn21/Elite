@@ -9,6 +9,8 @@ import '../models/chat.dart';
 import '../utils/app_theme.dart';
 import '../services/design_service.dart';
 import 'chat_screen.dart';
+import '../widgets/design_top_bar.dart';
+import '../widgets/sidebar.dart';
 
 class ActiveChatsScreen extends StatefulWidget {
   const ActiveChatsScreen({super.key});
@@ -27,12 +29,7 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
   List<File> _selectedImages = [];
   bool _showImagePreview = false;
   bool _isUploading = false;
-  bool _isRefreshing = false;
-  String _searchQuery = '';
-  List<String> _searchSuggestions = [];
-  ChatStatus? _selectedStatusFilter;
-  List<String> _recentSearches = [];
-  bool _sortByRecent = true; // true = most recent first
+  String? _designerId;
 
   @override
   void dispose() {
@@ -255,6 +252,20 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
   }
 
   @override
+  void initState() {
+    super.initState();
+    _fetchDesignerId();
+  }
+
+  Future<void> _fetchDesignerId() async {
+    final user = await DesignService().getCurrentUser();
+    if (!mounted) return;
+    setState(() {
+      _designerId = user?.id;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
 
@@ -263,11 +274,46 @@ class _ActiveChatsScreenState extends State<ActiveChatsScreen>
     final isDesktop = MediaQuery.of(context).size.width >= 1100;
     final isMobile = MediaQuery.of(context).size.width < 600;
 
-    if (isMobile) {
-      return _buildMobileLayout(activeChats);
-    } else {
-      return _buildDesktopLayout(activeChats, isDesktop);
-    }
+    return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
+      body: Column(
+        children: [
+          const DesignTopBar(),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DesignSidebar(
+                  selectedIndex: 3,
+                  onItemTapped: (index) {
+                    if (index != 3) {
+                      // If not selecting chats again, navigate accordingly
+                      switch (index) {
+                        case 0:
+                          Navigator.of(context).pushReplacementNamed('/design/dashboard');
+                          break;
+                        case 1:
+                          Navigator.of(context).pushReplacementNamed('/design/jobs');
+                          break;
+                        case 2:
+                          Navigator.of(context).pushReplacementNamed('/design/reimbursement');
+                          break;
+                      }
+                    }
+                  },
+                  employeeId: _designerId,
+                ),
+                Expanded(
+                  child: isMobile 
+                    ? _buildMobileLayout(activeChats)
+                    : _buildDesktopLayout(activeChats, isDesktop),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // Layout methods

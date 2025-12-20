@@ -5,6 +5,7 @@ import '../models/salesperson_job_details.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/salesperson_service.dart';
 
 class SalespersonDetailsScreen extends StatefulWidget {
   final String jobId;
@@ -450,27 +451,78 @@ class _SalespersonDetailsScreenState extends State<SalespersonDetailsScreen> {
                               // Submit logic: update salesperson JSONB for this job
                               final now = DateTime.now();
                               final salespersonId = await getCurrentSalespersonId(); // implement this as needed
-                              final paymentAmount = await showDialog<double>(
+                              double? amountPaid;
+                              String? modeOfPayment;
+                              final paymentResult = await showDialog<Map<String, dynamic>>(
                                 context: context,
                                 builder: (context) {
-                                  double? value;
-                                  return AlertDialog(
-                                    title: const Text('Enter Payment Amount'),
-                                    content: TextField(
-                                      keyboardType: TextInputType.number,
-                                      decoration: const InputDecoration(labelText: 'Payment Amount'),
-                                      onChanged: (v) => value = double.tryParse(v),
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context, value),
-                                        child: const Text('OK'),
-                                      ),
-                                    ],
+                                  final amountController = TextEditingController();
+                                  String? selectedMode;
+                                  return StatefulBuilder(
+                                    builder: (context, setState) {
+                                      return AlertDialog(
+                                        title: const Text('Enter Payment Details'),
+                                        content: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            TextField(
+                                              controller: amountController,
+                                              keyboardType: TextInputType.numberWithOptions(decimal: true),
+                                              decoration: const InputDecoration(
+                                                labelText: 'Amount Paid',
+                                                prefixIcon: Icon(Icons.currency_pound),
+                                                border: OutlineInputBorder(),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 16),
+                                            DropdownButtonFormField<String>(
+                                              value: selectedMode,
+                                              items: const [
+                                                DropdownMenuItem(value: 'Cash', child: Text('Cash')),
+                                                DropdownMenuItem(value: 'UPI', child: Text('UPI')),
+                                                DropdownMenuItem(value: 'Card', child: Text('Card')),
+                                                DropdownMenuItem(value: 'Bank Transfer', child: Text('Bank Transfer')),
+                                              ],
+                                              onChanged: (val) => setState(() => selectedMode = val),
+                                              decoration: const InputDecoration(
+                                                labelText: 'Mode of Payment',
+                                                prefixIcon: Icon(Icons.payment),
+                                                border: OutlineInputBorder(),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              final amt = double.tryParse(amountController.text.trim());
+                                              if (amt == null || amt <= 0 || selectedMode == null) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  const SnackBar(content: Text('Enter valid amount and select mode of payment')),
+                                                );
+                                                return;
+                                              }
+                                              Navigator.pop(context, {
+                                                'amountPaid': amt,
+                                                'modeOfPayment': selectedMode,
+                                              });
+                                            },
+                                            child: const Text('OK'),
+                                          ),
+                                        ],
+                                      );
+                                    },
                                   );
                                 },
                               );
-                              if (paymentAmount == null) return;
+                              if (paymentResult == null) return;
+                              amountPaid = paymentResult['amountPaid'] as double?;
+                              modeOfPayment = paymentResult['modeOfPayment'] as String?;
+                              if (amountPaid == null || modeOfPayment == null) return;
                               // Prepare data
                               final details = {
                                 'customer': _customerController.text,
@@ -489,10 +541,22 @@ class _SalespersonDetailsScreenState extends State<SalespersonDetailsScreen> {
                                 'timeOfSubmission': now.toIso8601String(),
                                 'dateOfSubmission': now.toLocal().toString().split(' ')[0],
                                 'salespersonId': salespersonId,
-                                'paymentAmount': paymentAmount,
+                                'paymentAmount': amountPaid,
+                                'modeOfPayment': modeOfPayment,
+                                'status': 'completed', // Add status as completed
                               };
-                              // TODO: Update Supabase jobs table for this jobId, set salesperson = details
-                              await updateSalespersonJsonb(widget.jobId, details, paymentAmount); // implement this
+                              // Update Supabase jobs table for this jobId:
+                              // 1. set salesperson = details (with status: completed)
+                              // 2. set status = 'site_visited'
+                              await updateSalespersonJsonbAndStatus(widget.jobId, details, amountPaid, modeOfPayment, now, salespersonId);
+                              // Set salesperson as available in jobs_employee table
+                              try {
+                                // Import and use SalespersonService
+                                final salespersonService = SalespersonService();
+                                await salespersonService.setSalespersonAvailable(salespersonId);
+                              } catch (e) {
+                                // Optionally handle error (e.g., log or show a message)
+                              }
                               await showDialog(
                                 context: context,
                                 builder: (context) => AlertDialog(
@@ -528,9 +592,8 @@ class _SalespersonDetailsScreenState extends State<SalespersonDetailsScreen> {
   }
 
   Future<String> getCurrentSalespersonId() async {
-    // TODO: Replace with actual logic to get logged-in salesperson id
-    // For now, return a placeholder or fetch from your auth/session provider
-    return 'salesperson_123';
+    // For demo/testing, use a real id that exists in your employee table
+    return 'sal2001';
   }
 
   Future<List<String>> uploadImagesToSupabaseStorage(List<XFile> images, String jobId) async {
@@ -550,30 +613,65 @@ class _SalespersonDetailsScreenState extends State<SalespersonDetailsScreen> {
     return urls;
   }
 
-  Future<void> updateSalespersonJsonb(String jobId, Map<String, dynamic> details, double paymentAmount) async {
+  Future<String> _getJobUuid(String jobIdOrCode) async {
+    final supabase = Supabase.instance.client;
+    // If it's already a UUID, return as is
+    final uuidRegex = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12} ?$');
+    if (uuidRegex.hasMatch(jobIdOrCode)) {
+      return jobIdOrCode;
+    }
+    // Otherwise, look up by job_code
+    final result = await supabase
+        .from('jobs')
+        .select('id')
+        .eq('job_code', jobIdOrCode)
+        .maybeSingle();
+    if (result == null || result['id'] == null) {
+      throw Exception('Could not find job with code: $jobIdOrCode');
+    }
+    return result['id'] as String;
+  }
+
+  Future<void> updateSalespersonJsonbAndStatus(String jobId, Map<String, dynamic> details, double amountPaid, String modeOfPayment, DateTime paymentDateTime, String receivedBy) async {
     final supabase = Supabase.instance.client;
     try {
+      // Ensure we have a valid UUID for the job
+      final uuid = await _getJobUuid(jobId);
       // Upload images and get URLs
-      final imageUrls = await uploadImagesToSupabaseStorage(_images, jobId);
+      final imageUrls = await uploadImagesToSupabaseStorage(_images, uuid);
       final detailsWithUrls = Map<String, dynamic>.from(details);
       detailsWithUrls['images'] = imageUrls;
-      // Update salesperson JSONB
+      // Update salesperson JSONB and status column
       await supabase
           .from('jobs')
-          .update({'salesperson': detailsWithUrls})
-          .eq('id', jobId)
+          .update({
+            'salesperson': detailsWithUrls,
+            'status': 'site_visited',
+          })
+          .eq('id', uuid)
           .select();
-      // Update accounts JSONB: set amount_salesperson
-      final job = await supabase.from('jobs').select('accountant').eq('id', jobId).single();
+      // Update accounts JSONB: add payment info
+      final job = await supabase.from('jobs').select('accountant').eq('id', uuid).single();
       Map<String, dynamic> accountant = {};
       if (job['accountant'] != null) {
         accountant = Map<String, dynamic>.from(job['accountant']);
       }
-      accountant['amount_salesperson'] = paymentAmount;
+      final paymentRecord = {
+        'amount': amountPaid,
+        'mode': modeOfPayment,
+        'date': paymentDateTime.toLocal().toString().split(' ')[0],
+        'time': paymentDateTime.toLocal().toString().split(' ')[1].split('.')[0],
+        'received_by': receivedBy,
+      };
+      if (accountant['payments'] == null || accountant['payments'] is! List) {
+        accountant['payments'] = [paymentRecord];
+      } else {
+        (accountant['payments'] as List).add(paymentRecord);
+      }
       await supabase
           .from('jobs')
           .update({'accountant': accountant})
-          .eq('id', jobId)
+          .eq('id', uuid)
           .select();
     } catch (e) {
       throw Exception('Failed to update job: $e');

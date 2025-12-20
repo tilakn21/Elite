@@ -23,8 +23,8 @@ class WorkerStatsRow extends StatelessWidget {
 
         final workers = workerProvider.workers;
         final totalWorkers = workers.length;
-        final availableWorkers = workers.where((w) => !w.assigned).length;
-        final unavailableWorkers = workers.where((w) => w.assigned).length;
+        final availableWorkers = workers.where((w) => w.assigned).length; // swapped logic
+        final assignedJobs = workers.fold<int>(0, (sum, w) => sum + (w.numberOfJobs));
 
         return AnimatedOpacity(
           duration: const Duration(milliseconds: 300),
@@ -49,7 +49,7 @@ class WorkerStatsRow extends StatelessWidget {
               const SizedBox(width: 24),
               _StatCard(
                 title: 'Assigned',
-                value: unavailableWorkers.toString(),
+                value: assignedJobs.toString(),
                 icon: Icons.assignment_ind,
                 color: const Color(0xFFE74C3C),
                 subtitle: 'Currently on jobs',

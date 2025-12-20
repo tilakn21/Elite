@@ -6,6 +6,7 @@ import '../widgets/admin_top_bar.dart';
 import '../services/admin_service.dart';
 import '../models/employee.dart';
 import 'add_employee_screen.dart';
+import 'edit_employee_screen.dart';
 
 class EmployeeManagementScreen extends StatefulWidget {
   const EmployeeManagementScreen({Key? key}) : super(key: key);
@@ -16,6 +17,7 @@ class EmployeeManagementScreen extends StatefulWidget {
 
 class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
   String selectedRole = 'All';
+  String searchQuery = '';
   late Future<List<Employee>> _employeesFuture;
   final AdminService _adminService = AdminService();
 
@@ -36,6 +38,52 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
       MaterialPageRoute(
         builder: (context) => AddEmployeeScreen(
           onEmployeeAdded: _refreshEmployees,
+        ),
+      ),
+    );
+  }
+
+  // Show delete confirmation dialog
+  void _confirmDeleteEmployee(Employee employee) {
+    final parentContext = context; // Capture before dialog
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Delete'),
+        content: Text('Are you sure you want to delete \\${employee.fullName}?'),
+        actions: [
+          TextButton(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          TextButton(
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            onPressed: () async {
+              Navigator.of(context).pop();
+              try {
+                await _adminService.deleteEmployee(employee.id);
+                ScaffoldMessenger.of(parentContext).showSnackBar(
+                  SnackBar(content: Text('\\${employee.fullName} has been deleted')),
+                );
+                _refreshEmployees();
+              } catch (e) {
+                ScaffoldMessenger.of(parentContext).showSnackBar(
+                  SnackBar(content: Text('Error deleting employee: \\${e.toString()}')),
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+  // Navigate to edit employee screen
+  void _editEmployee(Employee employee) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => EditEmployeeScreen(
+          employee: employee,
+          onEmployeeUpdated: _refreshEmployees,
         ),
       ),
     );
@@ -75,9 +123,8 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
                       child: SingleChildScrollView(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'User Management',
+                          children: [                            const Text(
+                              'Employee Management',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 28,
@@ -85,6 +132,30 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
                               ),
                             ),
                             const SizedBox(height: 22),
+                            // --- Search Bar Start ---
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 18),
+                              padding: const EdgeInsets.symmetric(horizontal: 0),
+                              child: TextField(
+                                decoration: InputDecoration(
+                                  hintText: 'Search employees by name, email, phone, or role...',
+                                  prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                                onChanged: (value) {
+                                  setState(() {
+                                    searchQuery = value.trim();
+                                  });
+                                },
+                              ),
+                            ),
+                            // --- Search Bar End ---
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
                               decoration: BoxDecoration(
@@ -123,7 +194,8 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
                                             );
                                           },
                                         ),
-                                      ),                                      ElevatedButton(
+                                      ),
+                                      ElevatedButton(
                                         onPressed: _navigateToAddEmployee,
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: const Color(0xFF9EE2EA),
@@ -149,10 +221,22 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
                                       } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                                         return const Center(child: Text('No employees found.'));
                                       }
-                                      final employees = selectedRole == 'All'
-                                          ? snapshot.data!
-                                          : snapshot.data!.where((e) => e.role == selectedRole).toList();
-                                      return EmployeeTable(employees: employees);
+                                      // --- Filter by role and search query ---
+                                      List<Employee> employees = snapshot.data!;
+                                      if (selectedRole != 'All') {
+                                        employees = employees.where((e) => e.role == selectedRole).toList();
+                                      }
+                                      if (searchQuery.isNotEmpty) {                                        employees = employees.where((e) =>
+                                          e.fullName.toLowerCase().contains(searchQuery.toLowerCase()) ||
+                                          e.phone.toLowerCase().contains(searchQuery.toLowerCase()) ||
+                                          e.role.toLowerCase().contains(searchQuery.toLowerCase()) ||
+                                          e.email.toLowerCase().contains(searchQuery.toLowerCase())
+                                        ).toList();
+                                      }                                      return EmployeeTable(
+                                        employees: employees,
+                                        onEmployeeDeleted: _confirmDeleteEmployee,
+                                        onEmployeeUpdated: _editEmployee,
+                                      );
                                     },
                                   ),
                                 ],

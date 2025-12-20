@@ -73,9 +73,10 @@ class WorkerListItem extends StatelessWidget {
     Key? key,
     required this.worker,
   }) : super(key: key);
+
   String _getStatusText() {
-    if (worker.assigned && worker.assignedJob != null) {
-      return 'Assigned to Job ${worker.assignedJob}';
+    if (worker.numberOfJobs >= 4) {
+      return 'Unavailable (Max jobs reached)';
     } else if (worker.isAvailable) {
       return 'Available';
     } else {
@@ -84,8 +85,8 @@ class WorkerListItem extends StatelessWidget {
   }
 
   Color _getStatusColor() {
-    if (worker.assigned) {
-      return Colors.orange;
+    if (worker.numberOfJobs >= 4) {
+      return Colors.red;
     } else if (worker.isAvailable) {
       return Colors.green;
     } else {
@@ -126,6 +127,10 @@ class WorkerListItem extends StatelessWidget {
                     fontSize: 14,
                     color: _getStatusColor(),
                   ),
+                ),
+                Text(
+                  'Jobs assigned: ${worker.numberOfJobs}',
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
                 ),
               ],
             ),

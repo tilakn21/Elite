@@ -14,43 +14,26 @@ class DesignService {
       final supabase = Supabase.instance.client;
       final response = await supabase
           .from('jobs')
-          .select()
-          .not('receptionist', 'is', null)
-          .not('salesperson', 'is', null)
-          .filter('design', 'is', null);
-
-      // Map each job from Supabase to the Job model
-      return List<Map<String, dynamic>>.from(response)
-          .map((json) => Job.fromJson(json))
+          .select('*, job_code, created_at')
+          .not('salesperson', 'is', null);
+      // Sort jobs by created_at descending (most recent first)
+      final jobsList = List<Map<String, dynamic>>.from(response);
+      jobsList.sort((a, b) {
+        final aDate = a['created_at'] != null ? DateTime.tryParse(a['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0) : DateTime.fromMillisecondsSinceEpoch(0);
+        final bDate = b['created_at'] != null ? DateTime.tryParse(b['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0) : DateTime.fromMillisecondsSinceEpoch(0);
+        return bDate.compareTo(aDate);
+      });      // Map each job from Supabase to the Job model, keeping UUID as id and job_code separate
+      return jobsList
+          .map((json) {
+            // Keep the original UUID in id and job_code separate
+            return Job.fromJson(json);
+          })
           .toList();
     } catch (e) {
       print('Error fetching jobs from Supabase: $e');
-      // Re-throw the error to let the provider handle it
       throw Exception('Failed to fetch jobs from database: $e');
     }
   }
-
-  Future<Job> createJob(Job job) async {
-    print('DesignService: Creating job (mocked) - ${job.jobNo}');
-    await Future.delayed(const Duration(milliseconds: 500));
-    // In a real scenario, the backend would assign the ID and return the created job.
-    // For this mock, we assume the job object passed in already has a generated ID.
-    return job;
-  }
-
-  Future<Job> updateJob(Job job) async {
-    print('DesignService: Updating job (mocked) - ${job.jobNo}');
-    await Future.delayed(const Duration(milliseconds: 500));
-    return job; // Return the updated job
-  }
-
-  Future<void> deleteJob(String jobId) async {
-    print('DesignService: Deleting job (mocked) - ID: $jobId');
-    await Future.delayed(const Duration(milliseconds: 500));
-    // No return value needed for delete
-  }
-
-  // Add other methods as needed, e.g., for chat, user details specific to design context
 
   // --- Chat Methods (Mocked) ---
   Future<List<Chat>> getChats() async {
@@ -187,35 +170,36 @@ class DesignService {
   Future<List<app.User>> getUsers() async {
     await Future.delayed(const Duration(milliseconds: 500));
     return [
-      app.User(
-          id: '1',
-          name: 'John Doe',
-          email: 'john@elitesigns.com',
-          role: 'Admin',
-          avatar: 'assets/images/avatar1.png'),
-      app.User(
-          id: '2',
-          name: 'Jane Smith',
-          email: 'jane@elitesigns.com',
-          role: 'Salesperson',
-          avatar: 'assets/images/avatar2.png'),
-      app.User(
-          id: '3',
-          name: 'Mike Johnson',
-          email: 'mike@elitesigns.com',
-          role: 'design',
-          avatar: 'assets/images/avatar3.png'),
+      app.User(id: '1', name: 'John Doe', email: 'john@elitesigns.com', role: 'Admin', avatar: 'assets/images/avatars/default_avatar.png'),
+      app.User(id: '2', name: 'Jane Smith', email: 'jane@elitesigns.com', role: 'Salesperson', avatar: 'assets/images/avatars/default_avatar.png'),
+      app.User(id: '3', name: 'Mike Johnson', email: 'mike@elitesigns.com', role: 'design', avatar: 'assets/images/avatars/default_avatar.png'),
     ];
   }
-
   Future<app.User?> getCurrentUser() async {
     await Future.delayed(const Duration(milliseconds: 300));
-    // For mock, return the first user
+    // Return a demo user for development/testing
     return app.User(
-        id: '1',
-        name: 'John Doe',
-        email: 'john@elitesigns.com',
-        role: 'Admin',
-        avatar: 'assets/images/avatar1.png');
+      id: 'design1001',
+      name: 'Demo Designer',
+      email: 'designer@elitesigns.com',
+      role: 'design',
+      avatar: 'assets/images/avatars/default_avatar.png',
+    );
+  }
+
+  Future<Map<String, dynamic>?> getEmployeeById(String employeeId) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('employee')
+          .select('*')
+          .eq('id', employeeId)
+          .maybeSingle();
+      
+      return response;
+    } catch (e) {
+      print('Error fetching employee by ID: $e');
+      throw Exception('Failed to fetch employee from database: $e');
+    }
   }
 }

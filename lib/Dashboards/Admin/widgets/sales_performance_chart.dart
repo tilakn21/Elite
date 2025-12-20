@@ -3,138 +3,261 @@ import 'package:fl_chart/fl_chart.dart';
 
 class SalesPerformanceChart extends StatelessWidget {
   final List<FlSpot> data;
-  const SalesPerformanceChart({Key? key, required this.data}) : super(key: key);
-  @override
+  final double? maxY;
+  
+  const SalesPerformanceChart({
+    Key? key, 
+    required this.data,
+    this.maxY,
+  }) : super(key: key);@override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF232B3E),
-        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF1E293B),
+            Color(0xFF334155),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.12),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
+            color: const Color(0xFF1E293B).withOpacity(0.3),
+            blurRadius: 25,
+            offset: const Offset(0, 8),
+            spreadRadius: 0,
           ),
         ],
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
+          width: 1,
+        ),
       ),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
+          // Enhanced Header Section
+          Container(
+            padding: const EdgeInsets.only(bottom: 24),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
                   color: Colors.white.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.trending_up_rounded,
-                  color: Colors.white,
-                  size: 20,
+                  width: 1,
                 ),
               ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Sales Performance',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFF10B981),
+                        Color(0xFF059669),
+                      ],
                     ),
-                    Text(
-                      'Monthly revenue tracking',
-                      style: TextStyle(
-                        color: Color(0xFFB0B3C7),
-                        fontSize: 12,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF10B981).withOpacity(0.4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.trending_up_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.circle, color: Colors.greenAccent, size: 8),
-                    SizedBox(width: 6),
-                    Text(
-                      'Live',
-                      style: TextStyle(
-                        color: Colors.greenAccent,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 10,
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Sales Performance',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 18,
+                          letterSpacing: -0.2,
+                        ),
                       ),
-                    ),
-                  ],
+                      SizedBox(height: 4),
+                      Text(
+                        'Monthly revenue tracking & analytics',
+                        style: TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFF10B981).withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.radio_button_checked,
+                        color: Color(0xFF10B981),
+                        size: 12,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'Live Data',
+                        style: TextStyle(
+                          color: Color(0xFF10B981),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 20),          SizedBox(
-            height: 160,
+          const SizedBox(height: 20),
+          
+          // Enhanced Chart Section
+          Container(
+            height: 180,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.1),
+                width: 1,
+              ),
+            ),
             child: LineChart(
               LineChartData(
-                gridData: FlGridData(show: false),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: AxisTitles(
+                gridData: FlGridData(                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: (maxY ?? 700) / 7, // Adjust grid lines based on maxY
+                  getDrawingHorizontalLine: (value) {
+                    return FlLine(
+                      color: Colors.white.withOpacity(0.1),
+                      strokeWidth: 1,
+                      dashArray: [4, 4],
+                    );
+                  },
+                ),
+                titlesData: FlTitlesData(                  leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
+                      interval: (maxY ?? 700) / 5, // Show 5 intervals based on maxY
                       getTitlesWidget: (value, meta) {
-                        const months = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        if (value == 0) return Container();
                         return Padding(
-                          padding: const EdgeInsets.only(top: 6),
+                          padding: const EdgeInsets.only(right: 8),
                           child: Text(
-                            months[value.toInt() % months.length], 
+                            '£${(value ~/ 1)}k',
                             style: const TextStyle(
-                              color: Color(0xFFB0B3C7), 
-                              fontSize: 11,
+                              color: Color(0xFF94A3B8),
+                              fontSize: 10,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                         );
                       },
+                      reservedSize: 40,
+                    ),
+                  ),
+                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        // Get current date for month calculation
+                        final now = DateTime.now();
+                        final monthIndex = value.toInt();
+                        
+                        // Calculate which month this index represents (going back 8 months)
+                        final targetMonth = DateTime(now.year, now.month - (8 - monthIndex), 1);
+                        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        
+                        if (monthIndex >= 0 && monthIndex <= 8) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              months[targetMonth.month - 1],
+                              style: const TextStyle(
+                                color: Color(0xFF94A3B8),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
+                        }
+                        return Container();
+                      },
                       interval: 1,
+                      reservedSize: 32,
                     ),
                   ),
                 ),
-                borderData: FlBorderData(show: false),
-                minX: 0,
+                borderData: FlBorderData(
+                  show: true,
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.1),
+                    width: 1,
+                  ),
+                ),                minX: 0,
                 maxX: 8,
                 minY: 0,
-                maxY: 700,
+                maxY: maxY ?? 700,
                 lineBarsData: [
                   LineChartBarData(
                     spots: data,
                     isCurved: true,
                     gradient: const LinearGradient(
-                      colors: [Colors.white, Colors.white70],
+                      colors: [
+                        Color(0xFF10B981),
+                        Color(0xFF34D399),
+                      ],
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
                     ),
-                    barWidth: 3,
-                    dotData: const FlDotData(show: false),
+                    barWidth: 3.5,
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, percent, barData, index) {
+                        return FlDotCirclePainter(
+                          radius: 4,
+                          color: Colors.white,
+                          strokeWidth: 2,
+                          strokeColor: const Color(0xFF10B981),
+                        );
+                      },
+                    ),
                     belowBarData: BarAreaData(
                       show: true,
                       gradient: LinearGradient(
                         colors: [
-                          Colors.white.withOpacity(0.2),
-                          Colors.white.withOpacity(0.05),
+                          const Color(0xFF10B981).withOpacity(0.3),
+                          const Color(0xFF10B981).withOpacity(0.05),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -145,38 +268,71 @@ class SalesPerformanceChart extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
+          
+          // Enhanced Footer Section
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white.withOpacity(0.1),
+                      Colors.white.withOpacity(0.05),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 1,
+                  ),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.fiber_manual_record, color: Colors.white, size: 8),
-                    SizedBox(width: 6),
+                    Icon(
+                      Icons.circle,
+                      color: Color(0xFF10B981),
+                      size: 10,
+                    ),
+                    SizedBox(width: 8),
                     Text(
                       'Revenue Trend',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
               ),
               const Spacer(),
-              Text(
-                'Updated now',
-                style: TextStyle(
-                  color: const Color(0xFFB0B3C7).withOpacity(0.8),
-                  fontSize: 10,
-                  fontStyle: FontStyle.italic,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.access_time_rounded,
+                      color: const Color(0xFF94A3B8).withOpacity(0.8),
+                      size: 12,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Updated now',
+                      style: TextStyle(
+                        color: const Color(0xFF94A3B8).withOpacity(0.9),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

@@ -36,6 +36,7 @@ class WorkerProvider with ChangeNotifier {
             'image': 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(workerData['full_name'].toString())}&background=random',
             'is_available': workerData['is_available'],
             'assigned_job': workerData['assigned_job'],
+            'number_of_jobs': workerData['number_of_jobs'],
           })).toList();
 
       // Debug print to see the processed workers
@@ -61,10 +62,13 @@ class WorkerProvider with ChangeNotifier {
       // Update the worker's assigned status locally
       final index = _workers.indexWhere((w) => w.id == workerId);
       if (index != -1) {
-        _workers[index] = _workers[index].copyWith(
+        final current = _workers[index];
+        final newNumberOfJobs = (current.numberOfJobs) + 1;
+        _workers[index] = current.copyWith(
           assigned: true, 
           assignedJob: jobId,
-          isAvailable: false // Worker is no longer available when assigned
+          isAvailable: newNumberOfJobs < 4,
+          numberOfJobs: newNumberOfJobs,
         );
         notifyListeners();
       }

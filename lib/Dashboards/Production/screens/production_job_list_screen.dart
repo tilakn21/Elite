@@ -6,8 +6,32 @@ import '../models/worker.dart';
 import 'package:provider/provider.dart';
 import '../providers/production_job_provider.dart';
 
-class ProductionJobListScreen extends StatelessWidget {
+class ProductionJobListScreen extends StatefulWidget {
   const ProductionJobListScreen({Key? key}) : super(key: key);
+
+  @override
+  State<ProductionJobListScreen> createState() => _ProductionJobListScreenState();
+}
+
+class _ProductionJobListScreenState extends State<ProductionJobListScreen> {
+  String _searchQuery = '';
+  String _selectedStatus = 'All';
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch jobs on open
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<ProductionJobProvider>(context, listen: false).fetchProductionJobs();
+    });
+  }
+
+  @override
+  void dispose() {
+    // Fetch jobs on close
+    Provider.of<ProductionJobProvider>(context, listen: false).fetchProductionJobs();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,8 +51,10 @@ class ProductionJobListScreen extends StatelessWidget {
               } else if (index == 2) {
                 // Already on Job List
               } else if (index == 3) {
-                Navigator.of(context)
-                    .pushReplacementNamed('/production/updatejobstatus');
+                Navigator.of(context).pushReplacementNamed(
+                  '/production/reimbursement_request',
+                  arguments: {'employeeId': 'prod1001'},
+                );
               }
             },
           ),
@@ -36,6 +62,67 @@ class ProductionJobListScreen extends StatelessWidget {
             child: Column(
               children: [
                 ProductionTopBar(),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  child: Row(
+                    children: [
+                      // Search bar
+                      Expanded(
+                        child: Container(
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            children: [
+                              const SizedBox(width: 16),
+                              const Icon(Icons.search, color: Colors.grey, size: 22),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: TextField(
+                                  onChanged: (value) => setState(() => _searchQuery = value),
+                                  decoration: const InputDecoration(
+                                    border: InputBorder.none,
+                                    hintText: 'Search jobs by client or job no...',
+                                    hintStyle: TextStyle(color: Colors.grey, fontSize: 15),
+                                    isDense: true,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      // Status filter dropdown
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedStatus,
+                            items: [
+                              'All',
+                              'received',
+                              'Assigned Labour',
+                              'Forwarded for printing',
+                              'Completed',
+                              'On Hold',
+                            ].map((status) => DropdownMenuItem(
+                                  value: status,
+                                  child: Text(status),
+                                )).toList(),
+                            onChanged: (value) => setState(() => _selectedStatus = value!),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 Expanded(
                   child: SafeArea(
                     child: SingleChildScrollView(
@@ -56,16 +143,29 @@ class ProductionJobListScreen extends StatelessWidget {
                             const SizedBox(height: 24),
                             Consumer<ProductionJobProvider>(
                               builder: (context, jobProvider, child) {
+                                final jobs = jobProvider.jobs.where((job) {
+                                  final matchesSearch = job.clientName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                                      job.jobNo.toLowerCase().contains(_searchQuery.toLowerCase());
+                                  // Use computedStatus for filtering
+                                  if (_selectedStatus == 'All') return matchesSearch;
+                                  if (_selectedStatus == 'received' && job.computedStatus == JobStatus.received) return matchesSearch;
+                                  if (_selectedStatus == 'Assigned Labour' && job.computedStatus == JobStatus.assignedLabour) return matchesSearch;
+                                  if (_selectedStatus == 'Forwarded for printing' &&
+                                      (job.computedStatus == JobStatus.inProgress || job.computedStatus == JobStatus.processedForPrinting)) return matchesSearch;
+                                  if (_selectedStatus == 'Completed' && job.computedStatus == JobStatus.completed) return matchesSearch;
+                                  if (_selectedStatus == 'On Hold' && job.computedStatus == JobStatus.onHold) return matchesSearch;
+                                  return false;
+                                }).toList();
                                 if (jobProvider.isLoading) {
                                   return const Center(child: CircularProgressIndicator());
                                 }
                                 if (jobProvider.errorMessage != null) {
-                                  return Center(child: Text('Error: ${jobProvider.errorMessage}'));
+                                  return Center(child: Text('Error: \\${jobProvider.errorMessage}'));
                                 }
-                                if (jobProvider.jobs.isEmpty) {
+                                if (jobs.isEmpty) {
                                   return const Center(child: Text('No production jobs found.'));
                                 }
-                                return _JobDataTable(jobs: jobProvider.jobs);
+                                return _JobDataTable(jobs: jobs);
                               },
                             ),
                           ],
@@ -141,62 +241,179 @@ class _CompletedCard extends StatelessWidget {
 }
 
 class _CompletedListRow extends StatelessWidget {
+  Color getGradientColor(DateTime dueDate) {
+    final now = DateTime.now();
+    final days = dueDate.difference(now).inDays;
+    if (days <= 0) {
+      // Overdue or today
+      return const Color(0xFFFFBABA); // light red
+    } else if (days <= 2) {
+      return const Color(0xFFFFF3B0); // light yellow
+    } else if (days <= 7) {
+      return const Color(0xFFB2FEFA); // light blue
+    } else {
+      return const Color(0xFFD5F5E3); // light green
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<ProductionJobProvider>(
       builder: (context, provider, child) {
-        final completedJobs = provider.jobs
-            .where((job) => job.status == JobStatus.completed)
-            .take(3)
-            .toList();
+        final recentJobs = provider.jobs.toList()
+          ..sort((a, b) => b.dueDate.compareTo(a.dueDate));
+        final top3Jobs = recentJobs.take(3).toList();
 
-        if (completedJobs.isEmpty) {
-          return const Center(child: Text('No completed jobs yet'));
+        if (top3Jobs.isEmpty) {
+          return const Center(child: Text('No recent jobs yet'));
+        }
+
+        Color getStatusBg(JobStatus status) {
+          switch (status) {
+            case JobStatus.received:
+              return const Color(0xFFE3F2FD);
+            case JobStatus.assignedLabour:
+              return const Color(0xFFE8F5E8);
+            case JobStatus.completed:
+              return const Color(0xFFD5F5E3);
+            case JobStatus.onHold:
+              return const Color(0xFFFFECE9);
+            case JobStatus.inProgress:
+              // Change to forwarded for printing
+              return const Color(0xFFE8EAF6);
+            case JobStatus.processedForPrinting:
+              return const Color(0xFFE8EAF6);
+            default:
+              return const Color(0xFFE8EAF6);
+          }
+        }
+
+        Color getStatusColor(JobStatus status) {
+          switch (status) {
+            case JobStatus.received:
+              return const Color(0xFF1976D2);
+            case JobStatus.assignedLabour:
+              return const Color(0xFF2E7D32);
+            case JobStatus.completed:
+              return const Color(0xFF27AE60);
+            case JobStatus.onHold:
+              return const Color(0xFFE74C3C);
+            case JobStatus.inProgress:
+              // Change to forwarded for printing
+              return const Color(0xFF5C6BC0);
+            case JobStatus.processedForPrinting:
+              return const Color(0xFF5C6BC0);
+            default:
+              return const Color(0xFF5C6BC0);
+          }
         }
 
         return Row(
           children: [
-            ...completedJobs.asMap().entries.map((entry) {
+            ...top3Jobs.asMap().entries.map((entry) {
               final job = entry.value;
-              final assignedWorker = Worker(
-                id: job.id,
-                name: job.clientName,
-                phone: 'N/A', // Since this is just for display
-                role: 'Production Worker',
-                image: 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(job.clientName)}&background=random',
-                isAvailable: false // Worker is not available since they are assigned to a completed job
-              );
-              
               return Expanded(
                 child: Row(
                   children: [
                     if (entry.key > 0) const SizedBox(width: 16),
                     Expanded(
-                      child: _CompletedCard(
-                        worker: assignedWorker,
-                        date: "${job.dueDate.day.toString().padLeft(2, '0')}/${job.dueDate.month.toString().padLeft(2, '0')}/${job.dueDate.year}"
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.pushReplacementNamed(
+                            context,
+                            '/production/updatejobstatus',
+                            arguments: job,
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 6,
+                                offset: Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: IntrinsicHeight(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Icon(Icons.work, color: getStatusColor(job.computedStatus), size: 22),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      child: Text(job.jobNo,
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold, fontSize: 16, color: getStatusColor(job.computedStatus)),
+                                          overflow: TextOverflow.ellipsis),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.calendar_today, size: 14, color: Colors.black45),
+                                    const SizedBox(width: 4),
+                                    Flexible(
+                                      child: Text(
+                                        "${job.dueDate.day.toString().padLeft(2, '0')}/${job.dueDate.month.toString().padLeft(2, '0')}/${job.dueDate.year}",
+                                        style: const TextStyle(fontSize: 12, color: Colors.black45),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: getStatusBg(job.computedStatus),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    (job.computedStatus == JobStatus.inProgress || job.computedStatus == JobStatus.processedForPrinting)
+                                        ? 'Forwarded for printing'
+                                        : job.computedStatus.label,
+                                    style: TextStyle(
+                                        color: getStatusColor(job.computedStatus),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13),
+                                    overflow: TextOverflow.ellipsis),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
               );
             }).toList(),
-            ...List.generate(3 - completedJobs.length, (index) => 
+            ...List.generate(3 - top3Jobs.length, (index) =>
               Expanded(
                 child: Row(
                   children: [
-                    const SizedBox(width: 16),
+                    if (top3Jobs.isNotEmpty || index > 0) const SizedBox(width: 16),
                     Expanded(
-                      child: _CompletedCard(
-                        worker: Worker(
-                          id: 'empty',
-                          name: 'No Worker Assigned',
-                          phone: 'N/A',
-                          role: 'Production Worker',
-                          image: 'https://ui-avatars.com/api/?name=NA&background=random',
-                          isAvailable: true // Empty slot is available
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Color(0xFFF0F1F6)),
                         ),
-                        date: ''
+                        child: const Center(
+                          child: Text('No Job', style: TextStyle(color: Colors.black38)),
+                        ),
                       ),
                     ),
                   ],
@@ -281,8 +498,8 @@ class _JobDataTable extends StatelessWidget {
           ),          ...jobs.map((job) {
             Color statusColor;
             Color statusBg;
-            switch (job.status) {
-              case JobStatus.receiver:
+            switch (job.computedStatus) {
+              case JobStatus.received:
                 statusColor = const Color(0xFF1976D2);
                 statusBg = const Color(0xFFE3F2FD);
                 break;
@@ -293,10 +510,6 @@ class _JobDataTable extends StatelessWidget {
               case JobStatus.completed:
                 statusColor = const Color(0xFF27AE60);
                 statusBg = const Color(0xFFD5F5E3);
-                break;
-              case JobStatus.pending:
-                statusColor = const Color(0xFFF39C12);
-                statusBg = const Color(0xFFFFF4E5);
                 break;
               case JobStatus.onHold:
                 statusColor = const Color(0xFFE74C3C);
@@ -351,7 +564,10 @@ class _JobDataTable extends StatelessWidget {
                         color: statusBg,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(job.status.label,
+                      child: Text(
+                          (job.computedStatus == JobStatus.inProgress || job.computedStatus == JobStatus.processedForPrinting)
+                              ? 'Forwarded for printing'
+                              : job.computedStatus.label,
                           style: TextStyle(
                               color: statusColor,
                               fontWeight: FontWeight.bold,
@@ -367,13 +583,16 @@ class _JobDataTable extends StatelessWidget {
                         Expanded(
                           child: SizedBox(
                             height: 36,
-                            child: ElevatedButton(                              onPressed: () {
-                                Navigator.pushReplacementNamed(
-                                  context,
-                                  '/production/assignlabour',
-                                  arguments: job,
-                                );
-                              },
+                            child: ElevatedButton(
+                              onPressed: job.computedStatus == JobStatus.completed
+                                  ? null
+                                  : () {
+                                      Navigator.pushReplacementNamed(
+                                        context,
+                                        '/production/assignlabour',
+                                        arguments: job,
+                                      );
+                                    },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF26A6A2),
                                 foregroundColor: Colors.white,
@@ -394,14 +613,17 @@ class _JobDataTable extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: SizedBox(
-                            height: 36,                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.pushReplacementNamed(
-                                  context,
-                                  '/production/updatejobstatus',
-                                  arguments: job,
-                                );
-                              },
+                            height: 36,
+                            child: ElevatedButton(
+                              onPressed: job.computedStatus == JobStatus.completed
+                                  ? null
+                                  : () {
+                                      Navigator.pushReplacementNamed(
+                                        context,
+                                        '/production/updatejobstatus',
+                                        arguments: job,
+                                      );
+                                    },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFD5F5E3),
                                 foregroundColor: const Color(0xFF27AE60),

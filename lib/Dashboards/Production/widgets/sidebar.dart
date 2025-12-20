@@ -46,7 +46,34 @@ class ProductionSidebar extends StatelessWidget {
             label: 'Assign labour',
             selected: selectedIndex == 1,
             onTap: () => onItemTapped(1),
+          ),          _SidebarButton(
+            icon: Icons.calendar_today,
+            label: 'Calendar',
+            selected: selectedIndex == 4,
+            onTap: () {
+              if (ModalRoute.of(context)?.settings.name != '/production/calendar') {
+                Navigator.of(context).pushReplacementNamed('/production/calendar');
+              }
+              onItemTapped(4);
+            },
           ),
+          _SidebarButton(
+            icon: Icons.receipt_long,
+            label: 'Reimbursement',
+            selected: selectedIndex == 3,
+            onTap: () async {
+              // Fetch employee id (production id)
+              String employeeId = 'prod1001'; // TODO: Replace with authenticated id later
+              if (ModalRoute.of(context)?.settings.name != '/production/reimbursement_request') {
+                Navigator.of(context).pushReplacementNamed(
+                  '/production/reimbursement_request',
+                  arguments: {'employeeId': employeeId},
+                );
+              }
+              onItemTapped(3);
+            },
+          ),
+          
        
   
           const Spacer(),

@@ -4,15 +4,8 @@ class Sidebar extends StatelessWidget {
   final int selectedIndex;
   final bool isDrawer;
   final VoidCallback? onClose;
-  final Function(int) onItemSelected;
-
-  const Sidebar({
-    super.key,
-    this.selectedIndex = 0,
-    this.isDrawer = false,
-    this.onClose,
-    required this.onItemSelected,
-  });
+  final String? employeeId;
+  const Sidebar({super.key, this.selectedIndex = 0, this.isDrawer = false, this.onClose, this.employeeId});
 
   @override
   Widget build(BuildContext context) {
@@ -41,16 +34,54 @@ class Sidebar extends StatelessWidget {
           label: 'Dashboard',
           selected: selectedIndex == 0,
           onTap: () {
-            onItemSelected(0);
+            Navigator.of(context).pushReplacementNamed(
+              '/receptionist/dashboard',
+              arguments: {'receptionistId': employeeId}
+            );
             if (isDrawer && onClose != null) onClose!();
           },
-        ),
-        SidebarButton(
+        ),        SidebarButton(
           icon: Icons.add_circle_outline,
           label: 'New Request',
           selected: selectedIndex == 1,
           onTap: () {
-            onItemSelected(1);
+            Navigator.of(context).pushReplacementNamed(
+              '/receptionist/new-job-request',
+              arguments: {'receptionistId': employeeId}
+            );
+            if (isDrawer && onClose != null) onClose!();
+          },
+        ),        SidebarButton(
+          icon: Icons.list_alt,
+          label: 'View Jobs',
+          selected: selectedIndex == 2,
+          onTap: () {
+            Navigator.of(context).pushReplacementNamed(
+              '/receptionist/view-all-jobs',
+              arguments: {'receptionistId': employeeId}
+            );
+            if (isDrawer && onClose != null) onClose!();
+          },
+        ),        SidebarButton(
+          icon: Icons.receipt_long,
+          label: 'Reimbursement',
+          selected: selectedIndex == 3,
+          onTap: () {
+            Navigator.of(context).pushReplacementNamed(
+              '/receptionist/reimbursement-request',
+              arguments: {'receptionistId': employeeId}
+            );
+            if (isDrawer && onClose != null) onClose!();
+          },
+        ),        SidebarButton(
+          icon: Icons.calendar_today,
+          label: 'Calendar',
+          selected: selectedIndex == 4,
+          onTap: () {
+            Navigator.of(context).pushReplacementNamed(
+              '/receptionist/calendar',
+              arguments: {'receptionistId': employeeId}
+            );
             if (isDrawer && onClose != null) onClose!();
           },
         ),

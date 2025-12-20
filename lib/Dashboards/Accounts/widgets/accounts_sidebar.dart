@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 class AccountsSidebar extends StatelessWidget {
   final int selectedIndex;
-  const AccountsSidebar({Key? key, required this.selectedIndex}) : super(key: key);
+  final String? accountantId;
+  const AccountsSidebar({Key? key, required this.selectedIndex, this.accountantId}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -33,18 +34,10 @@ class AccountsSidebar extends StatelessWidget {
               children: [
                 _SidebarButton(
                   icon: Icons.dashboard,
-                  label: 'Dashboard',
+                  label: 'Jobs',
                   selected: selectedIndex == 0,
                   onTap: () {
-                    Navigator.of(context).pushReplacementNamed('/accounts/dashboard');
-                  },
-                ),
-                _SidebarButton(
-                  icon: Icons.receipt_long,
-                  label: 'Invoice',
-                  selected: selectedIndex == 1,
-                  onTap: () {
-                    Navigator.of(context).pushReplacementNamed('/accounts/invoice');
+                    Navigator.of(context).pushReplacementNamed('/accounts/dashboard', arguments: {'accountantId': accountantId});
                   },
                 ),
                 _SidebarButton(
@@ -52,7 +45,15 @@ class AccountsSidebar extends StatelessWidget {
                   label: 'Employee',
                   selected: selectedIndex == 2,
                   onTap: () {
-                    Navigator.of(context).pushReplacementNamed('/accounts/employee');
+                    Navigator.of(context).pushReplacementNamed('/accounts/employee', arguments: {'accountantId': accountantId});
+                  },
+                ),
+                _SidebarButton(
+                  icon: Icons.calendar_today,
+                  label: 'Calendar',
+                  selected: selectedIndex == 3,
+                  onTap: () {
+                    Navigator.of(context).pushReplacementNamed('/accounts/calendar', arguments: {'accountantId': accountantId});
                   },
                 ),
               ],

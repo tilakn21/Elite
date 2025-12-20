@@ -1,37 +1,80 @@
+import 'package:flutter/material.dart';
+
+enum PaymentStatus {
+  paid,
+  pending,
+  rejected,
+  approved
+}
+
 class EmployeePayment {
-  final String jobNo;
-  final String employee;
-  final String date;
-  final String amount;
-  final String status;
+  final String id;
+  final String empId;
+  final String empName;
+  final double amount;
+  final DateTime reimbursementDate;
+  final String purpose;
+  final String? receiptUrl;
+  final PaymentStatus status;
+  final String? remarks;
+  final DateTime? createdAt;
 
   EmployeePayment({
-    required this.jobNo,
-    required this.employee,
-    required this.date,
+    required this.id,
+    required this.empId,
+    required this.empName,
     required this.amount,
+    required this.reimbursementDate,
+    required this.purpose,
+    this.receiptUrl,
     required this.status,
+    this.remarks,
+    this.createdAt,
   });
 
-  // Convert a map to an EmployeePayment object
-  factory EmployeePayment.fromMap(Map<String, dynamic> map) {
+  factory EmployeePayment.fromJson(Map<String, dynamic> json) {
+    String statusStr = (json['status'] ?? 'pending').toString().toLowerCase();
+    PaymentStatus status;
+    switch (statusStr) {
+      case 'paid':
+        status = PaymentStatus.paid;
+        break;
+      case 'rejected':
+        status = PaymentStatus.rejected;
+        break;
+      case 'approved':
+        status = PaymentStatus.approved;
+        break;
+      default:
+        status = PaymentStatus.pending;
+    }
+
     return EmployeePayment(
-      jobNo: map['jobNo'] ?? '',
-      employee: map['employee'] ?? '',
-      date: map['date'] ?? '',
-      amount: map['amount'] ?? '',
-      status: map['status'] ?? 'Pending',
+      id: json['id'].toString(),
+      empId: json['emp_id'].toString(),
+      empName: json['emp_name'].toString(),
+      amount: (json['amount'] as num).toDouble(),
+      reimbursementDate: DateTime.parse(json['reimbursement_date']),
+      purpose: json['purpose'].toString(),
+      receiptUrl: json['receipt_url']?.toString(),
+      status: status,
+      remarks: json['remarks']?.toString(),
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
     );
   }
 
-  // Convert an EmployeePayment object to a map
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
-      'jobNo': jobNo,
-      'employee': employee,
-      'date': date,
+      'id': id,
+      'emp_id': empId,
+      'emp_name': empName,
       'amount': amount,
-      'status': status,
+      'reimbursement_date': reimbursementDate.toIso8601String(),
+      'purpose': purpose,
+      'receipt_url': receiptUrl,
+      'status': status.name,
+      'remarks': remarks,
+      'created_at': createdAt?.toIso8601String(),
     };
   }
 }

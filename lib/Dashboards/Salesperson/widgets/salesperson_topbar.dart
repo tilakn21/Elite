@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SalespersonTopBar extends StatelessWidget {
   final bool isDashboard;
@@ -23,16 +24,31 @@ class SalespersonTopBar extends StatelessWidget {
               tooltip: 'Open menu',
             ),
           if (!showMenu) const SizedBox(width: 32),
-          Text(
-            'Salesperson',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: isDashboard ? Color(0xFF1B2330) : Colors.white,
-              letterSpacing: 1.0,
+          Expanded(
+            child: Text(
+              'Salesperson',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: isDashboard ? Color(0xFF1B2330) : Colors.white,
+                letterSpacing: 1.0,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ),
-          const Spacer(),
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white, size: 26),
+            tooltip: 'Log Out',
+            onPressed: () async {
+              await Supabase.instance.client.auth.signOut();
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+              } else {
+                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+              }
+            },
+          ),
         ],
       ),
     );

@@ -1,11 +1,13 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/salesperson_sidebar.dart';
 import '../widgets/salesperson_topbar.dart';
-import '../models/salesperson_profile.dart';
 
 class SalespersonProfileScreen extends StatefulWidget {
-  const SalespersonProfileScreen({Key? key}) : super(key: key);
+  final String? salespersonId;
+  const SalespersonProfileScreen({Key? key, this.salespersonId}) : super(key: key);
 
   @override
   State<SalespersonProfileScreen> createState() =>
@@ -30,11 +32,25 @@ class _SalespersonProfileScreenState extends State<SalespersonProfileScreen> {
       _error = null;
     });
     try {
+      String? userId = widget.salespersonId;
+      if (userId == null) {
+        final user = Supabase.instance.client.auth.currentUser;
+        userId = user?.id;
+      }
+      if (userId == null) {
+        setState(() {
+          _error = 'No authenticated user found and no ID passed.';
+          _isLoading = false;
+        });
+        print('[SALESPERSON_PROFILE] No authenticated user or ID passed.');
+        return;
+      }
+      print('[SALESPERSON_PROFILE] Using salesperson ID: ' + userId);
       final supabase = Supabase.instance.client;
       final response = await supabase
           .from('employee')
           .select()
-          .eq('id', 'sal2002')
+          .eq('id', userId)
           .single();
       setState(() {
         employee = response;
@@ -48,6 +64,104 @@ class _SalespersonProfileScreenState extends State<SalespersonProfileScreen> {
     }
   }
 
+  Future<void> _showChangePasswordDialog(BuildContext context) async {
+    final TextEditingController _currentPasswordController = TextEditingController();
+    final TextEditingController _newPasswordController = TextEditingController();
+    final TextEditingController _confirmPasswordController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Change Password'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                TextField(
+                  controller: _currentPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Current Password'),
+                ),
+                TextField(
+                  controller: _newPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'New Password'),
+                ),
+                TextField(
+                  controller: _confirmPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Confirm New Password'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final String currentPassword = _currentPasswordController.text.trim();
+                final String newPassword = _newPasswordController.text.trim();
+                final String confirmPassword = _confirmPasswordController.text.trim();
+
+                if (newPassword != confirmPassword) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('New password and confirmation do not match.')),
+                  );
+                  return;
+                }
+
+                try {
+                  final supabase = Supabase.instance.client;
+                  final userId = widget.salespersonId;
+                  if (userId == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('User ID missing.')),
+                    );
+                    return;
+                  }
+                  // Fetch current hashed password
+                  final response = await supabase
+                      .from('employee')
+                      .select('password')
+                      .eq('id', userId)
+                      .single();
+                  final String storedHash = response['password'] ?? '';
+                  final String currentHash = sha256.convert(utf8.encode(currentPassword)).toString();
+                  if (storedHash != currentHash) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Current password is incorrect.')),
+                    );
+                    return;
+                  }
+                  // Update password
+                  final String newHash = sha256.convert(utf8.encode(newPassword)).toString();
+                  await supabase
+                      .from('employee')
+                      .update({'password': newHash})
+                      .eq('id', userId);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Password changed successfully.')),
+                  );
+                  Navigator.of(context).pop();
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                }
+              },
+              child: const Text('Change Password'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final double width = MediaQuery.of(context).size.width;
@@ -57,11 +171,18 @@ class _SalespersonProfileScreenState extends State<SalespersonProfileScreen> {
       selectedRoute: 'profile',
       onItemSelected: (route) {
         if (route == 'home') {
-          Navigator.of(context).pushReplacementNamed('/salesperson/dashboard');
+          Navigator.of(context).pushReplacementNamed('/salesperson/dashboard', arguments: {'receptionistId': widget.salespersonId});
         } else if (route == 'profile') {
           if (isMobile) Navigator.of(context).pop();
+        } else if (route == 'reimbursement') {
+          String employeeId = widget.salespersonId ?? 'sal2003';
+          Navigator.of(context).pushReplacementNamed(
+            '/salesperson/reimbursement',
+            arguments: {'employeeId': employeeId},
+          );
         }
       },
+      salespersonId: widget.salespersonId,
     );
     return Scaffold(
       key: scaffoldKey,
@@ -149,6 +270,21 @@ class _SalespersonProfileScreenState extends State<SalespersonProfileScreen> {
                                           value: (employee!['created_at'] ?? '').toString().split('T').first,
                                         ),
                                         const SizedBox(height: 24),
+                                        ElevatedButton.icon(
+                                          icon: const Icon(Icons.lock, color: Colors.white),
+                                          label: const Text('Change Password', style: TextStyle(color: Colors.white)),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.blueAccent,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                          ),
+                                          onPressed: () async {
+                                            await _showChangePasswordDialog(context);
+                                          },
+                                        ),
+                                        const SizedBox(height: 16),
                                         ElevatedButton.icon(
                                           icon: const Icon(Icons.logout, color: Colors.white),
                                           label: const Text('Log Out', style: TextStyle(color: Colors.white)),

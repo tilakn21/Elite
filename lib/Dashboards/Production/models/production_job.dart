@@ -1,31 +1,57 @@
-
 enum JobStatus {
-  receiver,
+  received,
   assignedLabour,
-  inProgress,
+  inProgress, // Will be displayed as 'Forwarded for printing'
   processedForPrinting,
   completed,
   onHold,
   pending,
+  printingCompleted, // Added for printing completed status
 }
 
 extension JobStatusExtension on JobStatus {
   String get label {
     switch (this) {
-      case JobStatus.receiver:
-        return 'Receiver';
+      case JobStatus.received:
+        return 'received';
       case JobStatus.assignedLabour:
         return 'Assigned Labour';
       case JobStatus.inProgress:
-        return 'In progress';
+        return 'Forwarded for printing';
       case JobStatus.processedForPrinting:
-        return 'Processed for printing';
+        return 'Forwarded for printing';
       case JobStatus.completed:
         return 'Completed';
       case JobStatus.onHold:
         return 'On hold';
       case JobStatus.pending:
         return 'Pending';
+      case JobStatus.printingCompleted:
+        return 'Printing Completed';
+    }
+  }
+
+  static JobStatus fromString(String status) {
+    switch (status.toLowerCase()) {
+      case 'received':
+        return JobStatus.received;
+      case 'assigned_labour':
+        return JobStatus.assignedLabour;
+      case 'in_progress':
+      case 'printing':
+      case 'forwarded for printing':
+      case 'processed_for_printing':
+        return JobStatus.inProgress;
+      case 'completed':
+      case 'production_complete':
+        return JobStatus.completed;
+      case 'on_hold':
+        return JobStatus.onHold;
+      case 'printing_completed':
+        return JobStatus.printingCompleted;
+      case 'pending':
+      default:
+        return JobStatus.pending;
     }
   }
 }
@@ -100,7 +126,9 @@ class ProductionJob {
 
     return ProductionJob(
       id: (json['id'] as Object).toString(),
-      jobNo: (json['id'] as Object).toString(), // Using id as job number
+      jobNo: (json['job_code'] != null && json['job_code'].toString().trim().isNotEmpty && json['job_code'].toString().toLowerCase() != 'null')
+          ? json['job_code'].toString()
+          : (json['id'] as Object).toString(),
       clientName: customerName,
       dueDate: dueDate,
       description: (designData['comments'] as String?) ?? (designData['description'] as String?) ?? 'No description',
@@ -160,19 +188,22 @@ class ProductionJob {
   }
   static JobStatus _getJobStatus(String status) {
     switch (status.toLowerCase()) {
-      case 'receiver':
-        return JobStatus.receiver;
+      case 'received':
+        return JobStatus.received;
       case 'assigned_labour':
         return JobStatus.assignedLabour;
       case 'in_progress':
-        return JobStatus.inProgress;
+      case 'printing':
+      case 'forwarded for printing':
       case 'processed_for_printing':
-        return JobStatus.processedForPrinting;
+        return JobStatus.inProgress;
       case 'completed':
       case 'production_complete':
         return JobStatus.completed;
       case 'on_hold':
         return JobStatus.onHold;
+      case 'printing_completed':
+        return JobStatus.printingCompleted;
       case 'pending':
       default:
         return JobStatus.pending;
@@ -191,6 +222,42 @@ class ProductionJob {
         return 'Resolve Issue';
       default:
         return 'View Details';
+    }
+  }
+
+  // Returns true if this job should be considered 'received' (ready for production)
+  bool get isreceived {
+    // Design must be completed
+    final design = designjsonb;
+    final production = productionjsonb;
+    // Check if design is a Map and status is 'completed'
+    final designCompleted = design != null &&
+      ((design['status']?.toString().toLowerCase() == 'completed') ||
+       (design['status']?.toString().toLowerCase() == 'design completed'));
+    final productionIsNull = production == null || production.isEmpty || production['current_status'] == null;
+    return designCompleted && productionIsNull;
+  }
+
+  // Always use the computed status for display
+  JobStatus get computedStatus {
+    switch (status) {
+      case JobStatus.received:
+        return JobStatus.received;
+      case JobStatus.assignedLabour:
+        return JobStatus.assignedLabour;
+      case JobStatus.inProgress:
+        return JobStatus.inProgress;
+      case JobStatus.processedForPrinting:
+        return JobStatus.processedForPrinting;
+      case JobStatus.completed:
+        return JobStatus.completed;
+      case JobStatus.onHold:
+        return JobStatus.onHold;
+      case JobStatus.printingCompleted:
+        return JobStatus.printingCompleted;
+      default:
+        // fallback for legacy or unknown
+        return JobStatus.pending;
     }
   }
 }
