@@ -274,6 +274,156 @@ class AccountsService {
             generatedAt: job.created_at as string
         };
     }
+
+    /**
+     * Get recent payments for the activity feed
+     */
+    async getRecentPayments(limit: number = 10): Promise<Array<{
+        id: string;
+        jobCode: string;
+        customerName: string;
+        amount: number;
+        mode: string;
+        recordedAt: string;
+    }>> {
+        try {
+            const { data: jobs } = await supabase
+                .from('jobs')
+                .select('id, job_code, receptionist, accountant, updated_at')
+                .not('accountant', 'is', null)
+                .order('updated_at', { ascending: false })
+                .limit(50);
+
+            const payments: Array<{
+                id: string;
+                jobCode: string;
+                customerName: string;
+                amount: number;
+                mode: string;
+                recordedAt: string;
+            }> = [];
+
+            (jobs || []).forEach(job => {
+                const accounts = job.accountant || {};
+                const receptionist = (job.receptionist || {}) as Record<string, unknown>;
+                const paymentRecords = accounts.payments || [];
+
+                paymentRecords.forEach((payment: Record<string, unknown>) => {
+                    payments.push({
+                        id: payment.id as string || `${job.id}-${payments.length}`,
+                        jobCode: job.job_code || job.id,
+                        customerName: (receptionist.customerName as string) || 'Unknown',
+                        amount: payment.amount as number || 0,
+                        mode: payment.mode as string || 'cash',
+                        recordedAt: payment.recorded_at as string || job.updated_at,
+                    });
+                });
+            });
+
+            // Sort by date and return top N
+            return payments
+                .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())
+                .slice(0, limit);
+        } catch (error) {
+            console.error('Error fetching recent payments:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get jobs pending invoice generation (design approved but no invoice)
+     */
+    async getPendingInvoiceJobs(): Promise<Array<{
+        id: string;
+        jobCode: string;
+        customerName: string;
+        shopName: string;
+        amount: number;
+        status: string;
+    }>> {
+        try {
+            const { data: jobs } = await supabase
+                .from('jobs')
+                .select('id, job_code, status, amount, receptionist, accountant')
+                .or('status.eq.design_approved,status.eq.production_complete,status.eq.printing_complete')
+                .order('created_at', { ascending: true });
+
+            return (jobs || [])
+                .filter(job => {
+                    const accounts = job.accountant || {};
+                    // No invoice generated yet
+                    return !accounts.invoice_no && !accounts.invoiceNumber;
+                })
+                .map(job => {
+                    const receptionist = (job.receptionist || {}) as Record<string, unknown>;
+                    return {
+                        id: job.id,
+                        jobCode: job.job_code || job.id,
+                        customerName: (receptionist.customerName as string) || 'Unknown',
+                        shopName: (receptionist.shopName as string) || '',
+                        amount: job.amount || 0,
+                        status: job.status || 'unknown',
+                    };
+                });
+        } catch (error) {
+            console.error('Error fetching pending invoice jobs:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get weekly collection stats
+     */
+    async getWeeklyStats(): Promise<{
+        weeklyCollection: number;
+        weekPayments: number;
+        overdueCount: number;
+        overdueAmount: number;
+    }> {
+        try {
+            const now = new Date();
+            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+            const { data: jobs } = await supabase
+                .from('jobs')
+                .select('amount, accountant, created_at');
+
+            let weeklyCollection = 0;
+            let weekPayments = 0;
+            let overdueCount = 0;
+            let overdueAmount = 0;
+
+            (jobs || []).forEach(job => {
+                const accounts = job.accountant || {};
+                const amountPaid = accounts.amount_paid || 0;
+                const totalAmount = job.amount || accounts.total_amount || 0;
+                const paymentRecords = accounts.payments || [];
+                const createdAt = new Date(job.created_at);
+                const daysSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
+
+                // Weekly payments
+                paymentRecords.forEach((payment: Record<string, unknown>) => {
+                    const paymentDate = new Date(payment.recorded_at as string);
+                    if (paymentDate >= weekAgo) {
+                        weeklyCollection += (payment.amount as number) || 0;
+                        weekPayments++;
+                    }
+                });
+
+                // Overdue (pending > 30 days)
+                if (amountPaid < totalAmount && daysSinceCreation > 30) {
+                    overdueCount++;
+                    overdueAmount += totalAmount - amountPaid;
+                }
+            });
+
+            return { weeklyCollection, weekPayments, overdueCount, overdueAmount };
+        } catch (error) {
+            console.error('Error fetching weekly stats:', error);
+            return { weeklyCollection: 0, weekPayments: 0, overdueCount: 0, overdueAmount: 0 };
+        }
+    }
 }
 
 export const accountsService = new AccountsService();
+

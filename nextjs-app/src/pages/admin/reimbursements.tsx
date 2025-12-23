@@ -1,9 +1,9 @@
-import { type ReactElement, useState, useEffect } from 'react';
+import { type ReactElement, useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import { css, useTheme } from '@emotion/react';
 import { AppLayout } from '@/components/layout';
-import { SectionCard } from '@/components/dashboard';
-import { Table, Button, Badge, Modal } from '@/components/ui';
+import { SectionCard, StatCard } from '@/components/dashboard';
+import { Table, Button, Badge, Modal, Select } from '@/components/ui';
 import { getReimbursements, updateReimbursementStatus } from '@/services';
 import type { Reimbursement, ReimbursementStatus } from '@/types';
 import type { NextPageWithLayout } from '../_app';
@@ -11,7 +11,7 @@ import * as styles from '@/styles/pages/admin/reimbursements.styles';
 
 /**
  * Admin Reimbursements Page
- * Review and manage expense claims
+ * Review and manage expense claims with filtering
  */
 
 const AdminReimbursementsPage: NextPageWithLayout = () => {
@@ -20,6 +20,9 @@ const AdminReimbursementsPage: NextPageWithLayout = () => {
     const [loading, setLoading] = useState(true);
     const [selectedReimbursement, setSelectedReimbursement] = useState<Reimbursement | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
+
+    // Filters
+    const [statusFilter, setStatusFilter] = useState<string>('');
 
     useEffect(() => {
         loadData();
@@ -37,12 +40,34 @@ const AdminReimbursementsPage: NextPageWithLayout = () => {
         }
     };
 
+    // Filtered data
+    const filteredReimbursements = useMemo(() => {
+        if (!statusFilter) return reimbursements;
+        return reimbursements.filter(r => r.status === statusFilter);
+    }, [reimbursements, statusFilter]);
+
+    // Summary stats
+    const stats = useMemo(() => {
+        const pending = reimbursements.filter(r => r.status === 'pending');
+        const approved = reimbursements.filter(r => r.status === 'approved');
+        const paid = reimbursements.filter(r => r.status === 'paid');
+
+        return {
+            pendingCount: pending.length,
+            pendingAmount: pending.reduce((sum, r) => sum + r.amount, 0),
+            approvedCount: approved.length,
+            approvedAmount: approved.reduce((sum, r) => sum + r.amount, 0),
+            paidCount: paid.length,
+            paidAmount: paid.reduce((sum, r) => sum + r.amount, 0),
+            totalAmount: reimbursements.reduce((sum, r) => sum + r.amount, 0),
+        };
+    }, [reimbursements]);
+
     const handleStatusUpdate = async (id: string, status: ReimbursementStatus) => {
         setIsUpdating(true);
         try {
             const success = await updateReimbursementStatus(id, status);
             if (success) {
-                // Refresh list and close modal
                 await loadData();
                 setSelectedReimbursement(null);
             } else {
@@ -58,19 +83,34 @@ const AdminReimbursementsPage: NextPageWithLayout = () => {
 
     const columns = [
         { key: 'emp_name', header: 'Employee' },
-        { key: 'reimbursement_date', header: 'Date', width: '120px' },
-        { key: 'purpose', header: 'Purpose' },
+        { key: 'reimbursement_date', header: 'Date', width: '110px' },
+        {
+            key: 'purpose',
+            header: 'Purpose',
+            render: (row: Reimbursement) => (
+                <span style={{
+                    maxWidth: '200px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    display: 'block'
+                }}>
+                    {row.purpose}
+                </span>
+            )
+        },
         {
             key: 'amount', header: 'Amount', width: '100px', render: (row: Reimbursement) => (
                 <span css={styles.amount}>£{row.amount.toFixed(2)}</span>
             )
         },
         {
-            key: 'status', header: 'Status', width: '120px', render: (row: Reimbursement) => (
+            key: 'status', header: 'Status', width: '110px', render: (row: Reimbursement) => (
                 <Badge
                     variant={
-                        row.status === 'approved' || row.status === 'paid' ? 'success' :
-                            row.status === 'rejected' ? 'error' : 'warning'
+                        row.status === 'paid' ? 'success' :
+                            row.status === 'approved' ? 'info' :
+                                row.status === 'rejected' ? 'error' : 'warning'
                     }
                     size="sm"
                     className={css({ textTransform: 'capitalize' }).toString()}
@@ -80,14 +120,25 @@ const AdminReimbursementsPage: NextPageWithLayout = () => {
             )
         },
         {
-            key: 'actions', header: 'Actions', width: '100px', render: (row: Reimbursement) => (
-                <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setSelectedReimbursement(row)}
-                >
-                    View
-                </Button>
+            key: 'actions', header: 'Actions', width: '140px', render: (row: Reimbursement) => (
+                <div style={{ display: 'flex', gap: '4px' }}>
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setSelectedReimbursement(row)}
+                    >
+                        View
+                    </Button>
+                    {row.status === 'approved' && (
+                        <Button
+                            size="sm"
+                            variant="primary"
+                            onClick={() => handleStatusUpdate(row.id, 'paid')}
+                        >
+                            Pay
+                        </Button>
+                    )}
+                </div>
             )
         },
     ];
@@ -99,18 +150,72 @@ const AdminReimbursementsPage: NextPageWithLayout = () => {
             </Head>
 
             <div css={styles.container(theme)}>
-                <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>Reimbursements</h1>
+                <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '24px' }}>Reimbursements</h1>
+
+                {/* Summary Stats */}
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: '16px',
+                    marginBottom: '24px'
+                }}>
+                    <StatCard
+                        label="Pending"
+                        value={`${stats.pendingCount}`}
+                        change={`£${stats.pendingAmount.toFixed(0)}`}
+                        positive={false}
+                    />
+                    <StatCard
+                        label="Approved (Awaiting Payment)"
+                        value={`${stats.approvedCount}`}
+                        change={`£${stats.approvedAmount.toFixed(0)}`}
+                        positive={true}
+                    />
+                    <StatCard
+                        label="Paid"
+                        value={`${stats.paidCount}`}
+                        change={`£${stats.paidAmount.toFixed(0)}`}
+                        positive={true}
+                    />
+                </div>
 
                 <SectionCard title="Expense Claims" iconColor="#10b981">
+                    {/* Filters */}
+                    <div style={{
+                        display: 'flex',
+                        gap: '12px',
+                        marginBottom: '16px',
+                        alignItems: 'center'
+                    }}>
+                        <div style={{ width: '180px' }}>
+                            <Select
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                options={[
+                                    { value: '', label: 'All Statuses' },
+                                    { value: 'pending', label: 'Pending' },
+                                    { value: 'approved', label: 'Approved' },
+                                    { value: 'rejected', label: 'Rejected' },
+                                    { value: 'paid', label: 'Paid' },
+                                ]}
+                                size="sm"
+                            />
+                        </div>
+                        <span style={{ fontSize: '13px', color: '#6b7280' }}>
+                            Showing {filteredReimbursements.length} of {reimbursements.length} claims
+                        </span>
+                    </div>
+
                     <Table
                         columns={columns}
-                        data={reimbursements}
+                        data={filteredReimbursements}
                         loading={loading}
                         emptyMessage="No reimbursement requests found."
                     />
                 </SectionCard>
             </div>
 
+            {/* Detail Modal */}
             <Modal
                 isOpen={!!selectedReimbursement}
                 onClose={() => setSelectedReimbursement(null)}
@@ -135,7 +240,16 @@ const AdminReimbursementsPage: NextPageWithLayout = () => {
                                 </Button>
                             </>
                         )}
-                        {selectedReimbursement?.status !== 'pending' && (
+                        {selectedReimbursement?.status === 'approved' && (
+                            <Button
+                                variant="primary"
+                                onClick={() => handleStatusUpdate(selectedReimbursement.id, 'paid')}
+                                disabled={isUpdating}
+                            >
+                                {isUpdating ? 'Updating...' : 'Mark as Paid'}
+                            </Button>
+                        )}
+                        {(selectedReimbursement?.status === 'paid' || selectedReimbursement?.status === 'rejected') && (
                             <Button onClick={() => setSelectedReimbursement(null)}>
                                 Close
                             </Button>
@@ -164,8 +278,9 @@ const AdminReimbursementsPage: NextPageWithLayout = () => {
                             <span css={styles.label}>Status</span>
                             <Badge
                                 variant={
-                                    selectedReimbursement.status === 'approved' || selectedReimbursement.status === 'paid' ? 'success' :
-                                        selectedReimbursement.status === 'rejected' ? 'error' : 'warning'
+                                    selectedReimbursement.status === 'paid' ? 'success' :
+                                        selectedReimbursement.status === 'approved' ? 'info' :
+                                            selectedReimbursement.status === 'rejected' ? 'error' : 'warning'
                                 }
                                 size="sm"
                                 className={css({ textTransform: 'capitalize' }).toString()}

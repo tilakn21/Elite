@@ -4,15 +4,16 @@ import { useRouter } from 'next/router';
 import { useTheme } from '@emotion/react';
 import { AppLayout } from '@/components/layout';
 import { SectionCard } from '@/components/dashboard';
-import { Table, Button, Select } from '@/components/ui';
+import { Table, Button, Select, StatusBadge } from '@/components/ui';
 import { getJobSummaries } from '@/services';
+import { getStatusFilterOptions, getStatusColor, getCurrentDepartment } from '@/utils/status-utils';
 import type { JobSummary } from '@/types';
 import type { NextPageWithLayout } from '../_app';
 import * as styles from '@/styles/pages/admin/jobs.styles';
 
 /**
  * Jobs Listing Page
- * View and filter all jobs
+ * View and filter all jobs with workflow statuses
  */
 
 const JobsPage: NextPageWithLayout = () => {
@@ -59,7 +60,24 @@ const JobsPage: NextPageWithLayout = () => {
         { key: 'title', header: 'Title' },
         { key: 'client', header: 'Client' },
         { key: 'date', header: 'Created', width: '120px' },
-        { key: 'status', header: 'Status', width: '140px' },
+        {
+            key: 'department',
+            header: 'Department',
+            width: '130px',
+            render: (row: JobSummary) => (
+                <span style={{ color: getStatusColor(row.status), fontWeight: 500 }}>
+                    {getCurrentDepartment(row.status)}
+                </span>
+            )
+        },
+        {
+            key: 'status',
+            header: 'Status',
+            width: '180px',
+            render: (row: JobSummary) => (
+                <StatusBadge status={row.status} size="sm" />
+            )
+        },
     ];
 
     const totalPages = Math.ceil(totalJobs / limit);
@@ -75,24 +93,18 @@ const JobsPage: NextPageWithLayout = () => {
                     <h1 css={styles.title(theme)}>All Jobs</h1>
 
                     <div css={styles.filters}>
-                        <div style={{ width: '200px' }}>
+                        <div style={{ width: '220px' }}>
                             <Select
                                 value={statusFilter}
                                 onChange={(e) => {
                                     setStatusFilter(e.target.value);
                                     setPage(1); // Reset to first page on filter change
                                 }}
-                                options={[
-                                    { value: '', label: 'All Statuses' },
-                                    { value: 'pending', label: 'Pending' },
-                                    { value: 'in_progress', label: 'In Progress' },
-                                    { value: 'completed', label: 'Completed' },
-                                    { value: 'cancelled', label: 'Cancelled' },
-                                ]}
+                                options={getStatusFilterOptions()}
                                 size="sm"
                             />
                         </div>
-                        <Button variant="primary" onClick={() => router.push('/reception/new-job')}>
+                        <Button variant="primary" onClick={() => router.push('/receptionist/new-job')}>
                             New Job
                         </Button>
                     </div>

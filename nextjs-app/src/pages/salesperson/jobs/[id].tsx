@@ -337,7 +337,7 @@ export default function JobDetailsPage() {
                                 ✓ Job Submitted
                             </div>
                             <div style={{ fontSize: '14px', color: '#065F46' }}>
-                                <span>Payment: ₹{job.salespersonData.paymentAmount || 0} ({job.salespersonData.modeOfPayment || 'N/A'})</span>
+                                <span>Payment: £{job.salespersonData.paymentAmount || 0} ({job.salespersonData.modeOfPayment || 'N/A'})</span>
                                 {job.salespersonData.submittedAt && (
                                     <span style={{ marginLeft: '16px' }}>
                                         Submitted: {new Date(job.salespersonData.submittedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}

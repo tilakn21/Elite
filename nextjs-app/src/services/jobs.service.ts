@@ -154,6 +154,7 @@ export async function getJobById(id: string): Promise<Job | null> {
 
 /**
  * Get dashboard statistics
+ * Uses workflow status to categorize jobs
  */
 export async function getDashboardStats(): Promise<DashboardStats> {
     const { data, error } = await supabase
@@ -168,18 +169,33 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     const jobs = data ?? [];
     const totalJobs = jobs.length;
 
-    // Count by status (case-insensitive)
-    const statusCounts = jobs.reduce((acc, job) => {
+    // Categorize by workflow stage
+    let pending = 0;
+    let inProgress = 0;
+    let completed = 0;
+
+    jobs.forEach(job => {
         const status = (job.status ?? '').toLowerCase();
-        acc[status] = (acc[status] ?? 0) + 1;
-        return acc;
-    }, {} as Record<string, number>);
+
+        // Pending: just received
+        if (status === 'received' || status === 'pending' || status === 'new' || status === 'draft') {
+            pending++;
+        }
+        // Completed: out for delivery or explicitly completed
+        else if (status === 'out_for_delivery' || status === 'completed' || status === 'done' || status === 'delivered') {
+            completed++;
+        }
+        // In Progress: all intermediate stages
+        else if (status) {
+            inProgress++;
+        }
+    });
 
     return {
         totalJobs,
-        inProgress: statusCounts['in_progress'] ?? statusCounts['in progress'] ?? statusCounts['inprogress'] ?? 0,
-        completed: statusCounts['completed'] ?? statusCounts['done'] ?? 0,
-        pending: statusCounts['pending'] ?? statusCounts['new'] ?? statusCounts['draft'] ?? 0,
+        inProgress,
+        completed,
+        pending,
     };
 }
 
@@ -268,3 +284,136 @@ export async function getMonthlyRevenue(months: number = 9): Promise<{ month: st
 
     return Object.entries(monthlyData).map(([month, revenue]) => ({ month, revenue }));
 }
+
+/**
+ * Get today's appointments count
+ * Looks at receptionist.dateOfAppointment field
+ */
+export async function getTodaysAppointments(): Promise<number> {
+    const today: string = new Date().toISOString().split('T')[0] ?? '';
+
+    const { data, error } = await supabase
+        .from('jobs')
+        .select('receptionist')
+        .not('receptionist', 'is', null);
+
+    if (error) {
+        console.error('Error fetching appointments:', error);
+        return 0;
+    }
+
+    let count = 0;
+    data?.forEach(job => {
+        if (job.receptionist) {
+            const receptionist = parseJsonField<{ dateOfAppointment?: string }>(job.receptionist);
+            const appointmentDate = receptionist?.dateOfAppointment;
+            if (appointmentDate && appointmentDate.startsWith(today)) {
+                count++;
+            }
+        }
+    });
+
+    return count;
+}
+
+/**
+ * Get jobs stuck for more than 3 days (no status change)
+ */
+export async function getStuckJobs(): Promise<{ count: number; jobs: JobSummary[] }> {
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+    const { data, error } = await supabase
+        .from('jobs')
+        .select('id, job_code, status, created_at, updated_at, receptionist')
+        .not('status', 'ilike', '%completed%')
+        .not('status', 'eq', 'out_for_delivery')
+        .lte('updated_at', threeDaysAgo.toISOString())
+        .order('updated_at', { ascending: true })
+        .limit(10);
+
+    if (error) {
+        console.error('Error fetching stuck jobs:', error);
+        return { count: 0, jobs: [] };
+    }
+
+    const jobs: JobSummary[] = (data ?? []).map(job => {
+        const receptionist = parseJsonField<{ customerName?: string; shopName?: string }>(job.receptionist);
+        return {
+            id: job.id,
+            job_code: job.job_code ?? job.id,
+            title: receptionist?.shopName || `Job #${job.job_code}`,
+            client: receptionist?.customerName ?? 'Unknown',
+            status: job.status ?? 'unknown',
+            date: job.updated_at ? new Date(job.updated_at).toLocaleDateString() : '',
+        };
+    });
+
+    return { count: data?.length ?? 0, jobs };
+}
+
+/**
+ * Activity item type for recent activity log
+ */
+export interface ActivityItem {
+    id: string;
+    jobCode: string;
+    action: string;
+    status: string;
+    timestamp: string;
+    department: string;
+}
+
+/**
+ * Get recent activity across all jobs
+ * Shows jobs ordered by most recently updated
+ */
+export async function getRecentActivity(limit: number = 10): Promise<ActivityItem[]> {
+    const { data, error } = await supabase
+        .from('jobs')
+        .select('id, job_code, status, updated_at, created_at, receptionist')
+        .order('updated_at', { ascending: false })
+        .limit(limit);
+
+    if (error) {
+        console.error('Error fetching activity:', error);
+        return [];
+    }
+
+    const getDepartment = (status: string): string => {
+        const s = status?.toLowerCase() || '';
+        if (s === 'received') return 'Reception';
+        if (s.includes('salesperson') || s.includes('visit')) return 'Sales';
+        if (s.includes('design')) return 'Design';
+        if (s.includes('production')) return 'Production';
+        if (s.includes('print')) return 'Printing';
+        if (s.includes('delivery')) return 'Delivery';
+        return 'Unknown';
+    };
+
+    const getAction = (status: string): string => {
+        const s = status?.toLowerCase() || '';
+        if (s === 'received') return 'Job received';
+        if (s.includes('assigned')) return 'Assigned';
+        if (s.includes('started')) return 'Started';
+        if (s.includes('review')) return 'Sent for review';
+        if (s.includes('approved')) return 'Approved';
+        if (s.includes('completed')) return 'Completed';
+        if (s.includes('visit')) return 'Site visited';
+        if (s.includes('delivery')) return 'Out for delivery';
+        return 'Status updated';
+    };
+
+    return (data ?? []).map(job => {
+        const receptionist = parseJsonField<{ shopName?: string }>(job.receptionist);
+        return {
+            id: job.id,
+            jobCode: receptionist?.shopName || `#${job.job_code}`,
+            action: getAction(job.status),
+            status: job.status ?? 'unknown',
+            timestamp: job.updated_at ?? job.created_at,
+            department: getDepartment(job.status),
+        };
+    });
+}
+

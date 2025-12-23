@@ -4,8 +4,9 @@ import { useRouter } from 'next/router';
 import { useTheme } from '@emotion/react';
 import { AppLayout } from '@/components/layout';
 import { Button, Badge } from '@/components/ui';
-import { JobStages } from '@/components/jobs'; // Ensure this is exported from index
+import { JobStages } from '@/components/jobs';
 import { getJobById } from '@/services';
+import { getCurrentDepartment, getStatusLabel, getStatusColor, getWorkflowProgress } from '@/utils/status-utils';
 import type { Job } from '@/types';
 import type { NextPageWithLayout } from '../../_app';
 import { FaArrowLeft, FaEdit, FaDownload } from 'react-icons/fa';
@@ -65,18 +66,6 @@ const JobDetailsPage: NextPageWithLayout = () => {
         );
     }
 
-    // Calculate generic progress based on null checks or status
-    // Flutter logic: 6 stages. simple count here.
-    let completedStages = 0;
-    if (job.receptionist?.status === 'completed') completedStages++;
-    if (job.salesperson?.status === 'completed') completedStages++;
-    if (job.design?.status === 'completed') completedStages++;
-    if (job.accounts?.status === 'paid' || job.accounts?.payment_status === 'payment_done') completedStages++;
-    if (job.production?.status === 'completed') completedStages++;
-    if (job.printing?.status === 'completed') completedStages++;
-
-    const progress = (completedStages / 6) * 100;
-
     return (
         <>
             <Head>
@@ -122,25 +111,50 @@ const JobDetailsPage: NextPageWithLayout = () => {
                         <div css={styles.overviewCard}>
                             <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px' }}>Overview</h3>
 
+                            {/* Current Department Highlight */}
+                            <div style={{
+                                padding: '12px',
+                                background: `${getStatusColor(job.status)}15`,
+                                border: `1px solid ${getStatusColor(job.status)}`,
+                                borderRadius: '8px',
+                                marginBottom: '16px'
+                            }}>
+                                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Currently at</div>
+                                <div style={{
+                                    fontSize: '16px',
+                                    fontWeight: '600',
+                                    color: getStatusColor(job.status)
+                                }}>
+                                    {getCurrentDepartment(job.status)}
+                                </div>
+                            </div>
+
                             <div style={{ marginBottom: '16px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
                                     <span style={{ color: '#6b7280' }}>Progress</span>
-                                    <span style={{ fontWeight: '600', color: '#2563eb' }}>{Math.round(progress)}%</span>
+                                    <span style={{ fontWeight: '600', color: getStatusColor(job.status) }}>
+                                        {getWorkflowProgress(job.status)}%
+                                    </span>
                                 </div>
                                 <div style={{ height: '8px', background: '#e5e7eb', borderRadius: '4px', overflow: 'hidden' }}>
-                                    <div style={{ width: `${progress}%`, background: '#2563eb', height: '100%' }} />
+                                    <div style={{
+                                        width: `${getWorkflowProgress(job.status)}%`,
+                                        background: getStatusColor(job.status),
+                                        height: '100%',
+                                        transition: 'width 0.3s ease'
+                                    }} />
                                 </div>
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                                     <span style={{ color: '#6b7280' }}>Status</span>
-                                    <Badge variant={job.status === 'completed' ? 'success' : 'info'} size="sm">
-                                        {job.status}
+                                    <Badge variant={job.status.includes('completed') || job.status === 'out_for_delivery' ? 'success' : 'info'} size="sm">
+                                        {getStatusLabel(job.status)}
                                     </Badge>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                                    <span style={{ color: '#6b7280' }}>Branch Level</span>
+                                    <span style={{ color: '#6b7280' }}>Branch</span>
                                     <span>{job.branch_id}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>

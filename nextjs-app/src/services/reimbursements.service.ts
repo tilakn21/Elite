@@ -208,3 +208,27 @@ export async function deleteReimbursement(id: string): Promise<boolean> {
         return false;
     }
 }
+
+/**
+ * Get unpaid reimbursements stats (approved but not yet paid)
+ */
+export async function getUnpaidReimbursementsTotal(): Promise<{ count: number; total: number }> {
+    try {
+        const { data, error } = await supabase
+            .from('employee_reimbursement')
+            .select('amount, status')
+            .eq('status', 'approved');
+
+        if (error) {
+            console.error('Error fetching unpaid reimbursements:', error);
+            return { count: 0, total: 0 };
+        }
+
+        const total = (data || []).reduce((sum, r) => sum + parseFloat(r.amount || '0'), 0);
+        return { count: data?.length ?? 0, total };
+    } catch (error) {
+        console.error('Error in getUnpaidReimbursementsTotal:', error);
+        return { count: 0, total: 0 };
+    }
+}
+

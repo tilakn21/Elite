@@ -241,3 +241,106 @@ export async function getEmployeeCountByRole(): Promise<Record<string, number>> 
 
     return counts;
 }
+
+/**
+ * Generate a temporary password
+ * Format: 3 letters + 4 numbers (e.g., 'abc1234')
+ */
+export function generateTemporaryPassword(): string {
+    const letters = 'abcdefghijklmnopqrstuvwxyz';
+    const numbers = '0123456789';
+
+    let password = '';
+    for (let i = 0; i < 3; i++) {
+        password += letters.charAt(Math.floor(Math.random() * letters.length));
+    }
+    for (let i = 0; i < 4; i++) {
+        password += numbers.charAt(Math.floor(Math.random() * numbers.length));
+    }
+
+    return password;
+}
+
+/**
+ * Update employee password
+ * Note: Password is stored as-is in the database (matching current Flutter app behavior)
+ * For production, consider adding server-side hashing
+ */
+export async function updateEmployeePassword(id: string, newPassword: string): Promise<boolean> {
+    const { error } = await supabase
+        .from('employee')
+        .update({ password: newPassword })
+        .eq('id', id);
+
+    if (error) {
+        console.error('Error updating password:', error);
+        throw new Error(`Failed to update password: ${error.message}`);
+    }
+
+    return true;
+}
+
+/**
+ * Reset employee password to a temporary one
+ * Returns the new temporary password
+ */
+export async function resetEmployeePassword(id: string): Promise<string> {
+    const newPassword = generateTemporaryPassword();
+    await updateEmployeePassword(id, newPassword);
+    return newPassword;
+}
+
+/**
+ * Create employee with password (for new employees)
+ */
+export async function createEmployeeWithPassword(
+    employee: EmployeeInsert,
+    password?: string
+): Promise<{ employee: Employee; password: string }> {
+    const finalPassword = password || generateTemporaryPassword();
+
+    // Generate role-based ID
+    const rolePrefix = employee.role.trim().toLowerCase().substring(0, 3);
+
+    // Get the latest employee with this role prefix
+    const { data: latest } = await supabase
+        .from('employee')
+        .select('id')
+        .ilike('id', `${rolePrefix}%`)
+        .order('id', { ascending: false })
+        .limit(1);
+
+    let nextNumber = 1001;
+    if (latest && latest.length > 0 && latest[0]) {
+        const lastId = latest[0].id;
+        const match = lastId.match(/[a-zA-Z]+(\d+)/);
+        if (match && match[1]) {
+            nextNumber = parseInt(match[1], 10) + 1;
+        }
+    }
+
+    const newId = `${rolePrefix}${nextNumber}`;
+
+    const { data, error } = await supabase
+        .from('employee')
+        .insert({
+            id: newId,
+            full_name: employee.full_name,
+            phone: employee.phone ?? null,
+            email: employee.email ?? null,
+            role: employee.role,
+            branch_id: employee.branch_id ?? null,
+            is_available: employee.is_available ?? true,
+            assigned_job: employee.assigned_job ?? null,
+            password: finalPassword,
+        })
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error creating employee:', error);
+        throw new Error(`Failed to create employee: ${error.message}`);
+    }
+
+    return { employee: data, password: finalPassword };
+}

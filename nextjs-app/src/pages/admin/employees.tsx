@@ -6,11 +6,12 @@ import { SectionCard } from '@/components/dashboard';
 import { Table, Button, Modal, Input, Select, Badge } from '@/components/ui';
 import {
     getEmployees,
-    createEmployee,
+    createEmployeeWithPassword,
     updateEmployee,
     deleteEmployee,
     getBranches,
-    getEmployeeRoles
+    getEmployeeRoles,
+    resetEmployeePassword,
 } from '@/services';
 import type { Employee, EmployeeInsert, Branch } from '@/types';
 import type { NextPageWithLayout } from '../_app';
@@ -18,7 +19,7 @@ import * as styles from '@/styles/pages/admin/employees.styles';
 
 /**
  * Employees Management Page
- * CRUD operations for employees
+ * CRUD operations for employees with password management
  */
 
 // Form Types
@@ -27,19 +28,21 @@ interface EmployeeFormState {
     phone: string;
     email: string;
     role: string;
-    branch_id: string; // string for select, parsed to number
+    branch_id: string;
     is_available: boolean;
     assigned_job: string;
+    password: string; // Added for new employees
 }
 
 const initialFormState: EmployeeFormState = {
     full_name: '',
     phone: '',
     email: '',
-    role: 'Receptionist',
+    role: 'receptionist',
     branch_id: '',
     is_available: true,
     assigned_job: '',
+    password: '',
 };
 
 const EmployeesPage: NextPageWithLayout = () => {
@@ -61,6 +64,15 @@ const EmployeesPage: NextPageWithLayout = () => {
     // Delete Confirmation State
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
+
+    // Password Reset State
+    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+    const [passwordResetEmployee, setPasswordResetEmployee] = useState<Employee | null>(null);
+    const [newPassword, setNewPassword] = useState<string | null>(null);
+    const [resettingPassword, setResettingPassword] = useState(false);
+
+    // Created Employee Success State
+    const [createdEmployee, setCreatedEmployee] = useState<{ employee: Employee; password: string } | null>(null);
 
     // Load Initial Data
     useEffect(() => {
@@ -103,6 +115,7 @@ const EmployeesPage: NextPageWithLayout = () => {
             branch_id: employee.branch_id?.toString() ?? '',
             is_available: employee.is_available ?? true,
             assigned_job: employee.assigned_job ?? '',
+            password: '', // Don't show existing password
         });
         setFormError(null);
         setIsModalOpen(true);
@@ -111,6 +124,12 @@ const EmployeesPage: NextPageWithLayout = () => {
     const handleOpenDelete = (employee: Employee) => {
         setEmployeeToDelete(employee);
         setIsDeleteModalOpen(true);
+    };
+
+    const handleOpenPasswordReset = (employee: Employee) => {
+        setPasswordResetEmployee(employee);
+        setNewPassword(null);
+        setIsPasswordModalOpen(true);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -131,12 +150,19 @@ const EmployeesPage: NextPageWithLayout = () => {
 
             if (editingEmployee) {
                 await updateEmployee(editingEmployee.id, payload);
+                await loadData();
+                setIsModalOpen(false);
             } else {
-                await createEmployee(payload);
+                // Create new employee with password
+                const result = await createEmployeeWithPassword(
+                    payload,
+                    formState.password || undefined
+                );
+                await loadData();
+                setIsModalOpen(false);
+                // Show success with generated credentials
+                setCreatedEmployee(result);
             }
-
-            await loadData();
-            setIsModalOpen(false);
         } catch (error) {
             if (error instanceof Error) {
                 setFormError(error.message);
@@ -164,35 +190,53 @@ const EmployeesPage: NextPageWithLayout = () => {
         }
     };
 
+    const handlePasswordReset = async () => {
+        if (!passwordResetEmployee) return;
+
+        setResettingPassword(true);
+        try {
+            const newPass = await resetEmployeePassword(passwordResetEmployee.id);
+            setNewPassword(newPass);
+        } catch (error) {
+            console.error('Failed to reset password:', error);
+            setNewPassword(null);
+        } finally {
+            setResettingPassword(false);
+        }
+    };
+
     // Table Columns
     const columns = [
-        { key: 'id', header: 'ID', width: '80px' },
+        { key: 'id', header: 'ID', width: '100px' },
         { key: 'full_name', header: 'Name' },
         {
-            key: 'role', header: 'Role', width: '140px', render: (row: Employee) => (
+            key: 'role', header: 'Role', width: '150px', render: (row: Employee) => (
                 <Badge variant="info" size="sm" className={css({ textTransform: 'capitalize' }).toString()}>
-                    {row.role}
+                    {row.role.replace(/_/g, ' ')}
                 </Badge>
             )
         },
-        { key: 'phone', header: 'Phone', width: '140px' },
+        { key: 'phone', header: 'Phone', width: '130px' },
         {
-            key: 'branch_id', header: 'Branch', width: '120px', render: (row: Employee) => {
+            key: 'branch_id', header: 'Branch', width: '100px', render: (row: Employee) => {
                 const branch = branches.find(b => b.id === row.branch_id);
-                return branch ? branch.name : (row.branch_id ? `Branch ${row.branch_id}` : '-');
+                return branch ? branch.name : '-';
             }
         },
         {
             key: 'actions',
             header: 'Actions',
-            width: '100px',
+            width: '180px',
             render: (row: Employee) => (
                 <div css={styles.actions}>
                     <Button size="sm" variant="ghost" onClick={() => handleOpenEdit(row)}>
                         Edit
                     </Button>
+                    <Button size="sm" variant="outline" onClick={() => handleOpenPasswordReset(row)}>
+                        Reset PW
+                    </Button>
                     <Button size="sm" variant="danger" onClick={() => handleOpenDelete(row)}>
-                        Delete
+                        ×
                     </Button>
                 </div>
             )
@@ -272,7 +316,7 @@ const EmployeesPage: NextPageWithLayout = () => {
                         label="Role"
                         value={formState.role}
                         onChange={(e) => setFormState({ ...formState, role: e.target.value })}
-                        options={roles.map(r => ({ value: r, label: r.charAt(0).toUpperCase() + r.slice(1) }))}
+                        options={roles.map(r => ({ value: r, label: r.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) }))}
                         fullWidth
                     />
 
@@ -284,6 +328,18 @@ const EmployeesPage: NextPageWithLayout = () => {
                         placeholder="Select a branch"
                         fullWidth
                     />
+
+                    {/* Password field - only for new employees */}
+                    {!editingEmployee && (
+                        <Input
+                            label="Password (leave blank to auto-generate)"
+                            type="text"
+                            placeholder="e.g. abc1234"
+                            value={formState.password}
+                            onChange={(e) => setFormState({ ...formState, password: e.target.value })}
+                            fullWidth
+                        />
+                    )}
 
                     {formError && (
                         <div style={{ color: '#dc2626', fontSize: '14px', backgroundColor: '#fee2e2', padding: '12px', borderRadius: '8px' }}>
@@ -314,6 +370,105 @@ const EmployeesPage: NextPageWithLayout = () => {
                     Are you sure you want to delete <strong>{employeeToDelete?.full_name}</strong>?<br />
                     This action cannot be undone.
                 </p>
+            </Modal>
+
+            {/* Password Reset Modal */}
+            <Modal
+                isOpen={isPasswordModalOpen}
+                onClose={() => {
+                    setIsPasswordModalOpen(false);
+                    setNewPassword(null);
+                }}
+                title="Reset Password"
+                width="400px"
+                footer={
+                    <>
+                        <Button variant="ghost" onClick={() => { setIsPasswordModalOpen(false); setNewPassword(null); }}>
+                            Close
+                        </Button>
+                        {!newPassword && (
+                            <Button variant="primary" onClick={handlePasswordReset} disabled={resettingPassword} isLoading={resettingPassword}>
+                                Generate New Password
+                            </Button>
+                        )}
+                    </>
+                }
+            >
+                {newPassword ? (
+                    <div style={{ textAlign: 'center' }}>
+                        <p style={{ marginBottom: '16px', color: '#4b5563' }}>
+                            New password for <strong>{passwordResetEmployee?.full_name}</strong>:
+                        </p>
+                        <div style={{
+                            fontSize: '24px',
+                            fontWeight: '600',
+                            fontFamily: 'monospace',
+                            padding: '16px',
+                            background: '#f3f4f6',
+                            borderRadius: '8px',
+                            letterSpacing: '2px'
+                        }}>
+                            {newPassword}
+                        </div>
+                        <p style={{ marginTop: '16px', fontSize: '13px', color: '#9ca3af' }}>
+                            Please share this password securely with the employee.
+                        </p>
+                    </div>
+                ) : (
+                    <p style={{ color: '#4b5563', lineHeight: 1.5 }}>
+                        Reset password for <strong>{passwordResetEmployee?.full_name}</strong> ({passwordResetEmployee?.id})?<br /><br />
+                        A new temporary password will be generated. Make sure to share it with the employee.
+                    </p>
+                )}
+            </Modal>
+
+            {/* Created Employee Success Modal */}
+            <Modal
+                isOpen={!!createdEmployee}
+                onClose={() => setCreatedEmployee(null)}
+                title="Employee Created Successfully"
+                width="450px"
+                footer={
+                    <Button variant="primary" onClick={() => setCreatedEmployee(null)}>
+                        Done
+                    </Button>
+                }
+            >
+                {createdEmployee && (
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{
+                            width: '60px',
+                            height: '60px',
+                            borderRadius: '50%',
+                            background: '#dcfce7',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            margin: '0 auto 16px'
+                        }}>
+                            <span style={{ fontSize: '28px' }}>✓</span>
+                        </div>
+                        <h3 style={{ marginBottom: '8px' }}>{createdEmployee.employee.full_name}</h3>
+                        <p style={{ color: '#6b7280', marginBottom: '24px' }}>
+                            has been added as <strong>{createdEmployee.employee.role}</strong>
+                        </p>
+
+                        <div style={{ background: '#f3f4f6', padding: '16px', borderRadius: '8px', textAlign: 'left' }}>
+                            <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '8px' }}>Login Credentials:</p>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                <span style={{ color: '#6b7280' }}>Employee ID:</span>
+                                <strong style={{ fontFamily: 'monospace' }}>{createdEmployee.employee.id}</strong>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: '#6b7280' }}>Password:</span>
+                                <strong style={{ fontFamily: 'monospace' }}>{createdEmployee.password}</strong>
+                            </div>
+                        </div>
+                        <p style={{ marginTop: '16px', fontSize: '12px', color: '#9ca3af' }}>
+                            Please share these credentials securely with the employee.
+                        </p>
+                    </div>
+                )}
             </Modal>
         </>
     );
