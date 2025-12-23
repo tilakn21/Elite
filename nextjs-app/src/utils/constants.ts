@@ -42,8 +42,7 @@ export const ROUTES = {
 
     // Printing
     PRINTING_DASHBOARD: '/printing',
-    PRINTING_ASSIGN_LABOUR: '/printing/assign-labour',
-    PRINTING_QUALITY_CHECK: '/printing/quality-check',
+    PRINTING_JOBS: '/printing/jobs',
 
     // Accounts
     ACCOUNTS_DASHBOARD: '/accounts',

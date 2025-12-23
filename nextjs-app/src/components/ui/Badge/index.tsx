@@ -63,24 +63,46 @@ export function Badge({
 
 /**
  * Status Badge - auto-selects variant based on status text
+ * Supports unified job statuses and payment statuses
  */
 export function StatusBadge({ status, size = 'md' }: { status: string; size?: 'sm' | 'md' }) {
-    const normalizedStatus = status.toLowerCase().replace(/[_\s]/g, '_');
+    const normalizedStatus = status.toLowerCase().replace(/[\s]/g, '_');
 
     let variant: BadgeVariant = 'default';
 
-    if (['completed', 'done', 'approved', 'paid'].includes(normalizedStatus)) {
+    // Success statuses (completed/approved states)
+    if ([
+        'completed', 'done', 'approved', 'paid', 'payment_done',
+        'design_approved', 'production_completed', 'printing_completed', 'out_for_delivery'
+    ].includes(normalizedStatus)) {
         variant = 'success';
-    } else if (['in_progress', 'processing', 'active'].includes(normalizedStatus)) {
+    }
+    // In-progress statuses
+    else if ([
+        'in_progress', 'processing', 'active', 'started',
+        'salesperson_assigned', 'site_visited', 'design_started',
+        'production_started', 'printing_started', 'partially_paid'
+    ].includes(normalizedStatus)) {
         variant = 'info';
-    } else if (['pending', 'waiting', 'new', 'draft'].includes(normalizedStatus)) {
+    }
+    // Pending/waiting statuses
+    else if ([
+        'pending', 'waiting', 'new', 'draft', 'received',
+        'design_in_review', 'payment_pending'
+    ].includes(normalizedStatus)) {
         variant = 'warning';
-    } else if (['failed', 'rejected', 'cancelled', 'error'].includes(normalizedStatus)) {
+    }
+    // Error/failed statuses
+    else if ([
+        'failed', 'rejected', 'cancelled', 'error', 'overdue'
+    ].includes(normalizedStatus)) {
         variant = 'error';
     }
 
-    // Format display text
-    const displayText = status.replace(/_/g, ' ');
+    // Format display text (convert underscores to spaces, capitalize)
+    const displayText = status
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase());
 
     return (
         <Badge variant={variant} size={size}>

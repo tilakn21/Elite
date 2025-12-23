@@ -30,12 +30,12 @@ export const greeting = css`
 
 export const statsGrid = css`
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 20px;
     margin-bottom: 32px;
     
     @media (max-width: 1024px) {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
     }
     
     @media (max-width: 600px) {
@@ -49,6 +49,36 @@ export const statCard = (color: string) => css`
     padding: 20px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
     border-left: 4px solid ${color};
+    
+    h3 {
+        font-size: 32px;
+        font-weight: 700;
+        color: #1B2330;
+        margin: 0;
+    }
+    
+    p {
+        font-size: 14px;
+        color: #666;
+        margin: 8px 0 0 0;
+    }
+`;
+
+export const statCardClickable = (color: string) => css`
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    border-left: 4px solid ${color};
+    cursor: pointer;
+    text-decoration: none;
+    display: block;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    }
     
     h3 {
         font-size: 32px;

@@ -101,14 +101,12 @@ const getMobileNavItems = (role: UserRole | undefined): { href: string; label: s
             return [
                 { href: ROUTES.PRODUCTION_DASHBOARD, label: 'Dashboard', icon: DashboardIcon },
                 { href: ROUTES.PRODUCTION_JOBS, label: 'Jobs', icon: JobsIcon },
-                { href: ROUTES.PRODUCTION_ASSIGN_LABOUR, label: 'Labour', icon: EmployeesIcon },
                 { href: ROUTES.PRODUCTION_CALENDAR, label: 'Calendar', icon: CalendarIcon },
             ];
         case 'printing':
             return [
                 { href: ROUTES.PRINTING_DASHBOARD, label: 'Dashboard', icon: DashboardIcon },
-                { href: ROUTES.PRINTING_ASSIGN_LABOUR, label: 'Labour', icon: EmployeesIcon },
-                { href: ROUTES.PRINTING_QUALITY_CHECK, label: 'Quality', icon: JobsIcon },
+                { href: ROUTES.PRINTING_JOBS, label: 'Queue', icon: JobsIcon },
             ];
         case 'accounts':
             return [

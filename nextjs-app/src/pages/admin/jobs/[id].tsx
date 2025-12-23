@@ -71,7 +71,7 @@ const JobDetailsPage: NextPageWithLayout = () => {
     if (job.receptionist?.status === 'completed') completedStages++;
     if (job.salesperson?.status === 'completed') completedStages++;
     if (job.design?.status === 'completed') completedStages++;
-    if (job.accounts?.status === 'paid' || job.accounts?.payment_status === 'paid') completedStages++;
+    if (job.accounts?.status === 'paid' || job.accounts?.payment_status === 'payment_done') completedStages++;
     if (job.production?.status === 'completed') completedStages++;
     if (job.printing?.status === 'completed') completedStages++;
 

@@ -22,7 +22,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 }
 
 // Re-export all state hooks and types
-export { useAuth, useAuthState, useAuthDispatch } from './auth';
+export { useAuth, useAuthState, useAuthDispatch, roleDashboardMap } from './auth';
 export { useUI, useUIState } from './ui';
 export type { User, UserRole, AuthState } from './auth';
 export type { Toast, ToastType, UIState } from './ui';

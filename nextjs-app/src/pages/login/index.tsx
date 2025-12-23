@@ -2,7 +2,7 @@ import { useState, type FormEvent, type ReactElement } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Image from 'next/image';
-import { useAuth } from '@/state';
+import { useAuth, roleDashboardMap } from '@/state';
 import { AppLayout } from '@/components/layout';
 import type { NextPageWithLayout } from '../_app';
 import * as styles from '@/styles/pages/login/styles';
@@ -31,15 +31,16 @@ const LoginPage: NextPageWithLayout = () => {
   const [employeeId, setEmployeeId] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { login, state: authState, getDashboardRoute } = useAuth();
+  const { login, state: authState } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
     try {
-      await login(employeeId, password);
-      const dashboardRoute = getDashboardRoute();
+      const user = await login(employeeId, password);
+      // Use returned user directly to avoid stale state issue
+      const dashboardRoute = roleDashboardMap[user.role] || '/login';
       router.push(dashboardRoute);
     } catch (error) {
       console.error('Login failed:', error);

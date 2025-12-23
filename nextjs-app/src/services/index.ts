@@ -8,4 +8,6 @@ export * from './design.service';
 export * from './production.service';
 export * from './printing.service';
 export * from './accounts.service';
+export * from './chat.service';
 export type { Database } from './supabase';
+

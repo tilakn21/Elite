@@ -46,7 +46,8 @@ export interface SalespersonData {
     windowMeasurements?: string; // windowVinylMeasurements
     stickSide?: string;
     images?: string[];
-    paymentAmount?: number;
+    totalAmount?: number; // Total payment amount
+    paymentAmount?: number; // Amount received
     modeOfPayment?: string;
     submittedAt?: string;
 }

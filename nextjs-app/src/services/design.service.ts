@@ -18,9 +18,9 @@ export const designService = {
             let query = supabase
                 .from('jobs')
                 .select('*')
-                // Filter for jobs that are ready for design (e.g. salesperson completed)
-                // or are already in design phase
-                .or('status.eq.assigned_to_design, status.eq.design_in_progress, status.eq.design_review');
+                // Filter for jobs in design phase using unified statuses
+                // Include design_approved so designers can see completed work
+                .or('status.eq.site_visited, status.eq.design_started, status.eq.design_in_review, status.eq.design_approved');
 
             if (designerId) {
                 // If we had a mechanism to assign specific designers
@@ -44,33 +44,126 @@ export const designService = {
     },
 
     /**
-     * Get dashboard statistics
+     * Get dashboard statistics from real data
      */
     async getStats(_designerId?: string): Promise<DesignStats> {
-        // Mocking stats for now as it requires complex aggregation queries
-        // or a dedicated stats table/view
-        return {
-            pendingJobs: 12,
-            approvedToday: 4,
-            correctionsHere: 2,
-            totalCompleted: 145
-        };
+        try {
+            // Get today's date for "approved today" count
+            const today = new Date().toISOString().split('T')[0];
+
+            // Fetch all counts in parallel
+            const [pendingResult, approvedTodayResult, correctionsResult, completedResult] = await Promise.all([
+                // Pending: jobs waiting for design to start (site_visited)
+                supabase
+                    .from('jobs')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('status', 'site_visited'),
+
+                // Approved today: jobs approved on this date
+                supabase
+                    .from('jobs')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('status', 'design_approved')
+                    .gte('updated_at', `${today}T00:00:00`)
+                    .lte('updated_at', `${today}T23:59:59`),
+
+                // Corrections/In Review: jobs being reviewed
+                supabase
+                    .from('jobs')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('status', 'design_in_review'),
+
+                // Total completed: all approved designs
+                supabase
+                    .from('jobs')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('status', 'design_approved'),
+            ]);
+
+            return {
+                pendingJobs: pendingResult.count || 0,
+                approvedToday: approvedTodayResult.count || 0,
+                correctionsHere: correctionsResult.count || 0,
+                totalCompleted: completedResult.count || 0,
+            };
+        } catch (error) {
+            console.error('Error fetching stats:', error);
+            return {
+                pendingJobs: 0,
+                approvedToday: 0,
+                correctionsHere: 0,
+                totalCompleted: 0,
+            };
+        }
     },
 
     /**
      * Update job status in design workflow
+     * Updates the design JSONB column with workflow status
+     * Only updates main status column on key milestones (started, approved)
      */
     async updateStatus(jobId: string, status: DesignJobStatus): Promise<boolean> {
         try {
-            const { error } = await supabase
-                .from('jobs')
-                .update({
-                    status: mapToGlobalStatus(status),
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', jobId);
+            console.log('[Design Service] updateStatus called:', { jobId, status });
 
-            if (error) throw error;
+            // First, fetch current design data
+            const { data: currentJob, error: fetchError } = await supabase
+                .from('jobs')
+                .select('design, status')
+                .eq('id', jobId)
+                .single();
+
+            if (fetchError) {
+                console.error('[Design Service] Fetch error:', fetchError);
+                throw fetchError;
+            }
+
+            console.log('[Design Service] Current job:', currentJob);
+
+            const currentDesign = currentJob?.design || {};
+            const existingTimeline = Array.isArray(currentDesign.timeline) ? currentDesign.timeline : [];
+
+            // Create timeline entry for this status change
+            const timelineEntry = {
+                status: status,
+                timestamp: new Date().toISOString(),
+                // Can be extended later with: updatedBy, notes, etc.
+            };
+
+            // Build updated design JSONB with timeline
+            const updatedDesign = {
+                ...currentDesign,
+                status: status,
+                lastUpdated: new Date().toISOString(),
+                timeline: [...existingTimeline, timelineEntry],
+            };
+
+            // Prepare update object
+            const updateData: Record<string, any> = {
+                design: updatedDesign,
+            };
+
+            // Only update main status column on key milestones
+            if (status === 'in_progress') {
+                updateData.status = 'design_started';
+            } else if (status === 'approved' || status === 'completed') {
+                updateData.status = 'design_approved';
+            }
+
+            console.log('[Design Service] Updating with:', updateData);
+
+            const { error, data } = await supabase
+                .from('jobs')
+                .update(updateData)
+                .eq('id', jobId)
+                .select();
+
+            if (error) {
+                console.error('[Design Service] Update error:', error);
+                throw error;
+            }
+
+            console.log('[Design Service] Update successful:', data);
             return true;
         } catch (error) {
             console.error('Error updating status:', error);
@@ -113,43 +206,39 @@ function mapToDesignJob(row: Record<string, any>): DesignJob {
     const salesperson = row.salesperson || {};
     const design = row.design || {};
 
+    // Priority: design.status (JSONB) > main status column
+    const designStatus = design.status || mapToDesignStatus(row.status);
+
+    // Get timeline and find when design was started
+    const timeline = Array.isArray(design.timeline) ? design.timeline : [];
+    const startedEntry = timeline.find((t: any) => t.status === 'in_progress');
+    const designStartedAt = startedEntry?.timestamp || null;
+
     return {
         id: row.id,
         jobCode: row.job_code || row.id,
         customerName: receptionist.customerName || 'Unknown',
-        priority: determinePriority(row), // Logic to estimate priority
-        status: mapToDesignStatus(row.status),
-        assignedDate: row.created_at, // Approximate
+        priority: determinePriority(row),
+        status: designStatus,
+        assignedDate: row.created_at,
         shopName: receptionist.shopName,
         description: `Signage for ${receptionist.shopName || 'Client'}`,
         salespersonImages: salesperson.images || [],
-        drafts: design.drafts || []
+        drafts: design.drafts || [],
+        timeline: timeline,
+        designStartedAt: designStartedAt,
     };
 }
 
 // Helper: Map global status string to DesignJobStatus
 function mapToDesignStatus(status: string): DesignJobStatus {
     switch (status) {
-        case 'assigned_to_design': return 'pending';
-        case 'design_in_progress': return 'in_progress';
-        case 'design_review': return 'draft_uploaded';
-        case 'design_changes_requested': return 'changes_requested';
+        case 'site_visited': return 'pending';       // Ready for design
+        case 'design_started': return 'in_progress';
+        case 'design_in_review': return 'draft_uploaded';
         case 'design_approved': return 'approved';
-        case 'sent_to_production': return 'completed';
+        case 'production_started': return 'completed';
         default: return 'pending';
-    }
-}
-
-// Helper: Map DesignJobStatus to global DB status
-function mapToGlobalStatus(status: DesignJobStatus): string {
-    switch (status) {
-        case 'pending': return 'assigned_to_design';
-        case 'in_progress': return 'design_in_progress';
-        case 'draft_uploaded': return 'design_review';
-        case 'changes_requested': return 'design_changes_requested';
-        case 'approved': return 'design_approved';
-        case 'completed': return 'sent_to_production';
-        default: return 'assigned_to_design';
     }
 }
 

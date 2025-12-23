@@ -44,7 +44,7 @@ export default function ReimbursementPage() {
     const [purpose, setPurpose] = useState('');
     const [expenseDate, setExpenseDate] = useState('');
     const [remarks, setRemarks] = useState('');
-    const [_receiptFile, setReceiptFile] = useState<File | null>(null);
+    const [receiptFile, setReceiptFile] = useState<File | null>(null);
     const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
 
     const [errors, setErrors] = useState<Record<string, boolean>>({});
@@ -83,7 +83,7 @@ export default function ReimbursementPage() {
         if (!amount.trim()) newErrors.amount = true;
         if (!purpose.trim()) newErrors.purpose = true;
         if (!expenseDate) newErrors.date = true;
-        if (!_receiptFile) newErrors.receipt = true;
+        if (!receiptFile) newErrors.receipt = true;
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -99,14 +99,17 @@ export default function ReimbursementPage() {
         setSubmitStatus(null);
 
         try {
-            const result = await createReimbursement({
-                emp_id: employeeId,
-                emp_name: employeeName,
-                amount: parseFloat(amount),
-                purpose: purpose,
-                remarks: remarks || undefined,
-                reimbursement_date: expenseDate,
-            });
+            const result = await createReimbursement(
+                {
+                    emp_id: employeeId,
+                    emp_name: employeeName,
+                    amount: parseFloat(amount),
+                    purpose: purpose,
+                    remarks: remarks || undefined,
+                    reimbursement_date: expenseDate,
+                },
+                receiptFile || undefined
+            );
 
             if (result) {
                 setSubmitStatus({ success: true, message: 'Reimbursement request submitted successfully!' });

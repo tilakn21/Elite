@@ -24,6 +24,10 @@ export interface DesignJob {
     assignedDate: string;
     shopName?: string;
 
+    // Design timeline
+    designStartedAt?: string;  // Date when design was started
+    timeline?: { status: string; timestamp: string }[];
+
     // Drafts
     drafts?: DesignDraft[];
 

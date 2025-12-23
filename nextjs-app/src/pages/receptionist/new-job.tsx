@@ -23,6 +23,15 @@ export default function NewJobPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
+    // Get current local date in YYYY-MM-DD format
+    const getLocalDateString = () => {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     // Form state
     const [formData, setFormData] = useState<NewJobRequestData>({
         customerName: '',
@@ -32,7 +41,7 @@ export default function NewJobPage() {
         streetNumber: '',
         town: '',
         postcode: '',
-        dateOfAppointment: new Date().toISOString().split('T')[0],
+        dateOfAppointment: getLocalDateString(),
         dateOfVisit: '',
         timeOfVisit: '',
         assignedSalesperson: undefined,
@@ -42,12 +51,20 @@ export default function NewJobPage() {
 
     const receptionistId = authState.user?.employeeId;
 
-    // Load salespersons
+    // Load salespersons based on selected date
     useEffect(() => {
         async function loadSalespersons() {
             try {
-                const data = await receptionistService.getSalespersons();
-                setSalespersons(data);
+                setIsLoading(true);
+                // Use date-based availability if a date is selected
+                const date = formData.dateOfVisit || formData.dateOfAppointment;
+                if (date) {
+                    const data = await receptionistService.getSalespersonsForDate(date);
+                    setSalespersons(data);
+                } else {
+                    const data = await receptionistService.getSalespersons();
+                    setSalespersons(data);
+                }
             } catch (error) {
                 console.error('Failed to load salespersons:', error);
             } finally {
@@ -55,11 +72,18 @@ export default function NewJobPage() {
             }
         }
         loadSalespersons();
-    }, []);
+    }, [formData.dateOfVisit, formData.dateOfAppointment]); // Re-fetch when date changes
 
-    // Update field
+    // Update field and clear selected salesperson if date changes
     const updateField = (field: keyof NewJobRequestData, value: string) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
+        setFormData(prev => {
+            const updated = { ...prev, [field]: value };
+            // Clear salesperson selection if date changes (availability may change)
+            if (field === 'dateOfVisit') {
+                updated.assignedSalesperson = undefined;
+            }
+            return updated;
+        });
         if (errors[field]) {
             setErrors(prev => ({ ...prev, [field]: false }));
         }
@@ -241,53 +265,92 @@ export default function NewJobPage() {
 
                                 <div css={styles.formField}>
                                     <label css={styles.label}>Time of Visit *</label>
-                                    <input
-                                        type="time"
+                                    <select
                                         value={formData.timeOfVisit}
                                         onChange={e => updateField('timeOfVisit', e.target.value)}
                                         css={styles.input(errors.timeOfVisit ?? false, theme)}
-                                    />
+                                    >
+                                        <option value="">Select time</option>
+                                        <option value="07:00">7:00 AM</option>
+                                        <option value="07:30">7:30 AM</option>
+                                        <option value="08:00">8:00 AM</option>
+                                        <option value="08:30">8:30 AM</option>
+                                        <option value="09:00">9:00 AM</option>
+                                        <option value="09:30">9:30 AM</option>
+                                        <option value="10:00">10:00 AM</option>
+                                        <option value="10:30">10:30 AM</option>
+                                        <option value="11:00">11:00 AM</option>
+                                        <option value="11:30">11:30 AM</option>
+                                        <option value="12:00">12:00 PM</option>
+                                        <option value="12:30">12:30 PM</option>
+                                        <option value="13:00">1:00 PM</option>
+                                        <option value="13:30">1:30 PM</option>
+                                        <option value="14:00">2:00 PM</option>
+                                        <option value="14:30">2:30 PM</option>
+                                        <option value="15:00">3:00 PM</option>
+                                        <option value="15:30">3:30 PM</option>
+                                        <option value="16:00">4:00 PM</option>
+                                        <option value="16:30">4:30 PM</option>
+                                        <option value="17:00">5:00 PM</option>
+                                        <option value="17:30">5:30 PM</option>
+                                        <option value="18:00">6:00 PM</option>
+                                        <option value="18:30">6:30 PM</option>
+                                        <option value="19:00">7:00 PM</option>
+                                        <option value="19:30">7:30 PM</option>
+                                        <option value="20:00">8:00 PM</option>
+                                        <option value="20:30">8:30 PM</option>
+                                        <option value="21:00">9:00 PM</option>
+                                    </select>
                                     {errors.timeOfVisit && <span css={styles.errorText}>Required</span>}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Assign Salesperson */}
-                        <div css={styles.formSection}>
-                            <h3>Assign Salesperson *</h3>
-                            {errors.assignedSalesperson && (
-                                <p css={styles.errorText} style={{ marginBottom: '12px' }}>Please select a salesperson</p>
-                            )}
+                        {/* Assign Salesperson - only show after date of visit is selected */}
+                        {formData.dateOfVisit ? (
+                            <div css={styles.formSection}>
+                                <h3>Assign Salesperson *</h3>
+                                {errors.assignedSalesperson && (
+                                    <p css={styles.errorText} style={{ marginBottom: '12px' }}>Please select a salesperson</p>
+                                )}
 
-                            {isLoading ? (
-                                <p style={{ color: '#666' }}>Loading salespersons...</p>
-                            ) : (
-                                <div css={styles.salespersonGrid}>
-                                    {salespersons.map(sp => (
-                                        <div
-                                            key={sp.id}
-                                            css={styles.salespersonOption(
-                                                formData.assignedSalesperson === sp.id,
-                                                !sp.isAvailable
-                                            )}
-                                            onClick={() => {
-                                                if (sp.isAvailable) {
-                                                    updateField('assignedSalesperson', sp.id);
-                                                }
-                                            }}
-                                        >
-                                            <div className="name">{sp.name}</div>
-                                            <div className="meta">
-                                                <span>{sp.numberOfJobs} jobs</span>
-                                                <span css={styles.statusBadge(sp.isAvailable)}>
-                                                    {sp.isAvailable ? 'Available' : 'Busy'}
-                                                </span>
+                                {isLoading ? (
+                                    <p style={{ color: '#666' }}>Loading salespersons...</p>
+                                ) : (
+                                    <div css={styles.salespersonGrid}>
+                                        {salespersons.map(sp => (
+                                            <div
+                                                key={sp.id}
+                                                css={styles.salespersonOption(
+                                                    formData.assignedSalesperson === sp.id,
+                                                    !sp.isAvailable
+                                                )}
+                                                onClick={() => {
+                                                    if (sp.isAvailable) {
+                                                        updateField('assignedSalesperson', sp.id);
+                                                    }
+                                                }}
+                                            >
+                                                <div className="name">{sp.name}</div>
+                                                <div className="meta">
+                                                    <span>{sp.numberOfJobs} jobs on this date</span>
+                                                    <span css={styles.statusBadge(sp.isAvailable)}>
+                                                        {sp.isAvailable ? 'Available' : 'Busy'}
+                                                    </span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div css={styles.formSection}>
+                                <h3>Assign Salesperson *</h3>
+                                <p style={{ color: '#666', fontSize: '14px' }}>
+                                    Please select a date of visit first to see available salespersons.
+                                </p>
+                            </div>
+                        )}
 
                         {/* Buttons */}
                         <div css={styles.buttonRow}>

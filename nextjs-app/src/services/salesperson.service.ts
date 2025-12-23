@@ -150,29 +150,127 @@ export const salespersonService = {
     },
 
     /**
-     * Submit job details from salesperson
+     * Submit job details from salesperson and forward to design
+     * This decrements the salesperson's job count
      */
     async submitJobDetails(jobCode: string, salespersonData: SalespersonData): Promise<boolean> {
         try {
-            const { error } = await supabase
+            console.log('[Salesperson Service] submitJobDetails called:', { jobCode });
+            console.log('[Salesperson Service] Salesperson data:', salespersonData);
+
+            // First, get the job to find the assigned salesperson
+            const { data: jobData, error: fetchError } = await supabase
                 .from('jobs')
-                .update({
-                    salesperson: {
-                        ...salespersonData,
-                        status: 'completed',
-                        submittedAt: new Date().toISOString(),
-                    }
-                })
-                .eq('job_code', jobCode);
+                .select('receptionist')
+                .eq('job_code', jobCode)
+                .single();
+
+            if (fetchError) {
+                console.error('[Salesperson Service] Error fetching job:', fetchError);
+                return false;
+            }
+
+            console.log('[Salesperson Service] Found job:', jobData);
+
+            const receptionist = jobData?.receptionist as Record<string, unknown> | null;
+            const salespersonId = receptionist?.assignedSalesperson as string;
+
+            // Extract payment info from salesperson data
+            const paymentAmount = salespersonData.paymentAmount || 0;
+            const totalAmount = salespersonData.totalAmount || paymentAmount;
+            const amountRemaining = totalAmount - paymentAmount;
+
+            // Determine payment status
+            let paymentStatus = 'payment_pending';
+            if (paymentAmount >= totalAmount && totalAmount > 0) {
+                paymentStatus = 'payment_done';
+            } else if (paymentAmount > 0) {
+                paymentStatus = 'partially_paid';
+            }
+
+            // Build accountant JSONB with payment tracking
+            const accountantData = {
+                payments: paymentAmount > 0 ? [{
+                    amount: paymentAmount,
+                    mode: salespersonData.modeOfPayment,
+                    date: new Date().toISOString(),
+                    received_by: 'salesperson',
+                }] : [],
+                amount_paid: paymentAmount,
+                total_amount: totalAmount,
+                amount_remaining: amountRemaining,
+                payment_status: paymentStatus,
+            };
+
+            // Update job with salesperson data, accountant data, and transition to design phase
+            const updateData: Record<string, unknown> = {
+                status: 'site_visited', // Use unified status - ready for design
+                salesperson: {
+                    ...salespersonData,
+                    status: 'completed',
+                    submittedAt: new Date().toISOString(),
+                },
+                accountant: accountantData,
+                amount: totalAmount, // Also update the amount column
+            };
+
+            console.log('[Salesperson Service] Updating job with:', updateData);
+
+            const { error, data: updatedData } = await supabase
+                .from('jobs')
+                .update(updateData)
+                .eq('job_code', jobCode)
+                .select();
 
             if (error) {
-                console.error('Error submitting job details:', error);
+                console.error('[Salesperson Service] Error updating job:', error);
                 return false;
+            }
+
+            console.log('[Salesperson Service] Job updated successfully:', updatedData);
+
+            // Decrement salesperson job count and update availability
+            if (salespersonId) {
+                console.log('[Salesperson Service] Updating salesperson:', salespersonId);
+
+                const { data: empData } = await supabase
+                    .from('employee')
+                    .select('assigned_job, number_of_jobs')
+                    .eq('id', salespersonId)
+                    .single();
+
+                if (empData) {
+                    // Remove job from assigned list
+                    const currentJobs = Array.isArray(empData.assigned_job)
+                        ? empData.assigned_job.filter((j: string) => j !== jobCode)
+                        : [];
+
+                    // Decrement job count
+                    const numberOfJobs = Math.max(0, Number(empData.number_of_jobs ?? 1) - 1);
+
+                    // Make available if under limit
+                    const isAvailable = numberOfJobs < 4;
+
+                    const { error: empUpdateError } = await supabase
+                        .from('employee')
+                        .update({
+                            assigned_job: currentJobs,
+                            number_of_jobs: numberOfJobs,
+                            is_available: isAvailable,
+                        })
+                        .eq('id', salespersonId);
+
+                    if (empUpdateError) {
+                        console.error('[Salesperson Service] Error updating employee:', empUpdateError);
+                    } else {
+                        console.log('[Salesperson Service] Employee updated successfully');
+                    }
+                }
             }
 
             return true;
         } catch (error) {
-            console.error('Error in submitJobDetails:', error);
+            console.error('[Salesperson Service] Error in submitJobDetails:', error);
             return false;
         }
     },

@@ -141,21 +141,19 @@ const getNavItems = (role: UserRole | undefined): { href: string; label: string;
             return [
                 { href: ROUTES.DESIGN_DASHBOARD, label: 'Dashboard', icon: DashboardIcon },
                 { href: ROUTES.DESIGN_JOBS, label: 'Job Details', icon: JobsIcon },
-                { href: '/design/upload', label: 'Upload\nDesign Draft', icon: UploadIcon },
                 { href: ROUTES.DESIGN_CHATS, label: 'Chat', icon: ChatIcon },
+                { href: ROUTES.DESIGN_CALENDAR, label: 'Calendar', icon: CalendarIcon },
             ];
         case 'production':
             return [
                 { href: ROUTES.PRODUCTION_DASHBOARD, label: 'Dashboard', icon: DashboardIcon },
                 { href: ROUTES.PRODUCTION_JOBS, label: 'Job List', icon: JobsIcon },
-                { href: ROUTES.PRODUCTION_ASSIGN_LABOUR, label: 'Assign Labour', icon: EmployeesIcon },
                 { href: ROUTES.PRODUCTION_CALENDAR, label: 'Calendar', icon: CalendarIcon },
             ];
         case 'printing':
             return [
                 { href: ROUTES.PRINTING_DASHBOARD, label: 'Dashboard', icon: DashboardIcon },
-                { href: ROUTES.PRINTING_ASSIGN_LABOUR, label: 'Assign Labour', icon: EmployeesIcon },
-                { href: ROUTES.PRINTING_QUALITY_CHECK, label: 'Quality Check', icon: JobsIcon },
+                { href: ROUTES.PRINTING_JOBS, label: 'Job Queue', icon: JobsIcon },
             ];
         case 'accounts':
             return [

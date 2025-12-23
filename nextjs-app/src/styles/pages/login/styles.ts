@@ -73,8 +73,7 @@ export const brandTagline = css`
 export const rightPanel = css`
   display: flex;
   flex: 1;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   padding: 40px 24px;
   height: 100%;
   overflow-y: auto;
@@ -88,6 +87,7 @@ export const rightPanel = css`
 export const loginCard = css`
   width: 100%;
   max-width: 420px;
+  margin: auto;
   background: #fff;
   border-radius: 24px;
   padding: 48px 40px;

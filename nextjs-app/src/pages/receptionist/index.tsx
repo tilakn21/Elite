@@ -104,18 +104,14 @@ export default function ReceptionistDashboard() {
                             <h3>{stats?.totalJobs ?? 0}</h3>
                             <p>Total Jobs</p>
                         </div>
-                        <div css={styles.statCard('#F59E0B')}>
+                        <Link href="/receptionist/jobs?status=pending" css={styles.statCardClickable('#F59E0B')}>
                             <h3>{stats?.pendingJobs ?? 0}</h3>
                             <p>Pending</p>
-                        </div>
-                        <div css={styles.statCard('#10B981')}>
-                            <h3>{stats?.completedJobs ?? 0}</h3>
-                            <p>Completed</p>
-                        </div>
-                        <div css={styles.statCard('#8B5CF6')}>
+                        </Link>
+                        <Link href="/receptionist/jobs?status=assigned" css={styles.statCardClickable('#8B5CF6')}>
                             <h3>{stats?.assignedToday ?? 0}</h3>
                             <p>Assigned Today</p>
-                        </div>
+                        </Link>
                     </div>
 
                     {/* Main Grid */}

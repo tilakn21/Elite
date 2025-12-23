@@ -1,6 +1,6 @@
 /**
  * Design Dashboard - Home
- * Overview of design department status
+ * Overview of design department status with job list
  */
 
 import { useState, useEffect } from 'react';
@@ -9,9 +9,31 @@ import { useRouter } from 'next/router';
 import { useTheme } from '@emotion/react';
 import { AppLayout } from '@/components/layout';
 import { designService } from '@/services';
-import type { DesignStats } from '@/types/design';
+import type { DesignStats, DesignJob } from '@/types/design';
 import { useAuth } from '@/state';
 import * as styles from '@/styles/pages/design/styles';
+
+// Status badge colors
+const getStatusStyle = (status: string) => {
+    switch (status) {
+        case 'pending':
+            return { background: '#FEF3C7', color: '#92400E' };
+        case 'in_progress':
+            return { background: '#DBEAFE', color: '#1E40AF' };
+        case 'draft_uploaded':
+            return { background: '#E0E7FF', color: '#3730A3' };
+        case 'approved':
+            return { background: '#D1FAE5', color: '#065F46' };
+        case 'completed':
+            return { background: '#ECFDF5', color: '#047857' };
+        default:
+            return { background: '#F3F4F6', color: '#374151' };
+    }
+};
+
+const formatStatus = (status: string) => {
+    return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
 
 export default function DesignDashboard() {
     const theme = useTheme();
@@ -19,26 +41,31 @@ export default function DesignDashboard() {
     const { state: authState } = useAuth();
 
     const [stats, setStats] = useState<DesignStats | null>(null);
+    const [jobs, setJobs] = useState<DesignJob[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const designerName = authState.user?.name || 'Designer';
 
     useEffect(() => {
-        async function loadStats() {
+        async function loadData() {
             try {
-                const data = await designService.getStats();
-                setStats(data);
+                const [statsData, jobsData] = await Promise.all([
+                    designService.getStats(),
+                    designService.getDesignJobs()
+                ]);
+                setStats(statsData);
+                setJobs(jobsData);
             } catch (error) {
-                console.error('Failed to load stats:', error);
+                console.error('Failed to load data:', error);
             } finally {
                 setIsLoading(false);
             }
         }
-        loadStats();
+        loadData();
     }, []);
 
-    const navigateTo = (path: string) => {
-        router.push(path);
+    const handleJobClick = (jobId: string) => {
+        router.push(`/design/jobs?id=${jobId}`);
     };
 
     if (isLoading) {
@@ -87,41 +114,77 @@ export default function DesignDashboard() {
                         </div>
                     )}
 
-                    {/* Quick Actions */}
-                    <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '24px', color: '#1B2330' }}>
-                        Quick Actions
+                    {/* Job List Section */}
+                    <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '16px', color: '#1B2330' }}>
+                        Jobs ({jobs.length})
                     </h2>
-                    <div css={styles.actionGrid}>
-                        <div css={styles.actionCard()} onClick={() => navigateTo('/design/joblist')}>
-                            <div className="icon-box">
-                                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
-                            </div>
-                            <div className="info">
-                                <h3>View Job List</h3>
-                                <p>Check assigned jobs and start working</p>
-                            </div>
-                        </div>
 
-                        <div css={styles.actionCard()} onClick={() => navigateTo('/design/calendar')}>
-                            <div className="icon-box" style={{ background: '#FFF7ED', color: '#EA580C' }}>
-                                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                            </div>
-                            <div className="info">
-                                <h3>Calendar</h3>
-                                <p>View deadlines and appointments</p>
-                            </div>
+                    {jobs.length === 0 ? (
+                        <div style={{
+                            padding: '40px',
+                            textAlign: 'center',
+                            background: '#F9FAFB',
+                            borderRadius: '12px',
+                            color: '#6B7280'
+                        }}>
+                            No jobs assigned yet
                         </div>
-
-                        <div css={styles.actionCard()} onClick={() => navigateTo('/design/reimbursement_request')}>
-                            <div className="icon-box" style={{ background: '#ECFDF5', color: '#059669' }}>
-                                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                            </div>
-                            <div className="info">
-                                <h3>Reimbursements</h3>
-                                <p>Manage expense claims</p>
-                            </div>
+                    ) : (
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '12px',
+                        }}>
+                            {jobs.map((job) => (
+                                <div
+                                    key={job.id}
+                                    onClick={() => handleJobClick(job.id)}
+                                    style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        padding: '16px 20px',
+                                        background: 'white',
+                                        borderRadius: '12px',
+                                        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)';
+                                        e.currentTarget.style.transform = 'translateY(-2px)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)';
+                                        e.currentTarget.style.transform = 'translateY(0)';
+                                    }}
+                                >
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontWeight: 600, color: '#1B2330', marginBottom: '4px' }}>
+                                            {job.jobCode}
+                                        </div>
+                                        <div style={{ fontSize: '14px', color: '#6B7280' }}>
+                                            {job.customerName} • {job.shopName || 'No shop'}
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <span style={{
+                                            padding: '4px 12px',
+                                            borderRadius: '20px',
+                                            fontSize: '12px',
+                                            fontWeight: 500,
+                                            ...getStatusStyle(job.status)
+                                        }}>
+                                            {formatStatus(job.status)}
+                                        </span>
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2">
+                                            <polyline points="9 18 15 12 9 6" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                    </div>
+                    )}
                 </div>
             </AppLayout>
         </>

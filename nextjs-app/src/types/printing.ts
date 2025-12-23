@@ -2,31 +2,38 @@
  * Printing Dashboard Types
  */
 
-export type PrintingJobStatus = 'ready_for_print' | 'printing' | 'completed' | 'quality_check_failed' | 'quality_check_passed';
+// Simplified printing statuses
+export type PrintingJobStatus =
+    | 'pending'          // Ready for print (from production_completed)
+    | 'print_started'    // Printing in progress
+    | 'print_completed'; // Done
 
 export interface PrintingJob {
     id: string;
-    jobCode: string; // Display ID (e.g. JB-101)
+    jobCode: string;
     customerName: string;
-    description: string;
-    material: string;
-    dimensions: string; // e.g., "10x5 ft"
+    shopName?: string;
+    description?: string;
     status: PrintingJobStatus;
     priority: 'high' | 'medium' | 'low';
-    quantity: number;
-    files: string[]; // URLs to design files
-    assignedTo?: string; // Printer name or ID
+    queueNumber: number;  // Position in queue
+
+    // Design image
+    designImageUrl?: string;
+
+    // Timeline
+    timeline?: { status: string; timestamp: string }[];
+    printStartedAt?: string;
+
+    // From salesperson
+    material?: string;
+    dimensions?: string;
+
     createdAt: string;
-    startedAt?: string;
-    completedAt?: string;
 }
 
 export interface PrintingStats {
-    jobsInQueue: number;
-    completedToday: number;
-    inkLevelCyan: number; // Percentage 0-100
-    inkLevelMagenta: number;
-    inkLevelYellow: number;
-    inkLevelBlack: number;
-    activePrinters: number;
+    pendingJobs: number;    // In queue
+    activeJobs: number;     // Currently printing
+    completedToday: number; // Finished today
 }

@@ -55,24 +55,6 @@ export default function DesignJobList() {
         });
     }, [jobs, searchQuery, activeTab]);
 
-    const handleAction = async (e: React.MouseEvent, job: DesignJob) => {
-        e.stopPropagation();
-
-        if (job.status === 'pending') {
-            // Start job
-            try {
-                await designService.updateStatus(job.id, 'in_progress');
-                // Optimistic update
-                setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'in_progress' } : j));
-            } catch (error) {
-                console.error('Failed to start job:', error);
-            }
-        } else {
-            // Navigate to upload/details
-            router.push(`/design/upload?jobId=${job.id}`);
-        }
-    };
-
     const getInitials = (name: string) => name.substring(0, 2).toUpperCase();
 
     const formatDate = (date: string) => new Date(date).toLocaleDateString();
@@ -187,13 +169,6 @@ export default function DesignJobList() {
                                             </span>
                                         </div>
                                     </div>
-
-                                    <button
-                                        css={styles.actionButton}
-                                        onClick={(e) => handleAction(e, job)}
-                                    >
-                                        {job.status === 'pending' ? 'Start Job' : 'View Details'}
-                                    </button>
                                 </div>
                             ))}
                         </div>

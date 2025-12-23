@@ -10,6 +10,36 @@ export type UserRole =
     | 'print_labour'
     | 'driver';
 
+// Unified Job Status - single source of truth for workflow
+export type JobStatus =
+    | 'received'              // Receptionist created
+    | 'salesperson_assigned'  // Salesperson assigned
+    | 'site_visited'          // Site visit completed
+    | 'design_started'        // Design team working
+    | 'design_in_review'      // Chat + modifications
+    | 'design_approved'       // Customer approved
+    | 'production_started'    // Manufacturing begun
+    | 'production_completed'  // Manufacturing done
+    | 'printing_started'      // Printing in progress
+    | 'printing_completed'    // Printing done
+    | 'out_for_delivery';     // Final delivery
+
+// Payment Status - accounts dimension
+export type PaymentStatus =
+    | 'payment_pending'   // No payment received
+    | 'partially_paid'    // Advance received
+    | 'payment_done';     // Fully paid
+
+// Payment record for tracking individual payments
+export interface PaymentRecord {
+    id: string;
+    amount: number;
+    mode: 'cash' | 'upi' | 'card' | 'bank_transfer' | 'cheque';
+    recorded_by: string;
+    recorded_at: string;
+    notes?: string;
+}
+
 export interface Employee {
     id: string;
     full_name: string;
@@ -111,12 +141,14 @@ export interface PrintingData {
 export interface AccountsData {
     invoice_no?: string;
     invoiceNumber?: string;
-    payment_status?: string;
+    payment_status?: PaymentStatus;
     status?: string;
     amount_paid?: number;
     amountPaid?: number;
     totalAmount?: number;
+    total_amount?: number;
     paymentMethod?: string;
+    payments?: PaymentRecord[];
 }
 
 export interface Job {

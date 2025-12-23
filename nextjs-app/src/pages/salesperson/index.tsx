@@ -83,9 +83,12 @@ export default function SalespersonDashboard() {
 
     // Handle job click
     const handleJobClick = useCallback((job: SiteVisitItem) => {
-        // Only allow clicking on pending jobs
         if (job.status === 'pending') {
+            // Navigate to editable form
             router.push(`/salesperson/jobs/${job.jobCode}`);
+        } else if (job.status === 'submitted' || job.status === 'completed') {
+            // Navigate to view-only form for submitted/completed jobs
+            router.push(`/salesperson/jobs/${job.jobCode}?view=true`);
         }
     }, [router]);
 
@@ -152,7 +155,7 @@ export default function SalespersonDashboard() {
                     {!isLoading && !error && filteredJobs.length > 0 && (
                         <div css={styles.jobsList}>
                             {filteredJobs.map((job) => {
-                                const isClickable = job.status === 'pending';
+                                const isClickable = job.status === 'pending' || job.status === 'submitted' || job.status === 'completed';
                                 const initials = getInitials(job.customerName || 'NA');
 
                                 return (

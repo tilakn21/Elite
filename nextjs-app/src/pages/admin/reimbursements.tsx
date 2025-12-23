@@ -4,8 +4,8 @@ import { css, useTheme } from '@emotion/react';
 import { AppLayout } from '@/components/layout';
 import { SectionCard } from '@/components/dashboard';
 import { Table, Button, Badge, Modal } from '@/components/ui';
-import { getReimbursements } from '@/services';
-import type { Reimbursement } from '@/types';
+import { getReimbursements, updateReimbursementStatus } from '@/services';
+import type { Reimbursement, ReimbursementStatus } from '@/types';
 import type { NextPageWithLayout } from '../_app';
 import * as styles from '@/styles/pages/admin/reimbursements.styles';
 
@@ -19,6 +19,7 @@ const AdminReimbursementsPage: NextPageWithLayout = () => {
     const [reimbursements, setReimbursements] = useState<Reimbursement[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedReimbursement, setSelectedReimbursement] = useState<Reimbursement | null>(null);
+    const [isUpdating, setIsUpdating] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -33,6 +34,25 @@ const AdminReimbursementsPage: NextPageWithLayout = () => {
             console.error('Failed to load reimbursements:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleStatusUpdate = async (id: string, status: ReimbursementStatus) => {
+        setIsUpdating(true);
+        try {
+            const success = await updateReimbursementStatus(id, status);
+            if (success) {
+                // Refresh list and close modal
+                await loadData();
+                setSelectedReimbursement(null);
+            } else {
+                alert('Failed to update status. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error updating status:', error);
+            alert('An error occurred.');
+        } finally {
+            setIsUpdating(false);
         }
     };
 
@@ -96,9 +116,31 @@ const AdminReimbursementsPage: NextPageWithLayout = () => {
                 onClose={() => setSelectedReimbursement(null)}
                 title="Reimbursement Details"
                 footer={
-                    <Button onClick={() => setSelectedReimbursement(null)}>
-                        Close
-                    </Button>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                        {selectedReimbursement?.status === 'pending' && (
+                            <>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => handleStatusUpdate(selectedReimbursement.id, 'rejected')}
+                                    disabled={isUpdating}
+                                >
+                                    Reject
+                                </Button>
+                                <Button
+                                    variant="primary"
+                                    onClick={() => handleStatusUpdate(selectedReimbursement.id, 'approved')}
+                                    disabled={isUpdating}
+                                >
+                                    {isUpdating ? 'Updating...' : 'Approve'}
+                                </Button>
+                            </>
+                        )}
+                        {selectedReimbursement?.status !== 'pending' && (
+                            <Button onClick={() => setSelectedReimbursement(null)}>
+                                Close
+                            </Button>
+                        )}
+                    </div>
                 }
             >
                 {selectedReimbursement && (
