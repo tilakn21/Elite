@@ -541,7 +541,7 @@ class _SalespersonDetailsScreenState extends State<SalespersonDetailsScreen> {
                                 'timeOfSubmission': now.toIso8601String(),
                                 'dateOfSubmission': now.toLocal().toString().split(' ')[0],
                                 'salespersonId': salespersonId,
-                                'paymentAmount': amountPaid,
+                          aymentAmount': amountPaid,
                                 'modeOfPayment': modeOfPayment,
                                 'status': 'completed', // Add status as completed
                               };
