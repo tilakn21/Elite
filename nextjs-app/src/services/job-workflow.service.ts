@@ -141,8 +141,7 @@ export async function transitionJobStatus(
         const { error: updateError } = await supabase
             .from('jobs')
             .update({
-                status: newStatus,
-                updated_at: new Date().toISOString()
+                status: newStatus
             })
             .eq('id', jobId);
 
@@ -198,18 +197,25 @@ export async function recordPayment(
         const currentPaid = accounts.amount_paid || 0;
         const currentPayments: PaymentRecord[] = accounts.payments || [];
 
-        // Create new payment record
-        const newPayment: PaymentRecord = {
-            id: `pay_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            amount,
-            mode,
-            recorded_by: recordedBy,
-            recorded_at: new Date().toISOString(),
-            notes
+        // Create new payment record matching user's schema
+        const newPayment = {
+            date: new Date().toISOString(),
+            mode: mode.charAt(0).toUpperCase() + mode.slice(1),
+            amount: amount,
+            received_by: recordedBy,
+            notes: notes
         };
 
         const newAmountPaid = currentPaid + amount;
-        const newPaymentStatus = calculatePaymentStatus(totalAmount, newAmountPaid);
+        const newAmountRemaining = Math.max(0, totalAmount - newAmountPaid);
+
+        // Calculate payment status
+        let newPaymentStatus: PaymentStatus = 'payment_pending';
+        if (newAmountPaid >= totalAmount && totalAmount > 0) {
+            newPaymentStatus = 'payment_done';
+        } else if (newAmountPaid > 0) {
+            newPaymentStatus = 'partially_paid';
+        }
 
         // Update job with new payment
         const { error: updateError } = await supabase
@@ -218,11 +224,11 @@ export async function recordPayment(
                 accountant: {
                     ...accounts,
                     amount_paid: newAmountPaid,
+                    total_amount: totalAmount,
                     payment_status: newPaymentStatus,
-                    payments: [...currentPayments, newPayment],
-                    total_amount: totalAmount
-                },
-                updated_at: new Date().toISOString()
+                    amount_remaining: newAmountRemaining,
+                    payments: [...currentPayments, newPayment]
+                }
             })
             .eq('id', jobId);
 

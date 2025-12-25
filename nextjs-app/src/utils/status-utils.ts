@@ -16,9 +16,11 @@ export const WORKFLOW_STATUSES: JobStatus[] = [
     'design_in_review',
     'design_approved',
     'production_started',
-    'production_completed',
+    'printing_queued',
     'printing_started',
     'printing_completed',
+    'framing_started',
+    'production_completed',
     'out_for_delivery',
 ];
 
@@ -34,9 +36,11 @@ export function getStatusLabel(status: string): string {
         design_in_review: 'Design In Review',
         design_approved: 'Design Approved',
         production_started: 'Production Started',
-        production_completed: 'Production Completed',
+        printing_queued: 'At Printing',
         printing_started: 'Printing Started',
         printing_completed: 'Printing Completed',
+        framing_started: 'Framing / Assembly',
+        production_completed: 'Production Completed',
         out_for_delivery: 'Out for Delivery',
         // Legacy status support
         pending: 'Pending',
@@ -63,7 +67,8 @@ export function getStatusColor(status: string): string {
     if (s === 'design_started' || s === 'design_in_review' || s === 'design_approved') return '#db2777'; // Pink
 
     // Production stages
-    if (s === 'production_started' || s === 'production_completed') return '#4f46e5'; // Indigo
+    if (s === 'production_started' || s === 'production_completed' || s === 'framing_started') return '#4f46e5'; // Indigo
+    if (s === 'printing_queued') return '#f59e0b'; // Amber (Waiting)
 
     // Printing stages
     if (s === 'printing_started' || s === 'printing_completed') return '#0d9488'; // Teal
@@ -88,8 +93,8 @@ export function getCurrentDepartment(status: string): string {
     if (s === 'received') return 'Reception';
     if (s === 'salesperson_assigned' || s === 'site_visited') return 'Sales';
     if (s === 'design_started' || s === 'design_in_review' || s === 'design_approved') return 'Design';
-    if (s === 'production_started' || s === 'production_completed') return 'Production';
-    if (s === 'printing_started' || s === 'printing_completed') return 'Printing';
+    if (s === 'production_started' || s === 'production_completed' || s === 'framing_started') return 'Production';
+    if (s === 'printing_queued' || s === 'printing_started' || s === 'printing_completed') return 'Printing';
     if (s === 'out_for_delivery') return 'Delivery';
 
     return 'Unknown';
@@ -121,9 +126,11 @@ export function getStatusFilterOptions(): { value: string; label: string }[] {
         { value: 'design_in_review', label: 'Design In Review' },
         { value: 'design_approved', label: 'Design Approved' },
         { value: 'production_started', label: 'Production Started' },
-        { value: 'production_completed', label: 'Production Completed' },
+        { value: 'printing_queued', label: 'At Printing' },
         { value: 'printing_started', label: 'Printing Started' },
         { value: 'printing_completed', label: 'Printing Completed' },
+        { value: 'framing_started', label: 'Framing / Assembly' },
+        { value: 'production_completed', label: 'Production Completed' },
         { value: 'out_for_delivery', label: 'Out for Delivery' },
     ];
 }

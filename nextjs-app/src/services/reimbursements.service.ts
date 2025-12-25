@@ -232,3 +232,13 @@ export async function getUnpaidReimbursementsTotal(): Promise<{ count: number; t
     }
 }
 
+// Export as service object for consistent API
+export const reimbursementsService = {
+    getReimbursements,
+    getReimbursementsByEmployee,
+    createReimbursement,
+    updateReimbursementStatus,
+    deleteReimbursement,
+    getUnpaidReimbursementsTotal,
+    uploadReceiptToStorage,
+};

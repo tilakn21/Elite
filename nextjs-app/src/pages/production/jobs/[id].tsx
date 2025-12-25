@@ -175,8 +175,11 @@ const styles = {
 const getStatusInfo = (status: string) => {
     const statusMap: Record<string, { label: string; color: string; bgColor: string }> = {
         pending: { label: 'Pending', color: '#92400E', bgColor: '#FEF3C7' },
-        in_progress: { label: 'In Progress', color: '#1E40AF', bgColor: '#DBEAFE' },
-        ready_for_printing: { label: 'Ready for Printing', color: '#065F46', bgColor: '#D1FAE5' },
+        in_progress: { label: 'In Production', color: '#1E40AF', bgColor: '#DBEAFE' },
+        at_printing: { label: 'At Printing', color: '#B45309', bgColor: '#FEF3C7' },
+        ready_for_framing: { label: 'Ready for Framing', color: '#3730A3', bgColor: '#E0E7FF' },
+        framing_in_progress: { label: 'Framing', color: '#4F46E5', bgColor: '#EEF2FF' },
+        completed: { label: 'Completed', color: '#065F46', bgColor: '#D1FAE5' },
     };
     return statusMap[status] || { label: status, color: '#6B7280', bgColor: '#F3F4F6' };
 };
@@ -211,6 +214,14 @@ export default function ProductionJobDetailsPage() {
                 const design = data.design || {};
                 const production = data.production || {};
 
+                // Map main status logic if production status is stale/missing (reuse logic from service ideally, or simplified here)
+                let prodStatus = production.status || 'pending';
+                if (['printing_queued', 'printing_started'].includes(data.status)) prodStatus = 'at_printing';
+                if (data.status === 'printing_completed') prodStatus = 'ready_for_framing';
+                if (data.status === 'framing_started') prodStatus = 'framing_in_progress';
+                if (data.status === 'production_completed') prodStatus = 'completed';
+
+
                 setJob({
                     id: data.id,
                     jobCode: data.job_code || data.id,
@@ -238,7 +249,7 @@ export default function ProductionJobDetailsPage() {
                     designStatus: design.status || '',
                     designProofs: design.drafts?.map((d: any) => d.url) || [],
                     // Production
-                    productionStatus: production.status || 'pending',
+                    productionStatus: prodStatus,
                     progress: production.progress || 0,
                     assignedWorkers: production.assignedWorkers || [],
                 });
@@ -267,16 +278,46 @@ export default function ProductionJobDetailsPage() {
         }
     };
 
-    const handleMarkComplete = async () => {
+    const handleSendToPrinting = async () => {
         if (!job) return;
         setActionLoading(true);
         try {
-            const success = await productionService.markReadyForPrinting(job.id);
+            const success = await productionService.sendToPrinting(job.id);
             if (success) {
-                setJob({ ...job, productionStatus: 'ready_for_printing', progress: 100 });
+                setJob({ ...job, productionStatus: 'at_printing', progress: 50 });
             }
         } catch (error) {
-            console.error('Failed to complete:', error);
+            console.error('Failed to send to printing:', error);
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleStartFraming = async () => {
+        if (!job) return;
+        setActionLoading(true);
+        try {
+            const success = await productionService.startFraming(job.id);
+            if (success) {
+                setJob({ ...job, productionStatus: 'framing_in_progress', progress: 75 });
+            }
+        } catch (error) {
+            console.error('Failed to start framing:', error);
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleCompleteProduction = async () => {
+        if (!job) return;
+        setActionLoading(true);
+        try {
+            const success = await productionService.completeProduction(job.id);
+            if (success) {
+                setJob({ ...job, productionStatus: 'completed', progress: 100 });
+            }
+        } catch (error) {
+            console.error('Failed to complete production:', error);
         } finally {
             setActionLoading(false);
         }
@@ -464,19 +505,45 @@ export default function ProductionJobDetailsPage() {
                         )}
                         {job.productionStatus === 'in_progress' && (
                             <button
-                                onClick={handleMarkComplete}
+                                onClick={handleSendToPrinting}
+                                disabled={actionLoading}
+                                style={{ background: '#F59E0B', color: 'white' }}
+                            >
+                                {actionLoading ? 'Sending...' : '📤 Send to Printing'}
+                            </button>
+                        )}
+                        {job.productionStatus === 'at_printing' && (
+                            <button
+                                disabled
+                                style={{ background: '#FEF3C7', color: '#B45309', cursor: 'default' }}
+                            >
+                                ⏳ At Printing
+                            </button>
+                        )}
+                        {job.productionStatus === 'ready_for_framing' && (
+                            <button
+                                onClick={handleStartFraming}
+                                disabled={actionLoading}
+                                style={{ background: '#4F46E5', color: 'white' }}
+                            >
+                                {actionLoading ? 'Starting...' : '🖼️ Start Framing'}
+                            </button>
+                        )}
+                        {job.productionStatus === 'framing_in_progress' && (
+                            <button
+                                onClick={handleCompleteProduction}
                                 disabled={actionLoading}
                                 style={{ background: '#10B981', color: 'white' }}
                             >
-                                {actionLoading ? 'Completing...' : '✅ Mark Ready for Printing'}
+                                {actionLoading ? 'Completing...' : '✅ Complete Job'}
                             </button>
                         )}
-                        {job.productionStatus === 'ready_for_printing' && (
+                        {job.productionStatus === 'completed' && (
                             <button
                                 disabled
                                 style={{ background: '#D1FAE5', color: '#065F46' }}
                             >
-                                ✅ Production Complete - Sent to Printing
+                                ✅ Production Completed
                             </button>
                         )}
                     </div>

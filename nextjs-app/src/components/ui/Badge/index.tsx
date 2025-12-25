@@ -13,13 +13,16 @@ type BadgeVariant =
     | 'info'
     | 'pending'
     | 'in_progress'
-    | 'completed';
+    | 'completed'
+    | 'custom'; // Added custom
 
 interface BadgeProps {
     children: React.ReactNode;
     variant?: BadgeVariant;
     size?: 'sm' | 'md';
     className?: string;
+    customBg?: string; // Added customBg
+    customColor?: string; // Added customColor
 }
 
 const variantStyles: Record<BadgeVariant, { bg: string; color: string; border: string }> = {
@@ -31,9 +34,10 @@ const variantStyles: Record<BadgeVariant, { bg: string; color: string; border: s
     pending: { bg: '#fef3c7', color: '#92400e', border: '#fde68a' },
     in_progress: { bg: '#dbeafe', color: '#1d4ed8', border: '#bfdbfe' },
     completed: { bg: '#dcfce7', color: '#166534', border: '#bbf7d0' },
+    custom: { bg: '#f3f4f6', color: '#374151', border: '#e5e7eb' }, // Fallback for custom
 };
 
-const StyledBadge = styled.span<{ variant: BadgeVariant; size: 'sm' | 'md' }>`
+const StyledBadge = styled.span<{ variant: BadgeVariant; size: 'sm' | 'md'; customBg?: string; customColor?: string }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -43,19 +47,27 @@ const StyledBadge = styled.span<{ variant: BadgeVariant; size: 'sm' | 'md' }>`
   border-radius: 9999px;
   text-transform: capitalize;
   white-space: nowrap;
-  background-color: ${({ variant }) => variantStyles[variant].bg};
-  color: ${({ variant }) => variantStyles[variant].color};
-  border: 1px solid ${({ variant }) => variantStyles[variant].border};
+  background-color: ${({ variant, customBg }) => customBg || variantStyles[variant]?.bg || variantStyles.default.bg};
+  color: ${({ variant, customColor }) => customColor || variantStyles[variant]?.color || variantStyles.default.color};
+  border: 1px solid ${({ variant, customBg }) => customBg ? 'transparent' : (variantStyles[variant]?.border || variantStyles.default.border)};
 `;
 
 export function Badge({
     children,
     variant = 'default',
     size = 'md',
-    className
+    className,
+    customBg,
+    customColor
 }: BadgeProps) {
     return (
-        <StyledBadge variant={variant} size={size} className={className}>
+        <StyledBadge
+            variant={variant}
+            size={size}
+            className={className}
+            customBg={customBg}
+            customColor={customColor}
+        >
             {children}
         </StyledBadge>
     );

@@ -46,9 +46,11 @@ export const ROUTES = {
 
     // Accounts
     ACCOUNTS_DASHBOARD: '/accounts',
+    ACCOUNTS_JOBS: '/accounts/jobs',
     ACCOUNTS_INVOICES: '/accounts/invoices',
-    ACCOUNTS_EMPLOYEES: '/accounts/employees',
-    ACCOUNTS_CALENDAR: '/accounts/calendar',
+    ACCOUNTS_PAYMENTS: '/accounts/payments',
+    ACCOUNTS_REIMBURSEMENTS: '/accounts/reimbursements',
+    ACCOUNTS_EMPLOYEES: '/admin/employees',
 
     // Salesperson
     SALESPERSON_DASHBOARD: '/salesperson',

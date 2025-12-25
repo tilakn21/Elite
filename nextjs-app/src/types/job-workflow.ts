@@ -13,10 +13,12 @@ export const STATUS_TRANSITIONS: Record<JobStatus, JobStatus[]> = {
     design_started: ['design_in_review'],
     design_in_review: ['design_approved', 'design_started'], // can go back for changes
     design_approved: ['production_started'],
-    production_started: ['production_completed'],
-    production_completed: ['printing_started'],
+    production_started: ['printing_queued'],
+    printing_queued: ['printing_started'],
     printing_started: ['printing_completed'],
-    printing_completed: ['out_for_delivery'],
+    printing_completed: ['framing_started'],
+    framing_started: ['production_completed'],
+    production_completed: ['out_for_delivery'],
     out_for_delivery: [] // terminal state
 };
 
@@ -36,9 +38,11 @@ export const STATUS_LABELS: Record<JobStatus, string> = {
     design_in_review: 'Design In Review',
     design_approved: 'Design Approved',
     production_started: 'Production Started',
-    production_completed: 'Production Completed',
+    printing_queued: 'At Printing', // "At Printing" for clearer understanding
     printing_started: 'Printing Started',
     printing_completed: 'Printing Completed',
+    framing_started: 'Framing / Assembly',
+    production_completed: 'Production Completed',
     out_for_delivery: 'Out for Delivery'
 };
 
@@ -58,9 +62,11 @@ export const STATUS_COLORS: Record<JobStatus, 'warning' | 'info' | 'success' | '
     design_in_review: 'warning',
     design_approved: 'success',
     production_started: 'info',
-    production_completed: 'success',
+    printing_queued: 'warning',
     printing_started: 'info',
     printing_completed: 'success',
+    framing_started: 'info',
+    production_completed: 'success',
     out_for_delivery: 'success'
 };
 
@@ -76,14 +82,14 @@ export const ROLE_STATUS_FILTERS: Record<string, JobStatus[]> = {
     receptionist: ['received', 'salesperson_assigned'],
     salesperson: ['salesperson_assigned', 'site_visited'],
     designer: ['design_started', 'design_in_review'],
-    production: ['design_approved', 'production_started', 'production_completed'],
-    printing: ['production_completed', 'printing_started', 'printing_completed'],
+    production: ['design_approved', 'production_started', 'printing_queued', 'printing_started', 'printing_completed', 'framing_started', 'production_completed'],
+    printing: ['printing_queued', 'printing_started', 'printing_completed'],
     accounts: ['received', 'salesperson_assigned', 'site_visited', 'design_started',
-        'design_in_review', 'design_approved', 'production_started',
-        'production_completed', 'printing_started', 'printing_completed', 'out_for_delivery'],
+        'design_in_review', 'design_approved', 'production_started', 'printing_queued',
+        'printing_started', 'printing_completed', 'framing_started', 'production_completed', 'out_for_delivery'],
     admin: ['received', 'salesperson_assigned', 'site_visited', 'design_started',
-        'design_in_review', 'design_approved', 'production_started',
-        'production_completed', 'printing_started', 'printing_completed', 'out_for_delivery']
+        'design_in_review', 'design_approved', 'production_started', 'printing_queued',
+        'printing_started', 'printing_completed', 'framing_started', 'production_completed', 'out_for_delivery']
 };
 
 // Helper type for workflow validation results

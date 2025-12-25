@@ -562,42 +562,6 @@ export default function AccountsDashboard() {
                             )}
                         </div>
                     </div>
-
-                    {/* Quick Actions */}
-                    <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px', color: '#1e293b' }}>
-                        Quick Actions
-                    </h2>
-                    <div css={pageStyles.actionGrid}>
-                        <div css={pageStyles.actionCard} onClick={() => router.push('/accounts/invoices')}>
-                            <div className="icon-box" style={{ background: '#eef2ff', color: '#4f46e5' }}>
-                                🧾
-                            </div>
-                            <div className="info">
-                                <h3>Manage Invoices</h3>
-                                <p>Create and track invoices</p>
-                            </div>
-                        </div>
-
-                        <div css={pageStyles.actionCard} onClick={() => router.push('/admin/reimbursements')}>
-                            <div className="icon-box" style={{ background: '#fef3c7', color: '#d97706' }}>
-                                💳
-                            </div>
-                            <div className="info">
-                                <h3>Reimbursements</h3>
-                                <p>Review employee claims</p>
-                            </div>
-                        </div>
-
-                        <div css={pageStyles.actionCard} onClick={() => router.push('/admin/employees')}>
-                            <div className="icon-box" style={{ background: '#f0fdf4', color: '#15803d' }}>
-                                👥
-                            </div>
-                            <div className="info">
-                                <h3>Employees</h3>
-                                <p>Manage staff records</p>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </AppLayout>
         </>

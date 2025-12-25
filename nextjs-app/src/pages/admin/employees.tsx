@@ -1,9 +1,8 @@
-import { type ReactElement, useState, useEffect } from 'react';
+import { type ReactElement, useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
-import { css, useTheme } from '@emotion/react';
+import { useTheme } from '@emotion/react';
 import { AppLayout } from '@/components/layout';
-import { SectionCard } from '@/components/dashboard';
-import { Table, Button, Modal, Input, Select, Badge } from '@/components/ui';
+import { Button, Modal, Input, Select, Badge } from '@/components/ui';
 import {
     getEmployees,
     createEmployeeWithPassword,
@@ -16,10 +15,11 @@ import {
 import type { Employee, EmployeeInsert, Branch } from '@/types';
 import type { NextPageWithLayout } from '../_app';
 import * as styles from '@/styles/pages/admin/employees.styles';
+import { FiSearch, FiPhone, FiMail, FiMapPin, FiEdit2, FiTrash2, FiKey } from 'react-icons/fi';
 
 /**
  * Employees Management Page
- * CRUD operations for employees with password management
+ * Redesigned with Grid Layout & Modern Cards
  */
 
 // Form Types
@@ -31,7 +31,7 @@ interface EmployeeFormState {
     branch_id: string;
     is_available: boolean;
     assigned_job: string;
-    password: string; // Added for new employees
+    password: string;
 }
 
 const initialFormState: EmployeeFormState = {
@@ -45,6 +45,21 @@ const initialFormState: EmployeeFormState = {
     password: '',
 };
 
+// Role Color Mapping
+const getRoleColor = (role: string) => {
+    const map: Record<string, string> = {
+        admin: '#7C3AED', // Purple
+        manager: '#2563EB', // Blue
+        sales: '#059669', // Green
+        designer: '#DB2777', // Pink
+        production: '#D97706', // Amber
+        fabricator: '#EA580C', // Orange
+        installer: '#0891B2', // Cyan
+        receptionist: '#4B5563', // Gray
+    };
+    return map[role] || '#4B5563';
+};
+
 const EmployeesPage: NextPageWithLayout = () => {
     const theme = useTheme();
 
@@ -53,6 +68,7 @@ const EmployeesPage: NextPageWithLayout = () => {
     const [branches, setBranches] = useState<Branch[]>([]);
     const [roles, setRoles] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -97,6 +113,16 @@ const EmployeesPage: NextPageWithLayout = () => {
         }
     };
 
+    // Filtered Employees
+    const filteredEmployees = useMemo(() => {
+        return employees.filter(emp =>
+            emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            emp.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            emp.email?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [employees, searchQuery]);
+
+
     // Handlers
     const handleOpenAdd = () => {
         setEditingEmployee(null);
@@ -115,7 +141,7 @@ const EmployeesPage: NextPageWithLayout = () => {
             branch_id: employee.branch_id?.toString() ?? '',
             is_available: employee.is_available ?? true,
             assigned_job: employee.assigned_job ?? '',
-            password: '', // Don't show existing password
+            password: '',
         });
         setFormError(null);
         setIsModalOpen(true);
@@ -153,14 +179,12 @@ const EmployeesPage: NextPageWithLayout = () => {
                 await loadData();
                 setIsModalOpen(false);
             } else {
-                // Create new employee with password
                 const result = await createEmployeeWithPassword(
                     payload,
                     formState.password || undefined
                 );
                 await loadData();
                 setIsModalOpen(false);
-                // Show success with generated credentials
                 setCreatedEmployee(result);
             }
         } catch (error) {
@@ -205,43 +229,15 @@ const EmployeesPage: NextPageWithLayout = () => {
         }
     };
 
-    // Table Columns
-    const columns = [
-        { key: 'id', header: 'ID', width: '100px' },
-        { key: 'full_name', header: 'Name' },
-        {
-            key: 'role', header: 'Role', width: '150px', render: (row: Employee) => (
-                <Badge variant="info" size="sm" className={css({ textTransform: 'capitalize' }).toString()}>
-                    {row.role.replace(/_/g, ' ')}
-                </Badge>
-            )
-        },
-        { key: 'phone', header: 'Phone', width: '130px' },
-        {
-            key: 'branch_id', header: 'Branch', width: '100px', render: (row: Employee) => {
-                const branch = branches.find(b => b.id === row.branch_id);
-                return branch ? branch.name : '-';
-            }
-        },
-        {
-            key: 'actions',
-            header: 'Actions',
-            width: '180px',
-            render: (row: Employee) => (
-                <div css={styles.actions}>
-                    <Button size="sm" variant="ghost" onClick={() => handleOpenEdit(row)}>
-                        Edit
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleOpenPasswordReset(row)}>
-                        Reset PW
-                    </Button>
-                    <Button size="sm" variant="danger" onClick={() => handleOpenDelete(row)}>
-                        ×
-                    </Button>
-                </div>
-            )
-        },
-    ];
+    const getBranchName = (id?: number | null) => {
+        const branch = branches.find(b => b.id === id);
+        return branch ? branch.name : 'Unknown Branch';
+    };
+
+    const getInitials = (name: string) => {
+        return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    };
+
 
     return (
         <>
@@ -250,21 +246,99 @@ const EmployeesPage: NextPageWithLayout = () => {
             </Head>
 
             <div css={styles.container(theme)}>
+                {/* Header Section */}
                 <div css={styles.header}>
-                    <h1 css={styles.title(theme)}>Employees</h1>
-                    <Button variant="primary" onClick={handleOpenAdd}>
-                        Add Employee
-                    </Button>
+                    <div>
+                        <h1 css={styles.title(theme)}>Employees</h1>
+                        <p css={styles.subtitle}>Manage your team, roles, and access.</p>
+                    </div>
+
+                    <div css={styles.controls}>
+                        <div style={{ position: 'relative' }}>
+                            <FiSearch style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
+                            <input
+                                css={styles.searchInput}
+                                style={{ paddingLeft: '36px' }}
+                                placeholder="Search by name, role, or email..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                        <Button variant="primary" onClick={handleOpenAdd} style={{ padding: '10px 20px', fontSize: '14px', height: '42px' }}>
+                            + Add Employee
+                        </Button>
+                    </div>
                 </div>
 
-                <SectionCard title="Employee List" iconColor="#6366f1">
-                    <Table
-                        columns={columns}
-                        data={employees}
-                        loading={loading}
-                        emptyMessage="No employees found. Add one to get started."
-                    />
-                </SectionCard>
+                {/* Employee Grid */}
+                <div css={styles.grid}>
+                    {loading ? (
+                        <p style={{ gridColumn: '1 / -1', textAlign: 'center', color: '#6B7280', padding: '40px' }}>Loading employees...</p>
+                    ) : filteredEmployees.length === 0 ? (
+                        <div css={styles.emptyState}>
+                            <p style={{ fontSize: '18px', fontWeight: 600 }}>No employees found</p>
+                            <p style={{ fontSize: '14px' }}>Try adjusting your search or add a new employee.</p>
+                        </div>
+                    ) : (
+                        filteredEmployees.map(employee => {
+                            const roleColor = getRoleColor(employee.role);
+                            return (
+                                <div key={employee.id} css={styles.card}>
+                                    <div css={styles.cardHeader}>
+                                        <div css={styles.avatar(roleColor)}>
+                                            {getInitials(employee.full_name)}
+                                        </div>
+                                        <span css={styles.statusBadge(employee.is_available ?? false)}>
+                                            {employee.is_available ? 'Available' : 'Busy'}
+                                        </span>
+                                    </div>
+
+                                    <div css={styles.cardBody}>
+                                        <h3 css={styles.name}>{employee.full_name}</h3>
+                                        <div css={styles.role}>
+                                            <Badge
+                                                variant="custom"
+                                                customBg={`${roleColor}20`}
+                                                customColor={roleColor}
+                                                size="sm"
+                                            >
+                                                {employee.role.replace(/_/g, ' ')}
+                                            </Badge>
+                                            <span style={{ fontSize: '12px', color: '#9CA3AF', marginLeft: 'auto', fontFamily: 'monospace' }}>#{employee.id.substring(0, 6)}</span>
+                                        </div>
+
+                                        <div style={{ marginTop: '8px' }}>
+                                            <div css={styles.infoRow}>
+                                                <FiMapPin />
+                                                <span>{getBranchName(employee.branch_id || undefined)}</span>
+                                            </div>
+                                            <div css={styles.infoRow}>
+                                                <FiPhone />
+                                                <span>{employee.phone || 'No phone'}</span>
+                                            </div>
+                                            <div css={styles.infoRow}>
+                                                <FiMail />
+                                                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{employee.email || 'No email'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div css={styles.cardFooter}>
+                                        <button css={styles.actionButton('primary')} onClick={() => handleOpenEdit(employee)}>
+                                            <FiEdit2 /> Edit
+                                        </button>
+                                        <button css={styles.actionButton('secondary')} onClick={() => handleOpenPasswordReset(employee)}>
+                                            <FiKey /> Reset PW
+                                        </button>
+                                        <button css={styles.actionButton('danger')} onClick={() => handleOpenDelete(employee)}>
+                                            <FiTrash2 />
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
             </div>
 
             {/* Add/Edit Modal */}
@@ -272,7 +346,7 @@ const EmployeesPage: NextPageWithLayout = () => {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 title={editingEmployee ? 'Edit Employee' : 'Add New Employee'}
-                width="500px"
+                width="600px"
                 footer={
                     <>
                         <Button variant="ghost" onClick={() => setIsModalOpen(false)} disabled={submitting}>
@@ -294,7 +368,7 @@ const EmployeesPage: NextPageWithLayout = () => {
                         fullWidth
                     />
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div css={styles.formSection}>
                         <Input
                             label="Phone"
                             placeholder="e.g. +91 98765 43210"
@@ -312,20 +386,33 @@ const EmployeesPage: NextPageWithLayout = () => {
                         />
                     </div>
 
-                    <Select
-                        label="Role"
-                        value={formState.role}
-                        onChange={(e) => setFormState({ ...formState, role: e.target.value })}
-                        options={roles.map(r => ({ value: r, label: r.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) }))}
-                        fullWidth
-                    />
+                    <div css={styles.formSection}>
+                        <Select
+                            label="Role"
+                            value={formState.role}
+                            onChange={(e) => setFormState({ ...formState, role: e.target.value })}
+                            options={roles.map(r => ({ value: r, label: r.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) }))}
+                            fullWidth
+                        />
+
+                        <Select
+                            label="Branch"
+                            value={formState.branch_id}
+                            onChange={(e) => setFormState({ ...formState, branch_id: e.target.value })}
+                            options={branches.map(b => ({ value: b.id, label: b.name }))}
+                            placeholder="Select a branch"
+                            fullWidth
+                        />
+                    </div>
 
                     <Select
-                        label="Branch"
-                        value={formState.branch_id}
-                        onChange={(e) => setFormState({ ...formState, branch_id: e.target.value })}
-                        options={branches.map(b => ({ value: b.id, label: b.name }))}
-                        placeholder="Select a branch"
+                        label="Status"
+                        value={formState.is_available ? 'true' : 'false'}
+                        onChange={(e) => setFormState({ ...formState, is_available: e.target.value === 'true' })}
+                        options={[
+                            { value: 'true', label: 'Available' },
+                            { value: 'false', label: 'Busy / Unavailable' }
+                        ]}
                         fullWidth
                     />
 
@@ -338,11 +425,12 @@ const EmployeesPage: NextPageWithLayout = () => {
                             value={formState.password}
                             onChange={(e) => setFormState({ ...formState, password: e.target.value })}
                             fullWidth
+                            helperText="Default random password will be generated if left blank"
                         />
                     )}
 
                     {formError && (
-                        <div style={{ color: '#dc2626', fontSize: '14px', backgroundColor: '#fee2e2', padding: '12px', borderRadius: '8px' }}>
+                        <div style={{ color: '#DC2626', fontSize: '14px', backgroundColor: '#FEF2F2', padding: '12px', borderRadius: '8px', border: '1px solid #FECACA' }}>
                             {formError}
                         </div>
                     )}
@@ -366,10 +454,14 @@ const EmployeesPage: NextPageWithLayout = () => {
                     </>
                 }
             >
-                <p style={{ color: '#4b5563', lineHeight: 1.5 }}>
-                    Are you sure you want to delete <strong>{employeeToDelete?.full_name}</strong>?<br />
-                    This action cannot be undone.
-                </p>
+                <div style={{ textAlign: 'center', padding: '16px' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+                    <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>Are you sure?</h3>
+                    <p style={{ color: '#4b5563', lineHeight: 1.5 }}>
+                        You are about to delete <strong>{employeeToDelete?.full_name}</strong>.<br />
+                        This action cannot be undone.
+                    </p>
+                </div>
             </Modal>
 
             {/* Password Reset Modal */}
@@ -396,28 +488,44 @@ const EmployeesPage: NextPageWithLayout = () => {
             >
                 {newPassword ? (
                     <div style={{ textAlign: 'center' }}>
+                        <div style={{
+                            width: '50px',
+                            height: '50px',
+                            background: '#DEF7EC',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            margin: '0 auto 16px',
+                            color: '#03543F',
+                            fontSize: '24px'
+                        }}>
+                            <FiKey />
+                        </div>
                         <p style={{ marginBottom: '16px', color: '#4b5563' }}>
                             New password for <strong>{passwordResetEmployee?.full_name}</strong>:
                         </p>
                         <div style={{
                             fontSize: '24px',
-                            fontWeight: '600',
+                            fontWeight: '700',
                             fontFamily: 'monospace',
                             padding: '16px',
-                            background: '#f3f4f6',
+                            background: '#F3F4F6',
                             borderRadius: '8px',
-                            letterSpacing: '2px'
+                            letterSpacing: '2px',
+                            color: '#1F2937',
+                            border: '1px dashed #D1D5DB'
                         }}>
                             {newPassword}
                         </div>
-                        <p style={{ marginTop: '16px', fontSize: '13px', color: '#9ca3af' }}>
+                        <p style={{ marginTop: '16px', fontSize: '13px', color: '#6B7280' }}>
                             Please share this password securely with the employee.
                         </p>
                     </div>
                 ) : (
-                    <p style={{ color: '#4b5563', lineHeight: 1.5 }}>
-                        Reset password for <strong>{passwordResetEmployee?.full_name}</strong> ({passwordResetEmployee?.id})?<br /><br />
-                        A new temporary password will be generated. Make sure to share it with the employee.
+                    <p style={{ color: '#4b5563', lineHeight: 1.5, textAlign: 'center' }}>
+                        Reset password for <strong>{passwordResetEmployee?.full_name}</strong>?<br />
+                        A new temporary password will be generated.
                     </p>
                 )}
             </Modal>
@@ -444,24 +552,25 @@ const EmployeesPage: NextPageWithLayout = () => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            margin: '0 auto 16px'
+                            margin: '0 auto 16px',
+                            color: '#166534'
                         }}>
                             <span style={{ fontSize: '28px' }}>✓</span>
                         </div>
-                        <h3 style={{ marginBottom: '8px' }}>{createdEmployee.employee.full_name}</h3>
+                        <h3 style={{ marginBottom: '8px', fontSize: '20px', fontWeight: 600 }}>{createdEmployee.employee.full_name}</h3>
                         <p style={{ color: '#6b7280', marginBottom: '24px' }}>
                             has been added as <strong>{createdEmployee.employee.role}</strong>
                         </p>
 
-                        <div style={{ background: '#f3f4f6', padding: '16px', borderRadius: '8px', textAlign: 'left' }}>
-                            <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '8px' }}>Login Credentials:</p>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                <span style={{ color: '#6b7280' }}>Employee ID:</span>
-                                <strong style={{ fontFamily: 'monospace' }}>{createdEmployee.employee.id}</strong>
+                        <div style={{ background: '#F9FAFB', padding: '20px', borderRadius: '12px', textAlign: 'left', border: '1px solid #E5E7EB' }}>
+                            <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px', fontWeight: 600, textTransform: 'uppercase' }}>Login Credentials</p>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
+                                <span style={{ color: '#4B5563' }}>Employee ID:</span>
+                                <strong style={{ fontFamily: 'monospace', color: '#111827' }}>{createdEmployee.employee.id}</strong>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: '#6b7280' }}>Password:</span>
-                                <strong style={{ fontFamily: 'monospace' }}>{createdEmployee.password}</strong>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                                <span style={{ color: '#4B5563' }}>Password:</span>
+                                <strong style={{ fontFamily: 'monospace', color: '#111827' }}>{createdEmployee.password}</strong>
                             </div>
                         </div>
                         <p style={{ marginTop: '16px', fontSize: '12px', color: '#9ca3af' }}>

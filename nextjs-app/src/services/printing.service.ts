@@ -16,7 +16,7 @@ export const printingService = {
                 .from('jobs')
                 .select('*')
                 // Jobs ready for printing or currently printing or completed
-                .or('status.eq.production_completed, status.eq.printing_started, status.eq.printing_completed')
+                .or('status.eq.printing_queued,status.eq.printing_started,status.eq.printing_completed')
                 .order('created_at', { ascending: true }); // Oldest first for queue
 
             if (error) {
@@ -30,7 +30,7 @@ export const printingService = {
             let queueNum = 1;
             return data.map((job: any) => {
                 const mapped = mapToPrintingJob(job, queueNum);
-                if (job.status === 'production_completed') queueNum++;
+                if (job.status === 'printing_queued') queueNum++;
                 return mapped;
             });
         } catch (error) {
@@ -44,11 +44,11 @@ export const printingService = {
      */
     async getStats(): Promise<PrintingStats> {
         try {
-            // Pending (production_completed, waiting for print)
+            // Pending (printing_queued, waiting for print)
             const { count: pendingCount } = await supabase
                 .from('jobs')
                 .select('*', { count: 'exact', head: true })
-                .eq('status', 'production_completed');
+                .eq('status', 'printing_queued');
 
             // Active (printing_started)
             const { count: activeCount } = await supabase
@@ -222,7 +222,7 @@ function mapToPrintingStatus(mainStatus: string, printingStatus?: string): Print
     }
 
     switch (mainStatus) {
-        case 'production_completed': return 'pending';
+        case 'printing_queued': return 'pending';
         case 'printing_started': return 'print_started';
         case 'printing_completed': return 'print_completed';
         default: return 'pending';

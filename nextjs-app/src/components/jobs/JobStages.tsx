@@ -152,6 +152,10 @@ export const JobStages = ({ job }: JobStagesProps) => {
         if (!data) return [];
 
         const status = getStatus(data).toLowerCase();
+        // Check for specific milestones in the linear flow
+        const hasStarted = status.includes('started') || status.includes('progress') || status.includes('printing') || status.includes('framing') || status.includes('completed') || status.includes('done');
+        const sentToPrint = status.includes('printing') || status.includes('framing') || status.includes('completed') || status.includes('done');
+        const framingStarted = status.includes('framing') || status.includes('completed') || status.includes('done');
         const completed = isCompleted(status);
         const hasTeam = !!(data.assigned_team || data.assignedTeam);
 
@@ -161,14 +165,20 @@ export const JobStages = ({ job }: JobStagesProps) => {
                 completed: !!data.status || hasTeam,
             },
             {
-                label: 'Team Assigned',
-                completed: hasTeam,
-            },
-            {
                 label: 'Production Started',
                 timestamp: data.startDate ? formatDate(data.startDate) : undefined,
-                completed: status.includes('started') || status.includes('progress') || completed,
-                current: status.includes('started') || status.includes('progress'),
+                completed: hasStarted,
+                current: hasStarted && !sentToPrint,
+            },
+            {
+                label: 'Sent to Printing',
+                completed: sentToPrint,
+                current: sentToPrint && !framingStarted,
+            },
+            {
+                label: 'Framing / Assembly',
+                completed: framingStarted,
+                current: framingStarted && !completed,
             },
             {
                 label: 'Production Complete',
@@ -184,20 +194,18 @@ export const JobStages = ({ job }: JobStagesProps) => {
 
         const status = getStatus(data).toLowerCase();
         const completed = isCompleted(status);
+        // Printing is "started" if status is printed_started or completed
+        const started = status === 'print_started' || status.includes('started') || completed;
 
         return [
             {
-                label: 'Print Job Queued',
-                completed: !!data.status || !!data.printer_assigned,
-            },
-            {
-                label: 'Printer Assigned',
-                completed: !!data.printer_assigned,
+                label: 'Received for Printing',
+                completed: !!data.status,
             },
             {
                 label: 'Printing Started',
-                completed: status.includes('started') || status.includes('progress') || completed,
-                current: status.includes('started') || status.includes('progress'),
+                completed: started,
+                current: started && !completed,
             },
             {
                 label: 'Printing Complete',

@@ -111,9 +111,9 @@ const getMobileNavItems = (role: UserRole | undefined): { href: string; label: s
         case 'accounts':
             return [
                 { href: ROUTES.ACCOUNTS_DASHBOARD, label: 'Dashboard', icon: DashboardIcon },
-                { href: ROUTES.ACCOUNTS_INVOICES, label: 'Invoices', icon: JobsIcon },
-                { href: ROUTES.ACCOUNTS_EMPLOYEES, label: 'Employees', icon: EmployeesIcon },
-                { href: ROUTES.ACCOUNTS_CALENDAR, label: 'Calendar', icon: CalendarIcon },
+                { href: ROUTES.ACCOUNTS_JOBS, label: 'Jobs', icon: JobsIcon },
+                { href: ROUTES.ACCOUNTS_INVOICES, label: 'Invoices', icon: UploadIcon },
+                { href: ROUTES.ACCOUNTS_PAYMENTS, label: 'Payments', icon: EmployeesIcon },
             ];
         case 'salesperson':
             return [

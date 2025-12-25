@@ -16,8 +16,9 @@ export const productionService = {
             const { data, error } = await supabase
                 .from('jobs')
                 .select('*')
-                // Jobs ready for production or already in production
-                .or('status.eq.design_approved, status.eq.production_started, status.eq.production_completed')
+                .select('*')
+                // Jobs in production cycle: approved -> production -> printing -> framing -> complete
+                .or('status.eq.design_approved,status.eq.production_started,status.eq.printing_queued,status.eq.printing_started,status.eq.printing_completed,status.eq.framing_started,status.eq.production_completed')
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -71,24 +72,26 @@ export const productionService = {
                 .select('*', { count: 'exact', head: true })
                 .eq('status', 'design_approved');
 
-            // Count active jobs (production_started)
+            // Count active jobs (In Production / Printing / Framing)
             const { count: activeCount } = await supabase
                 .from('jobs')
                 .select('*', { count: 'exact', head: true })
-                .eq('status', 'production_started');
+                .or('status.eq.production_started,status.eq.printing_queued,status.eq.printing_started,status.eq.printing_completed,status.eq.framing_started');
 
             // Count completed today
             const today = new Date().toISOString().split('T')[0];
             const { data: completedData } = await supabase
                 .from('jobs')
-                .select('production')
+                .select('production, updated_at')
                 .eq('status', 'production_completed');
 
-            // Filter jobs completed today based on timeline
+            // Filter jobs completed today based on update time or timeline
             const completedToday = (completedData || []).filter((job: any) => {
+                const updated = job.updated_at?.startsWith(today);
                 const timeline = job.production?.timeline || [];
-                const readyEntry = timeline.find((t: any) => t.status === 'ready_for_printing');
-                return readyEntry?.timestamp?.startsWith(today);
+                const completedEntry = timeline.find((t: any) => t.status === 'completed' || t.status === 'production_completed');
+                const timelineDate = completedEntry?.timestamp?.startsWith(today);
+                return updated || timelineDate;
             }).length;
 
             // Count available workers
@@ -281,9 +284,9 @@ export const productionService = {
     },
 
     /**
-     * Mark job as ready for printing (complete production)
+     * Send job to printing queue
      */
-    async markReadyForPrinting(jobId: string): Promise<boolean> {
+    async sendToPrinting(jobId: string): Promise<boolean> {
         try {
             const { data: currentJob } = await supabase
                 .from('jobs')
@@ -294,15 +297,98 @@ export const productionService = {
             const currentProduction = currentJob?.production || {};
             const existingTimeline = Array.isArray(currentProduction.timeline) ? currentProduction.timeline : [];
 
-            // Add timeline entry
             const timelineEntry = {
-                status: 'ready_for_printing',
+                status: 'printing_queued',
                 timestamp: new Date().toISOString(),
             };
 
             const updatedProduction = {
                 ...currentProduction,
-                status: 'ready_for_printing',
+                status: 'printing_queued',
+                progress: 50, // Approx progress
+                lastUpdated: new Date().toISOString(),
+                timeline: [...existingTimeline, timelineEntry],
+            };
+
+            await supabase
+                .from('jobs')
+                .update({
+                    production: updatedProduction,
+                    status: 'printing_queued',
+                })
+                .eq('id', jobId);
+
+            return true;
+        } catch (error) {
+            console.error('[Production Service] Error sending to printing:', error);
+            return false;
+        }
+    },
+
+    /**
+     * Start Framing (Post-Printing)
+     */
+    async startFraming(jobId: string): Promise<boolean> {
+        try {
+            const { data: currentJob } = await supabase
+                .from('jobs')
+                .select('production')
+                .eq('id', jobId)
+                .single();
+
+            const currentProduction = currentJob?.production || {};
+            const existingTimeline = Array.isArray(currentProduction.timeline) ? currentProduction.timeline : [];
+
+            const timelineEntry = {
+                status: 'framing_started',
+                timestamp: new Date().toISOString(),
+            };
+
+            const updatedProduction = {
+                ...currentProduction,
+                status: 'framing_started',
+                progress: 75,
+                lastUpdated: new Date().toISOString(),
+                timeline: [...existingTimeline, timelineEntry],
+            };
+
+            await supabase
+                .from('jobs')
+                .update({
+                    production: updatedProduction,
+                    status: 'framing_started',
+                })
+                .eq('id', jobId);
+
+            return true;
+        } catch (error) {
+            console.error('[Production Service] Error starting framing:', error);
+            return false;
+        }
+    },
+
+    /**
+     * Complete Production (Final Step)
+     */
+    async completeProduction(jobId: string): Promise<boolean> {
+        try {
+            const { data: currentJob } = await supabase
+                .from('jobs')
+                .select('production')
+                .eq('id', jobId)
+                .single();
+
+            const currentProduction = currentJob?.production || {};
+            const existingTimeline = Array.isArray(currentProduction.timeline) ? currentProduction.timeline : [];
+
+            const timelineEntry = {
+                status: 'production_completed',
+                timestamp: new Date().toISOString(),
+            };
+
+            const updatedProduction = {
+                ...currentProduction,
+                status: 'production_completed',
                 progress: 100,
                 lastUpdated: new Date().toISOString(),
                 timeline: [...existingTimeline, timelineEntry],
@@ -317,7 +403,6 @@ export const productionService = {
                     .eq('id', workerId);
             }
 
-            // Update job
             await supabase
                 .from('jobs')
                 .update({
@@ -328,7 +413,7 @@ export const productionService = {
 
             return true;
         } catch (error) {
-            console.error('[Production Service] Error marking ready for printing:', error);
+            console.error('[Production Service] Error completing production:', error);
             return false;
         }
     },
@@ -364,15 +449,27 @@ function mapToProductionJob(row: any): ProductionJob {
 
 // Map main status to production status
 function mapToProductionStatus(mainStatus: string, productionStatus?: string): ProductionJobStatus {
-    // Priority: production.status (JSONB) > main status
-    if (productionStatus) {
-        return productionStatus as ProductionJobStatus;
+    // Priority: Main Status for inter-departmental transitions (Printing/Framing)
+    // We check these first because production.status might be stale (e.g., 'printing_queued')
+    if (['printing_queued', 'printing_started', 'printing_completed', 'framing_started', 'production_completed'].includes(mainStatus)) {
+        switch (mainStatus) {
+            case 'printing_queued':
+            case 'printing_started': return 'at_printing';
+            case 'printing_completed': return 'ready_for_framing';
+            case 'framing_started': return 'framing_in_progress';
+            case 'production_completed': return 'completed';
+        }
     }
 
+    // Fallback: Use internal production status if available (e.g., for sub-steps within production if any)
+    if (productionStatus === 'in_progress') {
+        return 'in_progress';
+    }
+
+    // Default mapping
     switch (mainStatus) {
         case 'design_approved': return 'pending';
         case 'production_started': return 'in_progress';
-        case 'production_completed': return 'ready_for_printing';
         default: return 'pending';
     }
 }

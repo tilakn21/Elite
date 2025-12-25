@@ -6,7 +6,10 @@
 export type ProductionJobStatus =
     | 'pending'           // Design approved, waiting for production
     | 'in_progress'       // Production started
-    | 'ready_for_printing'; // Production complete, ready for printing
+    | 'at_printing'       // Sent to printing (NEW)
+    | 'ready_for_framing' // Printing done, back for framing (NEW)
+    | 'framing_in_progress' // Framing started (NEW)
+    | 'completed';        // Production complete
 
 export interface Worker {
     id: string;

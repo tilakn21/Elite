@@ -19,9 +19,11 @@ export type JobStatus =
     | 'design_in_review'      // Chat + modifications
     | 'design_approved'       // Customer approved
     | 'production_started'    // Manufacturing begun
-    | 'production_completed'  // Manufacturing done
+    | 'printing_queued'       // Sent to printing (NEW)
     | 'printing_started'      // Printing in progress
     | 'printing_completed'    // Printing done
+    | 'framing_started'       // Back to production for framing (NEW)
+    | 'production_completed'  // Manufacturing done
     | 'out_for_delivery';     // Final delivery
 
 // Payment Status - accounts dimension
@@ -31,12 +33,16 @@ export type PaymentStatus =
     | 'payment_done';     // Fully paid
 
 // Payment record for tracking individual payments
+// Payment record for tracking individual payments
 export interface PaymentRecord {
-    id: string;
+    id?: string;
     amount: number;
-    mode: 'cash' | 'upi' | 'card' | 'bank_transfer' | 'cheque';
-    recorded_by: string;
-    recorded_at: string;
+    mode: string; // Allow flexible string for captialized 'Cash' etc
+    // Schema variations
+    recorded_by?: string;
+    received_by?: string;
+    recorded_at?: string;
+    date?: string;
     notes?: string;
 }
 
@@ -149,6 +155,7 @@ export interface AccountsData {
     total_amount?: number;
     paymentMethod?: string;
     payments?: PaymentRecord[];
+    amount_remaining?: number;
 }
 
 export interface Job {

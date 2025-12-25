@@ -163,6 +163,11 @@ export default function PrintingJobDetailsPage() {
                 const design = data.design || {};
                 const printing = data.printing || {};
 
+                // Use approved drafts if available, otherwise fallback to all drafts
+                const allDrafts = design.drafts || [];
+                const approvedDrafts = allDrafts.filter((d: any) => d.status === 'approved');
+                const finalDrafts = approvedDrafts.length > 0 ? approvedDrafts : allDrafts;
+
                 setJob({
                     id: data.id,
                     jobCode: data.job_code || data.id,
@@ -173,7 +178,7 @@ export default function PrintingJobDetailsPage() {
                     email: receptionist.email || '',
                     city: receptionist.city || '',
                     area: receptionist.area || '',
-                    designProofs: design.drafts?.map((d: any) => d.url) || [],
+                    designProofs: finalDrafts.map((d: any) => d.url) || [],
                     material: salesperson.material || '',
                     measurements: salesperson.measurements || salesperson.signMeasurements || '',
                     extraDetails: salesperson.extraDetails || '',
